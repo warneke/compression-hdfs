@@ -8,10 +8,6 @@ import edu.berkeley.icsi.cdfs.CDFS;
 
 public class DataNode {
 
-	public static final int WRITE_REQUEST = 1;
-
-	public static final int READ_REQUEST = 2;
-
 	private final ServerSocket serverSocket;
 
 	public DataNode() throws IOException {
@@ -22,7 +18,7 @@ public class DataNode {
 
 		while (true) {
 			final Socket socket = this.serverSocket.accept();
-			new DataNodeConnection(socket);
+			new Connection(socket);
 		}
 	}
 

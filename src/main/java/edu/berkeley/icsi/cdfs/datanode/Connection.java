@@ -9,36 +9,15 @@ import org.apache.hadoop.util.StringUtils;
 
 import edu.berkeley.icsi.cdfs.utils.NumberUtils;
 
-final class DataNodeConnection extends Thread {
+final class Connection extends Thread {
 
 	private final Socket socket;
 
-	DataNodeConnection(final Socket socket) {
+	Connection(final Socket socket) {
 		super("DataNodeConnection from " + socket.getRemoteSocketAddress());
 
 		this.socket = socket;
 		start();
-	}
-
-	private static int readHeader(final InputStream inputStream, final byte[] buffer) throws IOException {
-
-		int totalRead = 0;
-
-		while (true) {
-
-			final int read = inputStream.read(buffer, totalRead, buffer.length - totalRead);
-			if (read == -1) {
-				break;
-			}
-
-			totalRead += read;
-
-			if (buffer[totalRead - 1] == 0) {
-				break;
-			}
-		}
-
-		return totalRead;
 	}
 
 	/**
@@ -50,19 +29,16 @@ final class DataNodeConnection extends Thread {
 		// Read header first
 		try {
 			final InputStream inputStream = this.socket.getInputStream();
-			byte[] header = new byte[256];
 
-			final int bytesRead = readHeader(inputStream, header);
-			if (bytesRead == 0) {
+			final Header header = Header.receiveHeader(inputStream);
+			if (header == null) {
 				throw new IOException("Unexpected end of header");
 			}
 
 			// Mode
-			if (header[0] == DataNode.WRITE_REQUEST) {
-				int pathLength = NumberUtils.byteArrayToInteger(header, 1);
-				final Path file = new Path(new String(header, 5, pathLength));
+			if (header.getConnectionMode() == ConnectionMode.WRITE) {
 
-				System.out.println("WRITE " + file);
+				System.out.println("WRITE " + header.getPath());
 
 				byte[] data = new byte[4096];
 				int totalRead = 0;
@@ -74,7 +50,7 @@ final class DataNodeConnection extends Thread {
 					}
 
 					System.out.println("READ " + read);
-					
+
 					totalRead += read;
 				}
 

@@ -1,7 +1,7 @@
 package edu.berkeley.icsi.cdfs;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
@@ -13,11 +13,12 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
-import org.apache.hadoop.hdfs.DFSClient;
 import org.apache.hadoop.hdfs.server.namenode.NameNode;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.util.Progressable;
 
+import edu.berkeley.icsi.cdfs.datanode.ConnectionMode;
+import edu.berkeley.icsi.cdfs.datanode.Header;
 import edu.berkeley.icsi.cdfs.protocols.ClientNameNodeProtocol;
 import edu.berkeley.icsi.cdfs.utils.PathWrapper;
 
@@ -60,8 +61,10 @@ public class CDFS extends FileSystem {
 		}
 
 		final Socket socket = new Socket("localhost", DATANODE_DATA_PORT);
-		CDFSDataOutputStream.sendHeader(f, socket.getOutputStream());
-		return new CDFSDataOutputStream(socket.getOutputStream());
+		final OutputStream outputStream = socket.getOutputStream();
+		final Header header = new Header(ConnectionMode.WRITE, f);
+		header.sendHeader(outputStream);
+		return new CDFSDataOutputStream(outputStream);
 	}
 
 	@Override
