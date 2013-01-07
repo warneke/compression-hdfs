@@ -33,4 +33,9 @@ public final class BufferPool {
 
 		this.buffers.add(buffer);
 	}
+
+	public int getNumberOfAvailableBuffers() {
+
+		return this.buffers.size();
+	}
 }

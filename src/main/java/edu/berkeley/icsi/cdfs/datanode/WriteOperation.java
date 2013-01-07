@@ -46,35 +46,66 @@ final class WriteOperation {
 
 	private void swapUncompressedBuffer() {
 
-		if (this.uncompressedBuffer != null) {
+		if (this.cacheUncompressed) {
 
-			final Buffer buffer = new Buffer(this.uncompressedBuffer, this.numberOfBytesInUncompressedBuffer);
-			this.uncompressedBuffers.push(buffer);
+			if (this.uncompressedBuffer != null) {
+
+				final Buffer buffer = new Buffer(this.uncompressedBuffer, this.numberOfBytesInUncompressedBuffer);
+				this.uncompressedBuffers.push(buffer);
+				this.numberOfBytesInUncompressedBuffer = 0;
+			}
+
+			this.uncompressedBuffer = this.bufferPool.lockBuffer();
+			if (this.uncompressedBuffer == null) {
+				clearUncompressedBuffers();
+				this.uncompressedBuffer = new byte[BufferPool.BUFFER_SIZE];
+				this.cacheUncompressed = false;
+			}
+		} else {
 			this.numberOfBytesInUncompressedBuffer = 0;
-		}
-
-		this.uncompressedBuffer = this.bufferPool.lockBuffer();
-		if (this.uncompressedBuffer == null) {
-			System.out.println("Handle uncompressed buffer == null");
 		}
 	}
 
 	private void swapCompressedBuffer() {
 
-		if (this.compressedBuffer != null) {
+		if (this.cacheCompressed) {
 
-			if (this.compressedBuffer.length - this.numberOfBytesInCompressedBuffer >= 4) {
-				return;
+			if (this.compressedBuffer != null) {
+
+				if (this.compressedBuffer.length - this.numberOfBytesInCompressedBuffer >= 4) {
+					return;
+				}
+
+				final Buffer buffer = new Buffer(this.compressedBuffer, this.numberOfBytesInCompressedBuffer);
+				this.compressedBuffers.push(buffer);
+				this.numberOfBytesInCompressedBuffer = 0;
 			}
 
-			final Buffer buffer = new Buffer(this.compressedBuffer, this.numberOfBytesInCompressedBuffer);
-			this.compressedBuffers.push(buffer);
-			this.numberOfBytesInCompressedBuffer = 0;
-		}
+			this.compressedBuffer = this.bufferPool.lockBuffer();
+			if (this.compressedBuffer == null) {
 
-		this.compressedBuffer = this.bufferPool.lockBuffer();
-		if (this.compressedBuffer == null) {
-			System.out.println("Handle compressed buffer == null");
+				if (this.cacheUncompressed) {
+					clearUncompressedBuffers();
+					if (this.numberOfBytesInUncompressedBuffer > 0) {
+						final byte[] newBuf = new byte[BufferPool.BUFFER_SIZE];
+						System.arraycopy(this.uncompressedBuffer, 0, newBuf, 0, this.numberOfBytesInUncompressedBuffer);
+						this.bufferPool.releaseBuffer(this.uncompressedBuffer);
+						this.uncompressedBuffer = newBuf;
+					}
+					this.cacheCompressed = false;
+				}
+
+				this.compressedBuffer = this.bufferPool.lockBuffer();
+				if (this.compressedBuffer == null) {
+					if (this.cacheCompressed) {
+						clearCompressedBuffers();
+						this.compressedBuffer = new byte[BufferPool.BUFFER_SIZE];
+						this.cacheCompressed = false;
+					}
+				}
+			}
+		} else {
+			this.numberOfBytesInCompressedBuffer = 0;
 		}
 	}
 
@@ -96,13 +127,21 @@ final class WriteOperation {
 				}
 			}
 
+			if (this.numberOfBytesInUncompressedBuffer == 0) {
+				if (this.cacheUncompressed) {
+					this.bufferPool.releaseBuffer(this.uncompressedBuffer);
+					this.uncompressedBuffer = null;
+				}
+				break;
+			}
+
 			System.out.println("WRITE " + this.numberOfBytesInUncompressedBuffer);
 
 			// Compress the block
 			final int numberOfCompressedBytes = this.compressor.compress(this.uncompressedBuffer,
 				this.numberOfBytesInUncompressedBuffer);
 
-			System.out.println("COMPRESSED " + numberOfCompressedBytes);
+			// System.out.println("COMPRESSED " + numberOfCompressedBytes);
 
 			swapCompressedBuffer();
 
@@ -130,21 +169,37 @@ final class WriteOperation {
 			}
 		}
 
-		if (this.uncompressedBuffer != null) {
+		if (this.uncompressedBuffer != null && this.cacheUncompressed) {
 			final Buffer buffer = new Buffer(this.uncompressedBuffer, this.numberOfBytesInUncompressedBuffer);
 			this.uncompressedBuffers.push(buffer);
 			this.numberOfBytesInUncompressedBuffer = 0;
 			this.uncompressedBuffer = null;
 		}
 
-		if (this.compressedBuffer != null) {
+		if (this.compressedBuffer != null && this.cacheCompressed) {
 			final Buffer buffer = new Buffer(this.compressedBuffer, this.numberOfBytesInCompressedBuffer);
 			this.compressedBuffers.push(buffer);
 			this.numberOfBytesInCompressedBuffer = 0;
 			this.compressedBuffer = null;
 		}
 
-		System.out.println("UNCOMPRESSED " + this.uncompressedBuffers.size());
-		System.out.println("COMPRESSED " + this.compressedBuffers.size());
+		System.out.println("UNCOMPRESSED BUFFERS " + this.uncompressedBuffers.size());
+		System.out.println("COMPRESSED BUFFERS " + this.compressedBuffers.size());
+
+		System.out.println("AVAIL " + this.bufferPool.getNumberOfAvailableBuffers());
+	}
+
+	private final void clearUncompressedBuffers() {
+
+		while (!this.uncompressedBuffers.isEmpty()) {
+			this.bufferPool.releaseBuffer(this.uncompressedBuffers.poll().getData());
+		}
+	}
+
+	private final void clearCompressedBuffers() {
+
+		while (!this.compressedBuffers.isEmpty()) {
+			this.bufferPool.releaseBuffer(this.compressedBuffers.poll().getData());
+		}
 	}
 }
