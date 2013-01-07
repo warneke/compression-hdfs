@@ -7,6 +7,8 @@ import java.net.Socket;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.StringUtils;
 
+import edu.berkeley.icsi.cdfs.cache.BufferPool;
+import edu.berkeley.icsi.cdfs.compression.Compressor;
 import edu.berkeley.icsi.cdfs.utils.NumberUtils;
 
 final class Connection extends Thread {
@@ -37,25 +39,8 @@ final class Connection extends Thread {
 
 			// Mode
 			if (header.getConnectionMode() == ConnectionMode.WRITE) {
-
-				System.out.println("WRITE " + header.getPath());
-
-				byte[] data = new byte[4096];
-				int totalRead = 0;
-				while (true) {
-
-					final int read = inputStream.read(data);
-					if (read == -1) {
-						break;
-					}
-
-					System.out.println("READ " + read);
-
-					totalRead += read;
-				}
-
-				System.out.println("TOTAL READ " + totalRead);
-
+				final WriteOperation wo = new WriteOperation(header.getPath());
+				wo.write(inputStream);
 			} else {
 				System.out.println("READ");
 			}
