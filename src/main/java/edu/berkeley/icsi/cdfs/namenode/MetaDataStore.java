@@ -74,6 +74,16 @@ final class MetaDataStore {
 		return true;
 	}
 
+	synchronized void addNewBlock(final Path cdfsPath, final Path hdfsPath, final int blockIndex, final int blockLength)
+			throws IOException {
+
+		final FileMetaData fmd = this.metaData.get(cdfsPath);
+		fmd.addNewBlock(hdfsPath, blockIndex, blockLength);
+
+		// Save meta data changes
+		save(fmd);
+	}
+
 	synchronized FileStatus getFileStatus(final Path path) {
 
 		return null;

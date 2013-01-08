@@ -9,9 +9,10 @@ import org.apache.hadoop.ipc.RPC.Server;
 
 import edu.berkeley.icsi.cdfs.CDFS;
 import edu.berkeley.icsi.cdfs.protocols.ClientNameNodeProtocol;
+import edu.berkeley.icsi.cdfs.protocols.DataNodeNameNodeProtocol;
 import edu.berkeley.icsi.cdfs.utils.PathWrapper;
 
-public class NameNode implements ClientNameNodeProtocol {
+public class NameNode implements ClientNameNodeProtocol, DataNodeNameNodeProtocol {
 
 	private final Server rpcServer;
 
@@ -78,5 +79,15 @@ public class NameNode implements ClientNameNodeProtocol {
 	public boolean create(final PathWrapper path) throws IOException {
 
 		return this.metaDataStore.create(path.getPath());
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public void createNewBlock(final PathWrapper cdfsPath, final PathWrapper hdfsPath, final int blockIndex,
+			final int blockLength) throws IOException {
+
+		this.metaDataStore.addNewBlock(cdfsPath.getPath(), hdfsPath.getPath(), blockIndex, blockLength);
 	}
 }

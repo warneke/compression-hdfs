@@ -10,15 +10,19 @@ import org.apache.hadoop.fs.Path;
 import edu.berkeley.icsi.cdfs.cache.Buffer;
 import edu.berkeley.icsi.cdfs.cache.CompressedBufferCache;
 import edu.berkeley.icsi.cdfs.cache.UncompressedBufferCache;
+import edu.berkeley.icsi.cdfs.protocols.DataNodeNameNodeProtocol;
 
 final class Connection extends Thread {
 
 	private final Socket socket;
 
-	Connection(final Socket socket) {
+	private final DataNodeNameNodeProtocol nameNode;
+
+	Connection(final Socket socket, final DataNodeNameNodeProtocol nameNode) {
 		super("DataNodeConnection from " + socket.getRemoteSocketAddress());
 
 		this.socket = socket;
+		this.nameNode = nameNode;
 		start();
 	}
 
@@ -39,7 +43,7 @@ final class Connection extends Thread {
 
 			// Mode
 			if (header.getConnectionMode() == ConnectionMode.WRITE) {
-				final WriteOp wo = new WriteOp(header.getPath(), 128 * 1024 * 1024);
+				final WriteOp wo = new WriteOp(this.nameNode, header.getPath(), 128 * 1024 * 1024);
 				wo.write(inputStream);
 			} else {
 

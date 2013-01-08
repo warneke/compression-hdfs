@@ -1,5 +1,8 @@
 package edu.berkeley.icsi.cdfs.namenode;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.hadoop.fs.Path;
 
 import com.esotericsoftware.kryo.Kryo;
@@ -11,18 +14,40 @@ final class FileMetaData implements KryoSerializable {
 
 	private Path path;
 
-	FileMetaData(final Path path) {
+	private final List<BlockMetaData> blocks = new ArrayList<BlockMetaData>();
 
+	private long length;
+
+	FileMetaData(final Path path) {
 		this.path = path;
+		this.length = 0L;
+	}
+
+	@SuppressWarnings("unused")
+	private FileMetaData() {
+		this.path = null;
+		this.length = 0L;
 	}
 
 	Path getPath() {
 		return this.path;
 	}
 
-	@SuppressWarnings("unused")
-	private FileMetaData() {
-		this.path = null;
+	void addNewBlock(final Path hdfsPath, final int blockIndex, final int blockLength) {
+
+		// Sanity check
+		if (blockIndex != this.blocks.size()) {
+			throw new IllegalStateException("Expected block " + this.blocks.size() + ", but received " + blockIndex);
+		}
+
+		this.blocks.add(new BlockMetaData(hdfsPath, blockLength, this.length));
+
+		// Increase the length of the total file
+		this.length += blockLength;
+	}
+
+	long getLength() {
+		return this.length;
 	}
 
 	/**
@@ -32,6 +57,11 @@ final class FileMetaData implements KryoSerializable {
 	public void write(final Kryo kryo, final Output output) {
 
 		output.writeString(this.path.toString());
+		output.writeLong(this.length);
+		output.writeInt(this.blocks.size());
+		for (final BlockMetaData bmd : this.blocks) {
+			kryo.writeObject(output, bmd);
+		}
 	}
 
 	/**
@@ -41,5 +71,10 @@ final class FileMetaData implements KryoSerializable {
 	public void read(final Kryo kryo, final Input input) {
 
 		this.path = new Path(input.readString());
+		this.length = input.readLong();
+		final int numberOfBlocks = input.readInt();
+		for (int i = 0; i < numberOfBlocks; ++i) {
+			this.blocks.add(kryo.readObject(input, BlockMetaData.class));
+		}
 	}
 }

@@ -18,9 +18,13 @@ import edu.berkeley.icsi.cdfs.cache.BufferPool;
 import edu.berkeley.icsi.cdfs.cache.CompressedBufferCache;
 import edu.berkeley.icsi.cdfs.cache.UncompressedBufferCache;
 import edu.berkeley.icsi.cdfs.compression.Compressor;
+import edu.berkeley.icsi.cdfs.protocols.DataNodeNameNodeProtocol;
 import edu.berkeley.icsi.cdfs.utils.NumberUtils;
+import edu.berkeley.icsi.cdfs.utils.PathWrapper;
 
 final class WriteOp {
+
+	private final DataNodeNameNodeProtocol nameNode;
 
 	private final int blockSize;
 
@@ -56,8 +60,9 @@ final class WriteOp {
 
 	private final List<Buffer> compressedBuffers;
 
-	WriteOp(final Path cdfsPath, final int blockSize) {
+	WriteOp(final DataNodeNameNodeProtocol nameNode, final Path cdfsPath, final int blockSize) {
 
+		this.nameNode = nameNode;
 		this.blockSize = blockSize;
 		this.bufferPool = BufferPool.get();
 		this.compressor = new Compressor(BufferPool.BUFFER_SIZE);
@@ -245,6 +250,11 @@ final class WriteOp {
 					this.hdfsOutputStream = null;
 				}
 
+				synchronized (this.nameNode) {
+					this.nameNode.createNewBlock(new PathWrapper(this.cdfsPath), new PathWrapper(this.hdfsPath),
+						this.nextBlockIndex, this.bytesWrittenInBlock);
+				}
+
 				this.bytesWrittenInBlock = 0;
 				++this.nextBlockIndex;
 				this.hdfsPath = constructHDFSPath();
@@ -273,6 +283,12 @@ final class WriteOp {
 				this.numberOfBytesInCompressedBuffer = 0;
 				this.compressedBuffer = null;
 			}
+		}
+
+		// Report last block
+		synchronized (this.nameNode) {
+			this.nameNode.createNewBlock(new PathWrapper(this.cdfsPath), new PathWrapper(this.hdfsPath),
+				this.nextBlockIndex, this.bytesWrittenInBlock);
 		}
 
 		if (this.hdfsOutputStream != null) {
