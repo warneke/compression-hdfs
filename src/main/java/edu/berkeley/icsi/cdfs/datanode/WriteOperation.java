@@ -2,8 +2,13 @@ package edu.berkeley.icsi.cdfs.datanode;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayDeque;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 import edu.berkeley.icsi.cdfs.cache.Buffer;
@@ -19,7 +24,13 @@ final class WriteOperation {
 
 	private final Compressor compressor;
 
-	private final Path path;
+	private final Path cdfsPath;
+
+	private Path hdfsPath;
+
+	private FileSystem hdfs = null;
+
+	private FSDataOutputStream hdfsOutputStream = null;
 
 	private boolean cacheUncompressed = true;
 
@@ -41,14 +52,44 @@ final class WriteOperation {
 
 	private final ArrayDeque<Buffer> compressedBuffers;
 
-	WriteOperation(final Path path, final int blockSize) {
+	WriteOperation(final Path cdfsPath, final int blockSize) {
 
 		this.blockSize = blockSize;
 		this.bufferPool = BufferPool.get();
 		this.compressor = new Compressor(BufferPool.BUFFER_SIZE);
-		this.path = path;
+		this.cdfsPath = cdfsPath;
+		this.hdfsPath = constructHDFSPath();
 		this.uncompressedBuffers = new ArrayDeque<Buffer>();
 		this.compressedBuffers = new ArrayDeque<Buffer>();
+	}
+
+	private Path constructHDFSPath() {
+
+		final URI cdfsURI = this.cdfsPath.toUri();
+
+		URI uri;
+		try {
+			uri = new URI("hdfs", cdfsURI.getUserInfo(), cdfsURI.getHost(), 9000, cdfsURI.getPath() + "_"
+				+ this.nextBlockIndex, cdfsURI.getQuery(), cdfsURI.getFragment());
+		} catch (URISyntaxException e) {
+			throw new RuntimeException(e);
+		}
+
+		return new Path(uri);
+	}
+
+	private final void writeToHDFS() throws IOException {
+
+		if (this.hdfsOutputStream == null) {
+
+			if (this.hdfs == null) {
+				this.hdfs = this.hdfsPath.getFileSystem(new Configuration());
+			}
+
+			this.hdfsOutputStream = this.hdfs.create(this.hdfsPath);
+		}
+
+		this.hdfsOutputStream.write(this.compressedBuffer, 0, this.numberOfBytesInCompressedBuffer);
 	}
 
 	private void swapUncompressedBuffer() {
@@ -73,15 +114,18 @@ final class WriteOperation {
 		}
 	}
 
-	private void swapCompressedBuffer() {
+	private void swapCompressedBuffer() throws IOException {
 
 		if (this.cacheCompressed) {
 
 			if (this.compressedBuffer != null) {
 
-				if (this.compressedBuffer.length - this.numberOfBytesInCompressedBuffer >= 4) {
+				if (this.compressedBuffer.length - this.numberOfBytesInCompressedBuffer >= 4
+					&& this.bytesWrittenInBlock != this.blockSize) {
 					return;
 				}
+
+				writeToHDFS();
 
 				final Buffer buffer = new Buffer(this.compressedBuffer, this.numberOfBytesInCompressedBuffer);
 				this.compressedBuffers.push(buffer);
@@ -112,6 +156,7 @@ final class WriteOperation {
 				}
 			}
 		} else {
+			writeToHDFS();
 			this.numberOfBytesInCompressedBuffer = 0;
 		}
 	}
@@ -185,11 +230,20 @@ final class WriteOperation {
 				swapCompressedBuffer();
 			}
 
-			if(this.bytesWrittenInBlock == this.blockSize) {
-				System.out.println("BLOCK SIZE REACHED");
+			if (this.bytesWrittenInBlock == this.blockSize) {
+
+				swapCompressedBuffer();
+
+				if (this.hdfsOutputStream != null) {
+					this.hdfsOutputStream.close();
+					this.hdfsOutputStream = null;
+				}
+
 				this.bytesWrittenInBlock = 0;
+				++this.nextBlockIndex;
+				this.hdfsPath = constructHDFSPath();
 			}
-			
+
 			// Check if this was the last buffer
 			if (this.numberOfBytesInUncompressedBuffer < uncompressedBuffer.length) {
 				break;
