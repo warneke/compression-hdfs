@@ -1,11 +1,9 @@
 package edu.berkeley.icsi.cdfs.namenode;
 
 import java.io.IOException;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.ipc.RPC.Server;
 
@@ -17,14 +15,14 @@ public class NameNode implements ClientNameNodeProtocol {
 
 	private final Server rpcServer;
 
-	private final ConcurrentHashMap<Path, Object> metaData;
+	private final MetaDataStore metaDataStore;
 
 	NameNode() throws IOException {
 
 		this.rpcServer = RPC.getServer(this, "localhost", CDFS.NAMENODE_RPC_PORT, new Configuration());
 		this.rpcServer.start();
 
-		this.metaData = new ConcurrentHashMap<Path, Object>();
+		this.metaDataStore = new MetaDataStore();
 	}
 
 	public void shutDown() {
@@ -70,13 +68,7 @@ public class NameNode implements ClientNameNodeProtocol {
 	@Override
 	public FileStatus getFileStatus(final PathWrapper path) throws IOException {
 
-		if (!this.metaData.containsKey(path.getPath())) {
-			return null;
-		}
-
-		System.out.println("Path " + path.getPath());
-
-		return null;
+		return this.metaDataStore.getFileStatus(path.getPath());
 	}
 
 	/**
@@ -85,10 +77,6 @@ public class NameNode implements ClientNameNodeProtocol {
 	@Override
 	public boolean create(final PathWrapper path) throws IOException {
 
-		if (this.metaData.containsKey(path.getPath())) {
-			return false;
-		}
-
-		return true;
+		return this.metaDataStore.create(path.getPath());
 	}
 }

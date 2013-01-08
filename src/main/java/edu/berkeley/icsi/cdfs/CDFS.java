@@ -1,5 +1,6 @@
 package edu.berkeley.icsi.cdfs;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
@@ -91,9 +92,12 @@ public class CDFS extends FileSystem {
 	@Override
 	public FileStatus getFileStatus(final Path arg0) throws IOException {
 
-		System.out.println("getFileStatus");
+		final FileStatus fileStatus = this.nameNode.getFileStatus(new PathWrapper(arg0));
+		if (fileStatus == null) {
+			throw new FileNotFoundException("File " + arg0 + " could not be found");
+		}
 
-		return null;
+		return fileStatus;
 	}
 
 	/**

@@ -39,7 +39,7 @@ final class Connection extends Thread {
 
 			// Mode
 			if (header.getConnectionMode() == ConnectionMode.WRITE) {
-				final WriteOp wo = new WriteOp(header.getPath(), 32 * 1024 * 1024);
+				final WriteOp wo = new WriteOp(header.getPath(), 128 * 1024 * 1024);
 				wo.write(inputStream);
 			} else {
 

@@ -85,7 +85,11 @@
            <type>jar</type>
            <scope>compile</scope>
         </dependency>
-
+        <dependency>
+           <groupId>com.esotericsoftware.kryo</groupId>
+           <artifactId>kryo</artifactId>
+           <version>2.20</version>
+    </dependency>
         <!--<dependency>
            <groupId>org.apache.hadoop</groupId>
            <artifactId>hadoop-hdfs-httpfs</artifactId>
