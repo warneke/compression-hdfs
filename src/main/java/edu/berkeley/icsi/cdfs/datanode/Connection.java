@@ -47,7 +47,7 @@ final class Connection extends Thread {
 				List<Buffer> buffers = UncompressedBufferCache.get().lock(path);
 				AbstractReadOp ro = null;
 				if (buffers != null) {
-					System.out.println("No uncompressed version of " + path);
+					ro = new UncompressedCachedReadOp(buffers);
 				} else {
 					buffers = CompressedBufferCache.get().lock(path);
 					if (buffers != null) {
