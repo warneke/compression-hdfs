@@ -89,7 +89,9 @@ final class WriteOperation {
 			this.hdfsOutputStream = this.hdfs.create(this.hdfsPath);
 		}
 
-		this.hdfsOutputStream.write(this.compressedBuffer, 0, this.numberOfBytesInCompressedBuffer);
+		if (this.numberOfBytesInCompressedBuffer > 0) {
+			this.hdfsOutputStream.write(this.compressedBuffer, 0, this.numberOfBytesInCompressedBuffer);
+		}
 	}
 
 	private void swapUncompressedBuffer() {
@@ -202,7 +204,7 @@ final class WriteOperation {
 				break;
 			}
 
-			System.out.println("WRITE " + this.numberOfBytesInUncompressedBuffer);
+			// System.out.println("WRITE " + this.numberOfBytesInUncompressedBuffer);
 
 			// Compress the block
 			final int numberOfCompressedBytes = this.compressor.compress(this.uncompressedBuffer,
@@ -219,7 +221,7 @@ final class WriteOperation {
 			r = 0;
 			while (r < numberOfCompressedBytes) {
 
-				final int bytesToCopy = Math.min(numberOfCompressedBytes, this.compressedBuffer.length
+				final int bytesToCopy = Math.min(numberOfCompressedBytes - r, this.compressedBuffer.length
 					- this.numberOfBytesInCompressedBuffer);
 				System.arraycopy(this.compressor.getCompressedBuffer(), r, this.compressedBuffer,
 					this.numberOfBytesInCompressedBuffer, bytesToCopy);
@@ -257,11 +259,21 @@ final class WriteOperation {
 			this.uncompressedBuffer = null;
 		}
 
-		if (this.compressedBuffer != null && this.cacheCompressed) {
-			final Buffer buffer = new Buffer(this.compressedBuffer, this.numberOfBytesInCompressedBuffer);
-			this.compressedBuffers.push(buffer);
-			this.numberOfBytesInCompressedBuffer = 0;
-			this.compressedBuffer = null;
+		if (this.compressedBuffer != null) {
+
+			writeToHDFS();
+
+			if (this.cacheCompressed) {
+				final Buffer buffer = new Buffer(this.compressedBuffer, this.numberOfBytesInCompressedBuffer);
+				this.compressedBuffers.push(buffer);
+				this.numberOfBytesInCompressedBuffer = 0;
+				this.compressedBuffer = null;
+			}
+		}
+
+		if (this.hdfsOutputStream != null) {
+			this.hdfsOutputStream.close();
+			this.hdfsOutputStream = null;
 		}
 
 		System.out.println("UNCOMPRESSED BUFFERS " + this.uncompressedBuffers.size());

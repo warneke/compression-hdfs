@@ -35,7 +35,8 @@ final class Connection extends Thread {
 				final WriteOperation wo = new WriteOperation(header.getPath(), 32 * 1024 * 1024);
 				wo.write(inputStream);
 			} else {
-				System.out.println("READ");
+				final ReadOperation ro = new ReadOperation(header.getPath());
+				ro.read(this.socket.getOutputStream());
 			}
 
 		} catch (IOException ioe) {

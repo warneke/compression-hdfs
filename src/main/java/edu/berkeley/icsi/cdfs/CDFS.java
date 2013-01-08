@@ -156,10 +156,18 @@ public class CDFS extends FileSystem {
 		return false;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public FSDataInputStream open(Path arg0, int arg1) throws IOException {
-		// TODO Auto-generated method stub
-		return null;
+	public FSDataInputStream open(final Path arg0, int arg1) throws IOException {
+
+		final Socket socket = new Socket("localhost", DATANODE_DATA_PORT);
+		final OutputStream outputStream = socket.getOutputStream();
+		final Header header = new Header(ConnectionMode.READ, arg0);
+		header.sendHeader(outputStream);
+
+		return new CDFSDataInputStream(socket.getInputStream());
 	}
 
 	@Override

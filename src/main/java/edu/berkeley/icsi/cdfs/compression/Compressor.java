@@ -4,7 +4,7 @@ import java.io.IOException;
 
 import org.xerial.snappy.Snappy;
 
-public class Compressor {
+public final class Compressor {
 
 	private final byte[] compressedBuffer;
 
