@@ -4,7 +4,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -13,10 +15,12 @@ import org.apache.hadoop.fs.Path;
 
 import edu.berkeley.icsi.cdfs.cache.Buffer;
 import edu.berkeley.icsi.cdfs.cache.BufferPool;
+import edu.berkeley.icsi.cdfs.cache.CompressedBufferCache;
+import edu.berkeley.icsi.cdfs.cache.UncompressedBufferCache;
 import edu.berkeley.icsi.cdfs.compression.Compressor;
 import edu.berkeley.icsi.cdfs.utils.NumberUtils;
 
-final class WriteOperation {
+final class WriteOp {
 
 	private final int blockSize;
 
@@ -48,19 +52,19 @@ final class WriteOperation {
 
 	private int bytesWrittenInBlock = 0;
 
-	private final ArrayDeque<Buffer> uncompressedBuffers;
+	private final List<Buffer> uncompressedBuffers;
 
-	private final ArrayDeque<Buffer> compressedBuffers;
+	private final List<Buffer> compressedBuffers;
 
-	WriteOperation(final Path cdfsPath, final int blockSize) {
+	WriteOp(final Path cdfsPath, final int blockSize) {
 
 		this.blockSize = blockSize;
 		this.bufferPool = BufferPool.get();
 		this.compressor = new Compressor(BufferPool.BUFFER_SIZE);
 		this.cdfsPath = cdfsPath;
 		this.hdfsPath = constructHDFSPath();
-		this.uncompressedBuffers = new ArrayDeque<Buffer>();
-		this.compressedBuffers = new ArrayDeque<Buffer>();
+		this.uncompressedBuffers = new ArrayList<Buffer>();
+		this.compressedBuffers = new ArrayList<Buffer>();
 	}
 
 	private Path constructHDFSPath() {
@@ -101,7 +105,7 @@ final class WriteOperation {
 			if (this.uncompressedBuffer != null) {
 
 				final Buffer buffer = new Buffer(this.uncompressedBuffer, this.numberOfBytesInUncompressedBuffer);
-				this.uncompressedBuffers.push(buffer);
+				this.uncompressedBuffers.add(buffer);
 				this.numberOfBytesInUncompressedBuffer = 0;
 			}
 
@@ -130,7 +134,7 @@ final class WriteOperation {
 				writeToHDFS();
 
 				final Buffer buffer = new Buffer(this.compressedBuffer, this.numberOfBytesInCompressedBuffer);
-				this.compressedBuffers.push(buffer);
+				this.compressedBuffers.add(buffer);
 				this.numberOfBytesInCompressedBuffer = 0;
 			}
 
@@ -254,7 +258,7 @@ final class WriteOperation {
 
 		if (this.uncompressedBuffer != null && this.cacheUncompressed) {
 			final Buffer buffer = new Buffer(this.uncompressedBuffer, this.numberOfBytesInUncompressedBuffer);
-			this.uncompressedBuffers.push(buffer);
+			this.uncompressedBuffers.add(buffer);
 			this.numberOfBytesInUncompressedBuffer = 0;
 			this.uncompressedBuffer = null;
 		}
@@ -265,7 +269,7 @@ final class WriteOperation {
 
 			if (this.cacheCompressed) {
 				final Buffer buffer = new Buffer(this.compressedBuffer, this.numberOfBytesInCompressedBuffer);
-				this.compressedBuffers.push(buffer);
+				this.compressedBuffers.add(buffer);
 				this.numberOfBytesInCompressedBuffer = 0;
 				this.compressedBuffer = null;
 			}
@@ -276,23 +280,32 @@ final class WriteOperation {
 			this.hdfsOutputStream = null;
 		}
 
-		System.out.println("UNCOMPRESSED BUFFERS " + this.uncompressedBuffers.size());
-		System.out.println("COMPRESSED BUFFERS " + this.compressedBuffers.size());
+		if (!this.uncompressedBuffers.isEmpty()) {
+			UncompressedBufferCache.get().addCachedBlock(this.cdfsPath, this.uncompressedBuffers);
+		}
 
-		System.out.println("AVAIL " + this.bufferPool.getNumberOfAvailableBuffers());
+		if (!this.compressedBuffers.isEmpty()) {
+			CompressedBufferCache.get().addCachedBlock(this.cdfsPath, this.compressedBuffers);
+		}
 	}
 
 	private final void clearUncompressedBuffers() {
 
-		while (!this.uncompressedBuffers.isEmpty()) {
-			this.bufferPool.releaseBuffer(this.uncompressedBuffers.poll().getData());
+		final Iterator<Buffer> it = this.uncompressedBuffers.iterator();
+		while (it.hasNext()) {
+			this.bufferPool.releaseBuffer(it.next().getData());
 		}
+
+		this.uncompressedBuffers.clear();
 	}
 
 	private final void clearCompressedBuffers() {
 
-		while (!this.compressedBuffers.isEmpty()) {
-			this.bufferPool.releaseBuffer(this.compressedBuffers.poll().getData());
+		final Iterator<Buffer> it = this.compressedBuffers.iterator();
+		while (it.hasNext()) {
+			this.bufferPool.releaseBuffer(it.next().getData());
 		}
+
+		this.compressedBuffers.clear();
 	}
 }

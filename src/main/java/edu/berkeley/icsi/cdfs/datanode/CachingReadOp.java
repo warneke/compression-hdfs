@@ -14,7 +14,7 @@ import org.apache.hadoop.fs.Path;
 import edu.berkeley.icsi.cdfs.cache.BufferPool;
 import edu.berkeley.icsi.cdfs.compression.Decompressor;
 
-final class ReadOperation {
+final class CachingReadOp extends AbstractReadOp {
 
 	private final Path cdfsPath;
 
@@ -28,7 +28,7 @@ final class ReadOperation {
 
 	private FSDataInputStream hdfsInputStream = null;
 
-	ReadOperation(final Path cdfsPath) {
+	CachingReadOp(final Path cdfsPath) {
 
 		this.cdfsPath = cdfsPath;
 		this.hdfsPath = constructHDFSPath();
@@ -50,6 +50,10 @@ final class ReadOperation {
 		return new Path(uri);
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
 	void read(final OutputStream outputStream) throws IOException {
 
 		final byte[] compressedBuffer = new byte[BufferPool.BUFFER_SIZE];

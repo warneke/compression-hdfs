@@ -6,7 +6,7 @@ public final class BufferPool {
 
 	private static final BufferPool INSTANCE = new BufferPool();
 
-	private static final int NUMBER_OF_BUFFERS = 128;
+	private static final int NUMBER_OF_BUFFERS = 20000;
 
 	public static final int BUFFER_SIZE = 64 * 1024;
 

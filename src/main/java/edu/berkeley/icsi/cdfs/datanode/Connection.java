@@ -3,6 +3,13 @@ package edu.berkeley.icsi.cdfs.datanode;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
+import java.util.List;
+
+import org.apache.hadoop.fs.Path;
+
+import edu.berkeley.icsi.cdfs.cache.Buffer;
+import edu.berkeley.icsi.cdfs.cache.CompressedBufferCache;
+import edu.berkeley.icsi.cdfs.cache.UncompressedBufferCache;
 
 final class Connection extends Thread {
 
@@ -32,10 +39,24 @@ final class Connection extends Thread {
 
 			// Mode
 			if (header.getConnectionMode() == ConnectionMode.WRITE) {
-				final WriteOperation wo = new WriteOperation(header.getPath(), 32 * 1024 * 1024);
+				final WriteOp wo = new WriteOp(header.getPath(), 32 * 1024 * 1024);
 				wo.write(inputStream);
 			} else {
-				final ReadOperation ro = new ReadOperation(header.getPath());
+
+				final Path path = header.getPath();
+				List<Buffer> buffers = UncompressedBufferCache.get().lock(path);
+				AbstractReadOp ro = null;
+				if (buffers != null) {
+					System.out.println("No uncompressed version of " + path);
+				} else {
+					buffers = CompressedBufferCache.get().lock(path);
+					if (buffers != null) {
+						ro = new CompressedCachedReadOp(buffers);
+					} else {
+						ro = new CachingReadOp(header.getPath());
+					}
+				}
+
 				ro.read(this.socket.getOutputStream());
 			}
 
