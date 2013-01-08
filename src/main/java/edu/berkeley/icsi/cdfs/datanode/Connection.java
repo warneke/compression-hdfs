@@ -4,13 +4,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
 
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.util.StringUtils;
-
-import edu.berkeley.icsi.cdfs.cache.BufferPool;
-import edu.berkeley.icsi.cdfs.compression.Compressor;
-import edu.berkeley.icsi.cdfs.utils.NumberUtils;
-
 final class Connection extends Thread {
 
 	private final Socket socket;
@@ -39,7 +32,7 @@ final class Connection extends Thread {
 
 			// Mode
 			if (header.getConnectionMode() == ConnectionMode.WRITE) {
-				final WriteOperation wo = new WriteOperation(header.getPath());
+				final WriteOperation wo = new WriteOperation(header.getPath(), 32 * 1024 * 1024);
 				wo.write(inputStream);
 			} else {
 				System.out.println("READ");

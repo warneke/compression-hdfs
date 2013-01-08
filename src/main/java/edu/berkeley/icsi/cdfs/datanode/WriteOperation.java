@@ -13,6 +13,8 @@ import edu.berkeley.icsi.cdfs.utils.NumberUtils;
 
 final class WriteOperation {
 
+	private final int blockSize;
+
 	private final BufferPool bufferPool;
 
 	private final Compressor compressor;
@@ -31,12 +33,17 @@ final class WriteOperation {
 
 	private int numberOfBytesInCompressedBuffer = 0;
 
+	private int nextBlockIndex = 0;
+
+	private int bytesWrittenInBlock = 0;
+
 	private final ArrayDeque<Buffer> uncompressedBuffers;
 
 	private final ArrayDeque<Buffer> compressedBuffers;
 
-	WriteOperation(final Path path) {
+	WriteOperation(final Path path, final int blockSize) {
 
+		this.blockSize = blockSize;
 		this.bufferPool = BufferPool.get();
 		this.compressor = new Compressor(BufferPool.BUFFER_SIZE);
 		this.path = path;
@@ -118,16 +125,31 @@ final class WriteOperation {
 
 			// Read the complete block
 			int r;
-			while ((r = inputStream.read(this.uncompressedBuffer, this.numberOfBytesInUncompressedBuffer,
-				this.uncompressedBuffer.length - this.numberOfBytesInUncompressedBuffer)) >= 0) {
-				this.numberOfBytesInUncompressedBuffer += r;
+			while (true) {
 
+				final int bytesToRead = Math.min(this.uncompressedBuffer.length
+					- this.numberOfBytesInUncompressedBuffer, this.blockSize - this.bytesWrittenInBlock);
+
+				r = inputStream.read(this.uncompressedBuffer, this.numberOfBytesInUncompressedBuffer, bytesToRead);
+				if (r < 0) {
+					break;
+				}
+
+				this.numberOfBytesInUncompressedBuffer += r;
+				this.bytesWrittenInBlock += r;
+
+				// Buffer is full
 				if (this.numberOfBytesInUncompressedBuffer == this.uncompressedBuffer.length) {
+					break;
+				}
+
+				// Block limit is reached
+				if (this.bytesWrittenInBlock == this.blockSize) {
 					break;
 				}
 			}
 
-			if (this.numberOfBytesInUncompressedBuffer == 0) {
+			if (this.numberOfBytesInUncompressedBuffer == 0 && this.bytesWrittenInBlock != this.blockSize) {
 				if (this.cacheUncompressed) {
 					this.bufferPool.releaseBuffer(this.uncompressedBuffer);
 					this.uncompressedBuffer = null;
@@ -163,6 +185,11 @@ final class WriteOperation {
 				swapCompressedBuffer();
 			}
 
+			if(this.bytesWrittenInBlock == this.blockSize) {
+				System.out.println("BLOCK SIZE REACHED");
+				this.bytesWrittenInBlock = 0;
+			}
+			
 			// Check if this was the last buffer
 			if (this.numberOfBytesInUncompressedBuffer < uncompressedBuffer.length) {
 				break;
