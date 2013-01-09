@@ -99,10 +99,10 @@ final class MetaDataStore {
 		return fs;
 	}
 
-	synchronized CDFSBlockLocation[] getFileBlockLocations(final FileStatus file, final long start, final long len)
+	synchronized CDFSBlockLocation[] getFileBlockLocations(final Path path, final long start, final long len)
 			throws IOException {
 
-		final FileMetaData fmd = this.metaData.get(file.getPath().toUri().getPath());
+		final FileMetaData fmd = this.metaData.get(path.toUri().getPath());
 		if (fmd == null) {
 			return null;
 		}
@@ -119,7 +119,7 @@ final class MetaDataStore {
 
 		final CDFSBlockLocation[] blockLocations = new CDFSBlockLocation[blocks.length];
 
-		System.out.println("Block locations for " + file.getPath() + " " + blocks.length);
+		System.out.println("Block locations for " + path + " " + blocks.length);
 
 		for (int i = 0; i < blocks.length; ++i) {
 			final CDFSBlockLocation blockLocation = new CDFSBlockLocation(blocks[i].getIndex(), names, hosts,

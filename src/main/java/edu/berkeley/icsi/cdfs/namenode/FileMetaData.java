@@ -66,6 +66,14 @@ final class FileMetaData implements KryoSerializable {
 
 	private static boolean overlap(final long startA, final long endA, final long startB, final long endB) {
 
+		if (startA == endA) {
+			return (startA >= startB && startA < endB);
+		}
+
+		if (startB == endB) {
+			return (startB >= startA && startB < endA);
+		}
+
 		return (startA < endB && startB < endA);
 	}
 

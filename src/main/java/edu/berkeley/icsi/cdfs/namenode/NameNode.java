@@ -3,7 +3,6 @@ package edu.berkeley.icsi.cdfs.namenode;
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -116,9 +115,9 @@ public class NameNode implements ClientNameNodeProtocol, DataNodeNameNodeProtoco
 	 * {@inheritDoc}
 	 */
 	@Override
-	public CDFSBlockLocation[] getFileBlockLocations(final FileStatus file, final long start, final long len)
+	public CDFSBlockLocation[] getFileBlockLocations(final PathWrapper path, final long start, final long len)
 			throws IOException {
 
-		return this.metaDataStore.getFileBlockLocations(file, start, len);
+		return this.metaDataStore.getFileBlockLocations(path.getPath(), start, len);
 	}
 }

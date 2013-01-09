@@ -224,6 +224,6 @@ public class CDFS extends FileSystem {
 
 		}
 
-		return this.nameNode.getFileBlockLocations(file, start, len);
+		return this.nameNode.getFileBlockLocations(new PathWrapper(file.getPath()), start, len);
 	}
 }

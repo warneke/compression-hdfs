@@ -7,10 +7,12 @@ import java.util.List;
 
 import org.apache.hadoop.fs.Path;
 
+import edu.berkeley.icsi.cdfs.CDFSBlockLocation;
 import edu.berkeley.icsi.cdfs.cache.Buffer;
 import edu.berkeley.icsi.cdfs.cache.CompressedBufferCache;
 import edu.berkeley.icsi.cdfs.cache.UncompressedBufferCache;
 import edu.berkeley.icsi.cdfs.protocols.DataNodeNameNodeProtocol;
+import edu.berkeley.icsi.cdfs.utils.PathWrapper;
 
 final class Connection extends Thread {
 
@@ -46,6 +48,22 @@ final class Connection extends Thread {
 				final WriteOp wo = new WriteOp(this.nameNode, header.getPath(), 128 * 1024 * 1024);
 				wo.write(inputStream);
 			} else {
+
+				CDFSBlockLocation[] blockLocations;
+				synchronized (this.nameNode) {
+					blockLocations = this.nameNode.getFileBlockLocations(new PathWrapper(header.getPath()),
+						header.getPos(), 0L);
+				}
+
+				if (blockLocations == null) {
+					throw new IllegalStateException("blockLocations is null");
+				}
+
+				if (blockLocations.length != 1) {
+					throw new IllegalStateException("Length of blockLocations is " + blockLocations.length);
+				}
+
+				System.out.println("READ " + header.getPos());
 
 				final Path path = header.getPath();
 				List<Buffer> buffers = UncompressedBufferCache.get().lock(path);

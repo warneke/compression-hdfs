@@ -32,7 +32,6 @@ final public class Header {
 		outputStream.write(size, 0, 4);
 		outputStream.write(path);
 		NumberUtils.longToByteArray(this.pos, size, 0);
-		System.out.println("Wrote position " + pos);
 		outputStream.write(size);
 	}
 
@@ -79,7 +78,6 @@ final public class Header {
 			r += read;
 		}
 		final long pos = NumberUtils.byteArrayToLong(size, 0);
-		System.out.println("Read position " + pos);
 
 		return new Header(mode, p, pos);
 	}
