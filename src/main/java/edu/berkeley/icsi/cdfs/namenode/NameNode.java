@@ -4,6 +4,9 @@ import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.ipc.RPC.Server;
 
@@ -18,10 +21,16 @@ public class NameNode implements ClientNameNodeProtocol, DataNodeNameNodeProtoco
 
 	private final MetaDataStore metaDataStore;
 
+	private final FileSystem hdfs;
+
 	NameNode() throws IOException {
 
-		this.rpcServer = RPC.getServer(this, "localhost", CDFS.NAMENODE_RPC_PORT, new Configuration());
+		final Configuration conf = new Configuration();
+
+		this.rpcServer = RPC.getServer(this, "localhost", CDFS.NAMENODE_RPC_PORT, conf);
 		this.rpcServer.start();
+
+		this.hdfs = new Path("hdfs://localhost:9000").getFileSystem(conf);
 
 		this.metaDataStore = new MetaDataStore();
 	}
@@ -89,5 +98,15 @@ public class NameNode implements ClientNameNodeProtocol, DataNodeNameNodeProtoco
 			final int blockLength) throws IOException {
 
 		this.metaDataStore.addNewBlock(cdfsPath.getPath(), hdfsPath.getPath(), blockIndex, blockLength);
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public boolean mkdirs(final PathWrapper path, final FsPermission permission) throws IOException {
+
+		// We don't care about the directory structure, so let HDFS handle this
+		return this.hdfs.mkdirs(CDFS.toHDFSPath(path.getPath(), ""), permission);
 	}
 }

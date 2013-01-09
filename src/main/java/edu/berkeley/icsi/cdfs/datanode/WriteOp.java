@@ -2,8 +2,6 @@ package edu.berkeley.icsi.cdfs.datanode;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -13,6 +11,7 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
+import edu.berkeley.icsi.cdfs.CDFS;
 import edu.berkeley.icsi.cdfs.cache.Buffer;
 import edu.berkeley.icsi.cdfs.cache.BufferPool;
 import edu.berkeley.icsi.cdfs.cache.CompressedBufferCache;
@@ -67,24 +66,9 @@ final class WriteOp {
 		this.bufferPool = BufferPool.get();
 		this.compressor = new Compressor(BufferPool.BUFFER_SIZE);
 		this.cdfsPath = cdfsPath;
-		this.hdfsPath = constructHDFSPath();
+		this.hdfsPath = CDFS.toHDFSPath(cdfsPath, "_" + this.nextBlockIndex);
 		this.uncompressedBuffers = new ArrayList<Buffer>();
 		this.compressedBuffers = new ArrayList<Buffer>();
-	}
-
-	private Path constructHDFSPath() {
-
-		final URI cdfsURI = this.cdfsPath.toUri();
-
-		URI uri;
-		try {
-			uri = new URI("hdfs", cdfsURI.getUserInfo(), cdfsURI.getHost(), 9000, cdfsURI.getPath() + "_"
-				+ this.nextBlockIndex, cdfsURI.getQuery(), cdfsURI.getFragment());
-		} catch (URISyntaxException e) {
-			throw new RuntimeException(e);
-		}
-
-		return new Path(uri);
 	}
 
 	private final void writeToHDFS() throws IOException {
@@ -257,7 +241,7 @@ final class WriteOp {
 
 				this.bytesWrittenInBlock = 0;
 				++this.nextBlockIndex;
-				this.hdfsPath = constructHDFSPath();
+				this.hdfsPath = CDFS.toHDFSPath(this.cdfsPath, "_" + this.nextBlockIndex);
 			}
 
 			// Check if this was the last buffer

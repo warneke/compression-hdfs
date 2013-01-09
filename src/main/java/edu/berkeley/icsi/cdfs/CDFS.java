@@ -6,6 +6,7 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
+import java.net.URISyntaxException;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -155,13 +156,13 @@ public class CDFS extends FileSystem {
 		return null;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public boolean mkdirs(Path arg0, FsPermission arg1) throws IOException {
-		// TODO Auto-generated method stub
+	public boolean mkdirs(final Path arg0, final FsPermission arg1) throws IOException {
 
-		System.out.println("mkdirs");
-
-		return false;
+		return this.nameNode.mkdirs(new PathWrapper(arg0), arg1);
 	}
 
 	/**
@@ -187,6 +188,22 @@ public class CDFS extends FileSystem {
 	@Override
 	public void setWorkingDirectory(Path arg0) {
 		// TODO Auto-generated method stub
+
+	}
+
+	public static Path toHDFSPath(final Path cdfsPath, final String suffix) {
+
+		final URI cdfsURI = cdfsPath.toUri();
+
+		URI uri;
+		try {
+			uri = new URI("hdfs", cdfsURI.getUserInfo(), cdfsURI.getHost(), 9000, cdfsURI.getPath() + suffix,
+				cdfsURI.getQuery(), cdfsURI.getFragment());
+		} catch (URISyntaxException e) {
+			throw new RuntimeException(e);
+		}
+
+		return new Path(uri);
 
 	}
 }
