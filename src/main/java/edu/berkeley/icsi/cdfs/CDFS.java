@@ -33,6 +33,10 @@ public class CDFS extends FileSystem {
 
 	public static final int CLIENT_RPC_PORT = 10003;
 
+	public static final int BLOCK_SIZE = 128 * 1024 * 1024;
+
+	public static final int BLOCK_REPLICATION = 3;
+
 	private ClientNameNodeProtocol nameNode;
 
 	private Path workingDir;

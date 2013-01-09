@@ -14,11 +14,13 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 
+import edu.berkeley.icsi.cdfs.CDFS;
+
 final class MetaDataStore {
 
 	private final String storageLocation;
 
-	private final Map<Path, FileMetaData> metaData = new HashMap<Path, FileMetaData>();
+	private final Map<String, FileMetaData> metaData = new HashMap<String, FileMetaData>();
 
 	private final Kryo kryo = new Kryo();
 
@@ -44,8 +46,7 @@ final class MetaDataStore {
 			final FileMetaData fmd = this.kryo.readObject(input, FileMetaData.class);
 			input.close();
 
-			System.out.println("RESTORED " + fmd.getPath());
-			this.metaData.put(fmd.getPath(), fmd);
+			this.metaData.put(fmd.getPath().toUri().getPath(), fmd);
 		}
 	}
 
@@ -61,12 +62,12 @@ final class MetaDataStore {
 
 	synchronized boolean create(final Path path) throws IOException {
 
-		if (this.metaData.containsKey(path)) {
+		if (this.metaData.containsKey(path.toUri().getPath())) {
 			return false;
 		}
 
 		final FileMetaData fmd = new FileMetaData(path);
-		this.metaData.put(path, fmd);
+		this.metaData.put(path.toUri().getPath(), fmd);
 
 		// Save meta data changes
 		save(fmd);
@@ -77,7 +78,7 @@ final class MetaDataStore {
 	synchronized void addNewBlock(final Path cdfsPath, final Path hdfsPath, final int blockIndex, final int blockLength)
 			throws IOException {
 
-		final FileMetaData fmd = this.metaData.get(cdfsPath);
+		final FileMetaData fmd = this.metaData.get(cdfsPath.toUri().getPath());
 		fmd.addNewBlock(hdfsPath, blockIndex, blockLength);
 
 		// Save meta data changes
@@ -86,6 +87,14 @@ final class MetaDataStore {
 
 	synchronized FileStatus getFileStatus(final Path path) {
 
-		return null;
+		final FileMetaData fmd = this.metaData.get(path.toUri().getPath());
+		if (fmd == null) {
+			return null;
+		}
+
+		final FileStatus fs = new FileStatus(fmd.getLength(), false, CDFS.BLOCK_REPLICATION, CDFS.BLOCK_SIZE,
+			fmd.getModificationTime(), fmd.getPath());
+
+		return fs;
 	}
 }
