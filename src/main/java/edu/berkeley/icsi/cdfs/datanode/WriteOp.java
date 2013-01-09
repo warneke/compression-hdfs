@@ -281,11 +281,11 @@ final class WriteOp {
 		}
 
 		if (!this.uncompressedBuffers.isEmpty()) {
-			UncompressedBufferCache.get().addCachedBlock(this.cdfsPath, this.uncompressedBuffers);
+			UncompressedBufferCache.get().addCachedBlock(this.cdfsPath, this.nextBlockIndex, this.uncompressedBuffers);
 		}
 
 		if (!this.compressedBuffers.isEmpty()) {
-			CompressedBufferCache.get().addCachedBlock(this.cdfsPath, this.compressedBuffers);
+			CompressedBufferCache.get().addCachedBlock(this.cdfsPath, this.nextBlockIndex, this.compressedBuffers);
 		}
 	}
 
