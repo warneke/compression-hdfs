@@ -2,16 +2,32 @@ package edu.berkeley.icsi.cdfs;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PositionedReadable;
 import org.apache.hadoop.fs.Seekable;
+
+import edu.berkeley.icsi.cdfs.datanode.ConnectionMode;
+import edu.berkeley.icsi.cdfs.datanode.Header;
 
 final class SeekableInputStream extends InputStream implements Seekable, PositionedReadable {
 
 	private final InputStream inputStream;
 
-	SeekableInputStream(final InputStream inputStream) {
+	private final OutputStream outputStream;
+
+	private final Path path;
+
+	private long seek = 0L;
+
+	private boolean headerSent = false;
+
+	SeekableInputStream(final InputStream inputStream, final OutputStream outputStream, final Path path) {
+
 		this.inputStream = inputStream;
+		this.outputStream = outputStream;
+		this.path = path;
 	}
 
 	/**
@@ -50,7 +66,12 @@ final class SeekableInputStream extends InputStream implements Seekable, Positio
 	@Override
 	public void seek(final long pos) throws IOException {
 
-		System.out.println("seek");
+		if (this.headerSent) {
+			throw new IOException("Cannot seek, header already sent");
+		}
+
+		System.out.println("Setting seek to " + pos);
+		this.seek = pos;
 	}
 
 	/**
@@ -99,7 +120,16 @@ final class SeekableInputStream extends InputStream implements Seekable, Positio
 	@Override
 	public int read(final byte b[], final int off, final int len) throws IOException {
 
-		return this.inputStream.read(b, off, len);
+		// If this is the first read attempt, send header first
+		if (!this.headerSent) {
+			final Header header = new Header(ConnectionMode.READ, this.path, this.seek);
+			header.sendHeader(this.outputStream);
+			this.headerSent = true;
+		}
+
+		return 0;
+
+		// return this.inputStream.read(b, off, len);
 	}
 
 	/**

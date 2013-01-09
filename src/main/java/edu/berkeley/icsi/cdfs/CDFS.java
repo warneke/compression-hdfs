@@ -68,7 +68,7 @@ public class CDFS extends FileSystem {
 
 		final Socket socket = new Socket("localhost", DATANODE_DATA_PORT);
 		final OutputStream outputStream = socket.getOutputStream();
-		final Header header = new Header(ConnectionMode.WRITE, f);
+		final Header header = new Header(ConnectionMode.WRITE, f, 0L);
 		header.sendHeader(outputStream);
 		return new CDFSDataOutputStream(outputStream);
 	}
@@ -172,11 +172,7 @@ public class CDFS extends FileSystem {
 	public FSDataInputStream open(final Path arg0, int arg1) throws IOException {
 
 		final Socket socket = new Socket("localhost", DATANODE_DATA_PORT);
-		final OutputStream outputStream = socket.getOutputStream();
-		final Header header = new Header(ConnectionMode.READ, arg0);
-		header.sendHeader(outputStream);
-
-		return new CDFSDataInputStream(socket.getInputStream());
+		return new CDFSDataInputStream(socket.getInputStream(), socket.getOutputStream(), arg0);
 	}
 
 	@Override

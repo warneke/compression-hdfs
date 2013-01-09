@@ -14,20 +14,26 @@ final public class Header {
 
 	private final Path path;
 
-	public Header(final ConnectionMode connectionMode, final Path path) {
+	private final long pos;
+
+	public Header(final ConnectionMode connectionMode, final Path path, final long pos) {
 
 		this.connectionMode = connectionMode;
 		this.path = path;
+		this.pos = pos;
 	}
 
 	public void sendHeader(final OutputStream outputStream) throws IOException {
 
 		outputStream.write(this.connectionMode.toByte());
-		final byte[] size = new byte[4];
+		final byte[] size = new byte[8];
 		final byte[] path = this.path.toString().getBytes();
 		NumberUtils.integerToByteArray(path.length, size, 0);
-		outputStream.write(size);
+		outputStream.write(size, 0, 4);
 		outputStream.write(path);
+		NumberUtils.longToByteArray(this.pos, size, 0);
+		System.out.println("Wrote position " + pos);
+		outputStream.write(size);
 	}
 
 	static Header receiveHeader(final InputStream inputStream) throws IOException {
@@ -38,10 +44,10 @@ final public class Header {
 		}
 
 		final ConnectionMode mode = ConnectionMode.toConnectionMode((byte) b);
-		final byte[] size = new byte[4];
+		final byte[] size = new byte[8];
 		int r = 0;
-		while (r < size.length) {
-			final int read = inputStream.read(size, r, size.length - r);
+		while (r < 4) {
+			final int read = inputStream.read(size, r, 4 - r);
 			if (read == -1) {
 				return null;
 			}
@@ -63,7 +69,19 @@ final public class Header {
 
 		final Path p = new Path(new String(path));
 
-		return new Header(mode, p);
+		r = 0;
+		while (r < 8) {
+			final int read = inputStream.read(size, r, 8 - r);
+			if (read == -1) {
+				return null;
+			}
+
+			r += read;
+		}
+		final long pos = NumberUtils.byteArrayToLong(size, 0);
+		System.out.println("Read position " + pos);
+
+		return new Header(mode, p, pos);
 	}
 
 	ConnectionMode getConnectionMode() {
@@ -74,5 +92,10 @@ final public class Header {
 	Path getPath() {
 
 		return this.path;
+	}
+
+	long getPos() {
+
+		return this.pos;
 	}
 }
