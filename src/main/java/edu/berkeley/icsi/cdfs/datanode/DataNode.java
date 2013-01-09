@@ -17,18 +17,22 @@ public class DataNode {
 
 	private final DataNodeNameNodeProtocol nameNode;
 
+	private final Configuration conf;
+
 	public DataNode() throws IOException {
 		this.serverSocket = new ServerSocket(CDFS.DATANODE_DATA_PORT);
+		this.conf = new Configuration();
 
-		this.nameNode = (DataNodeNameNodeProtocol) RPC.getProxy(DataNodeNameNodeProtocol.class, 1, new InetSocketAddress(
-			"localhost", CDFS.NAMENODE_RPC_PORT), new Configuration());
+		this.nameNode = (DataNodeNameNodeProtocol) RPC.getProxy(DataNodeNameNodeProtocol.class, 1,
+			new InetSocketAddress(
+				"localhost", CDFS.NAMENODE_RPC_PORT), this.conf);
 	}
 
 	void run() throws IOException {
 
 		while (true) {
 			final Socket socket = this.serverSocket.accept();
-			new Connection(socket, this.nameNode);
+			new Connection(socket, this.nameNode, this.conf);
 		}
 	}
 

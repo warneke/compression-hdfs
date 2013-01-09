@@ -1,12 +1,8 @@
 package edu.berkeley.icsi.cdfs.datanode;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -16,38 +12,17 @@ import edu.berkeley.icsi.cdfs.compression.Decompressor;
 
 final class CachingReadOp extends AbstractReadOp {
 
-	private final Path cdfsPath;
+	private final FileSystem hdfs;
+
+	private final Path hdfsPath;
 
 	private final Decompressor decompressor;
 
-	private Path hdfsPath;
+	CachingReadOp(final FileSystem hdfs, final Path hdfsPath) {
 
-	private int nextBlockIndex = 0;
-
-	private FileSystem hdfs = null;
-
-	private FSDataInputStream hdfsInputStream = null;
-
-	CachingReadOp(final Path cdfsPath) {
-
-		this.cdfsPath = cdfsPath;
-		this.hdfsPath = constructHDFSPath();
+		this.hdfs = hdfs;
+		this.hdfsPath = hdfsPath;
 		this.decompressor = new Decompressor(BufferPool.BUFFER_SIZE);
-	}
-
-	private Path constructHDFSPath() {
-
-		final URI cdfsURI = this.cdfsPath.toUri();
-
-		URI uri;
-		try {
-			uri = new URI("hdfs", cdfsURI.getUserInfo(), cdfsURI.getHost(), 9000, cdfsURI.getPath() + "_"
-				+ this.nextBlockIndex, cdfsURI.getQuery(), cdfsURI.getFragment());
-		} catch (URISyntaxException e) {
-			throw new RuntimeException(e);
-		}
-
-		return new Path(uri);
 	}
 
 	/**
@@ -62,13 +37,11 @@ final class CachingReadOp extends AbstractReadOp {
 
 		int numberOfBytesInCompressedBuffer = 0;
 
-		while (true) {
+		FSDataInputStream hdfsInputStream = null;
 
-			if (!openNextHDFSFile()) {
-				break;
-			}
+		try {
 
-			numberOfBytesInCompressedBuffer = 0;
+			hdfsInputStream = this.hdfs.open(this.hdfsPath);
 
 			while (true) {
 
@@ -76,7 +49,7 @@ final class CachingReadOp extends AbstractReadOp {
 
 				while (true) {
 
-					read = this.hdfsInputStream.read(compressedBuffer, numberOfBytesInCompressedBuffer,
+					read = hdfsInputStream.read(compressedBuffer, numberOfBytesInCompressedBuffer,
 						compressedBuffer.length - numberOfBytesInCompressedBuffer);
 					if (read < 0) {
 						break;
@@ -107,28 +80,12 @@ final class CachingReadOp extends AbstractReadOp {
 					break;
 				}
 			}
+		} finally {
+
+			// Close the input stream
+			if (hdfsInputStream != null) {
+				hdfsInputStream.close();
+			}
 		}
-
-	}
-
-	private boolean openNextHDFSFile() throws IOException {
-
-		if (this.hdfs == null) {
-			this.hdfs = this.hdfsPath.getFileSystem(new Configuration());
-		}
-
-		if (this.hdfsInputStream != null) {
-			this.hdfsInputStream.close();
-			++this.nextBlockIndex;
-			this.hdfsPath = constructHDFSPath();
-		}
-
-		try {
-			this.hdfsInputStream = this.hdfs.open(this.hdfsPath);
-		} catch (FileNotFoundException e) {
-			return false;
-		}
-
-		return true;
 	}
 }

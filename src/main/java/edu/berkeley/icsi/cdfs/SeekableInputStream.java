@@ -127,9 +127,7 @@ final class SeekableInputStream extends InputStream implements Seekable, Positio
 			this.headerSent = true;
 		}
 
-		return 0;
-
-		// return this.inputStream.read(b, off, len);
+		return this.inputStream.read(b, off, len);
 	}
 
 	/**
