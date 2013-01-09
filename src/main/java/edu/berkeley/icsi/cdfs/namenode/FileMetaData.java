@@ -1,6 +1,7 @@
 package edu.berkeley.icsi.cdfs.namenode;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import org.apache.hadoop.fs.Path;
@@ -37,6 +38,37 @@ final class FileMetaData implements KryoSerializable {
 		return this.path;
 	}
 
+	BlockMetaData[] getBlockMetaData(final long start, final long len) {
+
+		if (start >= this.length) {
+			return null;
+		}
+
+		final ArrayList<BlockMetaData> blocks = new ArrayList<BlockMetaData>(this.blocks.size());
+		final Iterator<BlockMetaData> it = this.blocks.iterator();
+
+		final long end = start + len;
+
+		while (it.hasNext()) {
+
+			final BlockMetaData bmd = it.next();
+			if (overlap(start, end, bmd.getOffset(), bmd.getOffset() + bmd.getLength())) {
+				blocks.add(bmd);
+			}
+
+			if (bmd.getOffset() > end) {
+				break;
+			}
+		}
+
+		return blocks.toArray(new BlockMetaData[0]);
+	}
+
+	private static boolean overlap(final long startA, final long endA, final long startB, final long endB) {
+
+		return (startA < endB && startB < endA);
+	}
+
 	void addNewBlock(final Path hdfsPath, final int blockIndex, final int blockLength) {
 
 		// Sanity check
@@ -44,7 +76,7 @@ final class FileMetaData implements KryoSerializable {
 			throw new IllegalStateException("Expected block " + this.blocks.size() + ", but received " + blockIndex);
 		}
 
-		this.blocks.add(new BlockMetaData(hdfsPath, blockLength, this.length));
+		this.blocks.add(new BlockMetaData(blockIndex, hdfsPath, blockLength, this.length));
 
 		// Increase the length of the total file
 		this.length += blockLength;

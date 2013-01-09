@@ -9,13 +9,16 @@ import com.esotericsoftware.kryo.io.Output;
 
 final class BlockMetaData implements KryoSerializable {
 
+	private int index;
+
 	private Path hdfsPath;
 
 	private int length;
 
 	private long offset;
 
-	BlockMetaData(final Path hdfsPath, final int length, final long offset) {
+	BlockMetaData(final int index, final Path hdfsPath, final int length, final long offset) {
+		this.index = index;
 		this.hdfsPath = hdfsPath;
 		this.length = length;
 		this.offset = offset;
@@ -23,9 +26,14 @@ final class BlockMetaData implements KryoSerializable {
 
 	@SuppressWarnings("unused")
 	private BlockMetaData() {
+		this.index = 0;
 		this.hdfsPath = null;
 		this.length = 0;
 		this.offset = 0L;
+	}
+
+	int getIndex() {
+		return this.index;
 	}
 
 	Path getHdfsPath() {
@@ -46,6 +54,7 @@ final class BlockMetaData implements KryoSerializable {
 	@Override
 	public void write(final Kryo kryo, final Output output) {
 
+		output.writeInt(this.index);
 		output.writeString(this.hdfsPath.toString());
 		output.writeInt(this.length);
 		output.writeLong(this.offset);
@@ -57,6 +66,7 @@ final class BlockMetaData implements KryoSerializable {
 	@Override
 	public void read(final Kryo kryo, final Input input) {
 
+		this.index = input.readInt();
 		this.hdfsPath = new Path(input.readString());
 		this.length = input.readInt();
 		this.offset = input.readLong();

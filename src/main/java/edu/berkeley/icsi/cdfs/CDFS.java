@@ -9,6 +9,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
@@ -201,5 +202,28 @@ public class CDFS extends FileSystem {
 
 		return new Path(uri);
 
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public BlockLocation[] getFileBlockLocations(final FileStatus file, final long start, final long len)
+			throws IOException {
+
+		if (file == null) {
+			return null;
+		}
+
+		if ((start < 0) || (len < 0)) {
+			throw new IllegalArgumentException("Invalid start or len parameter");
+		}
+
+		if (file.getLen() < start) {
+			return new BlockLocation[0];
+
+		}
+
+		return this.nameNode.getFileBlockLocations(file, start, len);
 	}
 }

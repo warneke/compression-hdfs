@@ -3,6 +3,7 @@ package edu.berkeley.icsi.cdfs.namenode;
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -11,6 +12,7 @@ import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.ipc.RPC.Server;
 
 import edu.berkeley.icsi.cdfs.CDFS;
+import edu.berkeley.icsi.cdfs.CDFSBlockLocation;
 import edu.berkeley.icsi.cdfs.protocols.ClientNameNodeProtocol;
 import edu.berkeley.icsi.cdfs.protocols.DataNodeNameNodeProtocol;
 import edu.berkeley.icsi.cdfs.utils.PathWrapper;
@@ -108,5 +110,15 @@ public class NameNode implements ClientNameNodeProtocol, DataNodeNameNodeProtoco
 
 		// We don't care about the directory structure, so let HDFS handle this
 		return this.hdfs.mkdirs(CDFS.toHDFSPath(path.getPath(), ""), permission);
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public CDFSBlockLocation[] getFileBlockLocations(final FileStatus file, final long start, final long len)
+			throws IOException {
+
+		return this.metaDataStore.getFileBlockLocations(file, start, len);
 	}
 }

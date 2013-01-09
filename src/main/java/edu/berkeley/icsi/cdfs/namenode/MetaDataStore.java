@@ -15,6 +15,7 @@ import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 
 import edu.berkeley.icsi.cdfs.CDFS;
+import edu.berkeley.icsi.cdfs.CDFSBlockLocation;
 
 final class MetaDataStore {
 
@@ -96,5 +97,36 @@ final class MetaDataStore {
 			fmd.getModificationTime(), fmd.getPath());
 
 		return fs;
+	}
+
+	synchronized CDFSBlockLocation[] getFileBlockLocations(final FileStatus file, final long start, final long len)
+			throws IOException {
+
+		final FileMetaData fmd = this.metaData.get(file.getPath().toUri().getPath());
+		if (fmd == null) {
+			return null;
+		}
+
+		final BlockMetaData[] blocks = fmd.getBlockMetaData(start, len);
+		if (blocks == null) {
+			return null;
+		}
+
+		final String names[] = new String[1];
+		names[0] = "localhost:" + CDFS.DATANODE_DATA_PORT;
+		final String hosts[] = new String[1];
+		hosts[0] = "localhost";
+
+		final CDFSBlockLocation[] blockLocations = new CDFSBlockLocation[blocks.length];
+
+		System.out.println("Block locations for " + file.getPath() + " " + blocks.length);
+
+		for (int i = 0; i < blocks.length; ++i) {
+			final CDFSBlockLocation blockLocation = new CDFSBlockLocation(blocks[i].getIndex(), names, hosts,
+				blocks[i].getOffset(), blocks[i].getLength());
+			blockLocations[i] = blockLocation;
+		}
+
+		return blockLocations;
 	}
 }
