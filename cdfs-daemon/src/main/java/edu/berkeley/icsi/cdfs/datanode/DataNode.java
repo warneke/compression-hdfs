@@ -5,13 +5,19 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 
+import org.apache.commons.configuration.ConfigurationException;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.ipc.RPC;
 
 import edu.berkeley.icsi.cdfs.CDFS;
 import edu.berkeley.icsi.cdfs.protocols.DataNodeNameNodeProtocol;
+import edu.berkeley.icsi.cdfs.utils.ConfigUtils;
 
 public class DataNode {
+
+	private static final Log LOG = LogFactory.getLog(DataNode.class);
 
 	private final ServerSocket serverSocket;
 
@@ -19,12 +25,12 @@ public class DataNode {
 
 	private final Configuration conf;
 
-	public DataNode() throws IOException {
+	public DataNode(final Configuration conf) throws IOException {
 		this.serverSocket = new ServerSocket(CDFS.DATANODE_DATA_PORT);
-		this.conf = new Configuration();
+		this.conf = conf;
 
-		this.nameNode = (DataNodeNameNodeProtocol) RPC.getProxy(DataNodeNameNodeProtocol.class, 1,
-			new InetSocketAddress(
+		this.nameNode = (DataNodeNameNodeProtocol) RPC.getProxy(
+			DataNodeNameNodeProtocol.class, 1, new InetSocketAddress(
 				"localhost", CDFS.NAMENODE_RPC_PORT), this.conf);
 	}
 
@@ -38,11 +44,20 @@ public class DataNode {
 
 	public static void main(final String[] args) {
 
+		// Load the configuration
+		final Configuration conf;
+		try {
+			conf = ConfigUtils.loadConfiguration(args);
+		} catch (ConfigurationException e) {
+			LOG.error(e.getMessage());
+			return;
+		}
+
 		DataNode dataNode = null;
 
 		try {
 
-			dataNode = new DataNode();
+			dataNode = new DataNode(conf);
 			dataNode.run();
 
 		} catch (IOException ioe) {

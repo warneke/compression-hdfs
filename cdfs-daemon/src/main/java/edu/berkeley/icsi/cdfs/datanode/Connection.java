@@ -66,7 +66,7 @@ final class Connection extends Thread {
 				final PathWrapper cdfsPath = new PathWrapper(header.getPath());
 				while (!readEOF) {
 					final Path hdfsPath = CDFS.toHDFSPath(header.getPath(), "_" + blockIndex);
-					final WriteOp wo = new WriteOp(hdfs, hdfsPath, 128 * 1024 * 1024);
+					final WriteOp wo = new WriteOp(hdfs, hdfsPath, 128 * 1024 * 1024, this.conf);
 					readEOF = wo.write(inputStream);
 
 					// Report block information to name node

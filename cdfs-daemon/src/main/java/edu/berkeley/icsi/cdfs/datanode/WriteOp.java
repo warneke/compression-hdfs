@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -14,6 +15,7 @@ import org.apache.hadoop.fs.Path;
 import edu.berkeley.icsi.cdfs.cache.Buffer;
 import edu.berkeley.icsi.cdfs.cache.BufferPool;
 import edu.berkeley.icsi.cdfs.compression.Compressor;
+import edu.berkeley.icsi.cdfs.utils.ConfigUtils;
 import edu.berkeley.icsi.cdfs.utils.NumberUtils;
 
 final class WriteOp {
@@ -28,9 +30,9 @@ final class WriteOp {
 
 	private FSDataOutputStream hdfsOutputStream = null;
 
-	private boolean cacheUncompressed = true;
+	private boolean cacheUncompressed;
 
-	private boolean cacheCompressed = true;
+	private boolean cacheCompressed;
 
 	private byte[] uncompressedBuffer = null;
 
@@ -46,12 +48,24 @@ final class WriteOp {
 
 	private final List<Buffer> compressedBuffers;
 
-	WriteOp(final FileSystem hdfs, final Path hdfsPath, final int blockSize) {
+	WriteOp(final FileSystem hdfs, final Path hdfsPath, final int blockSize, final Configuration conf) {
 
 		this.hdfs = hdfs;
 		this.hdfsPath = hdfsPath;
 		this.blockSize = blockSize;
 		this.compressor = new Compressor(BufferPool.BUFFER_SIZE);
+
+		this.cacheUncompressed = conf.getBoolean(ConfigUtils.ENABLE_UNCOMPRESSED_CACHING_KEY,
+			ConfigUtils.DEFAULT_ENABLE_UNCOMPRESSED_CACHING);
+		if (!this.cacheUncompressed) {
+			this.uncompressedBuffer = new byte[BufferPool.BUFFER_SIZE];
+		}
+
+		this.cacheCompressed = conf.getBoolean(ConfigUtils.ENABLE_COMPRESSED_CACHING_KEY,
+			ConfigUtils.DEFAULT_ENABLE_COMPRESSED_CACHING);
+		if (!this.cacheCompressed) {
+			this.compressedBuffer = new byte[BufferPool.BUFFER_SIZE];
+		}
 
 		this.uncompressedBuffers = new ArrayList<Buffer>();
 		this.compressedBuffers = new ArrayList<Buffer>();
