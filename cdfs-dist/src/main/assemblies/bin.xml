@@ -9,7 +9,7 @@
     </formats>
 
     <includeBaseDirectory>true</includeBaseDirectory>
-    <baseDirectory>memngt-${project.version}</baseDirectory>
+    <baseDirectory>cdfs-${project.version}</baseDirectory>
     
     <!-- copy all jar files and their dependencies -->
     <dependencySets>
@@ -33,21 +33,21 @@
     
     	<fileSet>
         <!-- copy start scripts -->
-    		<directory>src/main/memngt-bin/bin</directory>
+    		<directory>src/main/cdfs-bin/bin</directory>
     		<outputDirectory>bin</outputDirectory>
     		<fileMode>0755</fileMode>
     	</fileSet>
     	
     	<fileSet>
         <!-- copy default configuration -->
-    		<directory>src/main/memngt-bin/conf</directory>
+    		<directory>src/main/cdfs-bin/conf</directory>
     		<outputDirectory>conf</outputDirectory>
     		<fileMode>0644</fileMode>
     	</fileSet>
     	
     	<fileSet>
         <!-- create an empty log directory -->
-    		<directory>src/main/memngt-bin/log</directory>
+    		<directory>src/main/cdfs-bin/log</directory>
     		<outputDirectory>log</outputDirectory>
     		<fileMode>0644</fileMode>
         		<excludes>
@@ -55,21 +55,14 @@
         		</excludes>
     	</fileSet>
     	
-    	<fileSet>
-        <!-- copy README file -->
-    		<directory>src/main/stratosphere-bin/docs</directory>
-    		<outputDirectory>docs</outputDirectory>
-    		<fileMode>0644</fileMode>
-    	</fileSet>
-    	
-    	<fileSet>
+	<fileSet>
     	<!-- copy JavaDocs -->
     		<!--
     		<directory>../target/apidocs</directory
 		-->
     		<directory>../target</directory>
     		<includes>
-    			<include>memngt-*-javadoc.jar</include>
+    			<include>cdfs-*-javadoc.jar</include>
     		</includes>
     		<outputDirectory>docs/javadoc</outputDirectory>
     		<fileMode>0644</fileMode>

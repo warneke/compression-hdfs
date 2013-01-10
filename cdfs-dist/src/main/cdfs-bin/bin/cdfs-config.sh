@@ -28,12 +28,12 @@ if [ -z "${HOSTNAME+x}" ]; then
         HOSTNAME=`hostname`
 fi
 
-# Define the main directory of the memngt installation
-MEMNGT_ROOT_DIR=`dirname "$this"`/..
-MEMNGT_CONF_DIR=$MEMNGT_ROOT_DIR/conf
-MEMNGT_BIN_DIR=$MEMNGT_ROOT_DIR/bin
-MEMNGT_LIB_DIR=$MEMNGT_ROOT_DIR/lib
-MEMNGT_LOG_DIR=$MEMNGT_ROOT_DIR/log
+# Define the main directory of the CDFS installation
+CDFS_ROOT_DIR=`dirname "$this"`/..
+CDFS_CONF_DIR=$CDFS_ROOT_DIR/conf
+CDFS_BIN_DIR=$CDFS_ROOT_DIR/bin
+CDFS_LIB_DIR=$CDFS_ROOT_DIR/lib
+CDFS_LOG_DIR=$CDFS_ROOT_DIR/log
 
 # Arguments for the JVM. 
 JVM_ARGS="-Djava.net.preferIPv4Stack=true"
