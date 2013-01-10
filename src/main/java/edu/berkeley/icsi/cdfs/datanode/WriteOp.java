@@ -3,6 +3,7 @@ package edu.berkeley.icsi.cdfs.datanode;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -265,5 +266,15 @@ final class WriteOp {
 		}
 
 		this.compressedBuffers.clear();
+	}
+
+	List<Buffer> getUncompressedBuffers() {
+
+		return Collections.unmodifiableList(this.uncompressedBuffers);
+	}
+
+	List<Buffer> getCompressedBuffers() {
+
+		return Collections.unmodifiableList(this.compressedBuffers);
 	}
 }

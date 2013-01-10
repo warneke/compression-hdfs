@@ -120,4 +120,20 @@ public class NameNode implements ClientNameNodeProtocol, DataNodeNameNodeProtoco
 
 		return this.metaDataStore.getFileBlockLocations(path.getPath(), start, len);
 	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public void reportUncompressedCachedBlock(final PathWrapper cdfsPath, final int blockIndex) throws IOException {
+
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public void reportCompressedCachedBlock(final PathWrapper cdfsPath, final int blockIndex) throws IOException {
+
+	}
 }
