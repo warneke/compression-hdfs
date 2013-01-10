@@ -39,4 +39,4 @@ CDFS_LOG_DIR=$CDFS_ROOT_DIR/log
 JVM_ARGS="-Djava.net.preferIPv4Stack=true"
 
 # Default classpath 
-CLASSPATH=$( echo $MEMNGT_LIB_DIR/*.jar . | sed 's/ /:/g' )
+CLASSPATH=$( echo $CDFS_LIB_DIR/*.jar . | sed 's/ /:/g' )

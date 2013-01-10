@@ -3,9 +3,9 @@
 bin=`dirname "$0"`
 bin=`cd "$bin"; pwd`
 
-. "$bin"/memngt-config.sh
+. "$bin"/cdfs-config.sh
 
-HOSTLIST="${MEMNGT_CONF_DIR}/slaves"
+HOSTLIST="${CDFS_CONF_DIR}/slaves"
 
 if [ ! -f $HOSTLIST ]; then
 	echo $HOSTLIST is not a valid slave list
@@ -13,12 +13,11 @@ if [ ! -f $HOSTLIST ]; then
 fi
 
 
-# cluster mode, only bring up job manager locally and a task manager on every slave host
-# $NEPHELE_BIN_DIR/nephele-jobmanager.sh stop
+$CDFS_BIN_DIR/cdfs-namenode.sh stop
 
 while read line
 do
 	HOST=$line
-	ssh -n $HOST -- "nohup /bin/bash $MEMNGT_BIN_DIR/memngt-daemon.sh stop &" &
+	ssh -n $HOST -- "nohup /bin/bash $CDFS_BIN_DIR/cdfs-datanode.sh stop &" &
 done < $HOSTLIST
 wait
