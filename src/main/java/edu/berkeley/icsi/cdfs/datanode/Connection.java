@@ -137,7 +137,9 @@ final class Connection extends Thread {
 							blockIndex);
 						if (compressedBuffers != null) {
 							try {
-								System.out.println("UNSUPPORTED CASE");
+								System.out.println("Reading block " + blockIndex + " from cache (compressed)");
+								final CompressedCachedReadOp ro = new CompressedCachedReadOp(compressedBuffers);
+								ro.read(this.socket.getOutputStream());
 							} finally {
 								CompressedBufferCache.get().unlock(header.getPath(), blockIndex);
 							}
