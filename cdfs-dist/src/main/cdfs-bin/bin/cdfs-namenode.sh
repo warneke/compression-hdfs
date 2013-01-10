@@ -15,7 +15,7 @@ if [ "$CDFS_IDENT_STRING" = "" ]; then
 	CDFS_IDENT_STRING="$USER"
 fi
 
-out=$CDFST_LOG_DIR/cdfs-$CDFS_IDENT_STRING-namenode-$HOSTNAME.out
+out=$CDFS_LOG_DIR/cdfs-$CDFS_IDENT_STRING-namenode-$HOSTNAME.out
 pid=$CDFS_PID_DIR/cdfs-$CDFS_IDENT_STRING-namenode.pid
 
 JVM_ARGS="$JVM_ARGS -Xms64m -Xmx64m"
