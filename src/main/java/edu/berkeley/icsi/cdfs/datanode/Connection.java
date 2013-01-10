@@ -6,6 +6,7 @@ import java.net.Socket;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 
 import edu.berkeley.icsi.cdfs.CDFS;
 import edu.berkeley.icsi.cdfs.CDFSBlockLocation;
@@ -49,8 +50,29 @@ final class Connection extends Thread {
 
 			// Mode
 			if (header.getConnectionMode() == ConnectionMode.WRITE) {
-				final WriteOp wo = new WriteOp(this.nameNode, header.getPath(), 128 * 1024 * 1024);
-				wo.write(inputStream);
+
+				// We are about to write to HDFS, prepare file system
+				if (hdfs == null) {
+					hdfs = CDFS.toHDFSPath(header.getPath(), "_0").getFileSystem(this.conf);
+				}
+
+				int blockIndex = 0;
+				boolean readEOF = false;
+				final PathWrapper cdfsPath = new PathWrapper(header.getPath());
+				while (!readEOF) {
+					final Path hdfsPath = CDFS.toHDFSPath(header.getPath(), "_" + blockIndex);
+					final WriteOp wo = new WriteOp(hdfs, hdfsPath, 128 * 1024 * 1024);
+					readEOF = wo.write(inputStream);
+
+					// Report block information to name node
+					synchronized (this.nameNode) {
+						this.nameNode.createNewBlock(cdfsPath, new PathWrapper(hdfsPath), blockIndex,
+							wo.getBytesWrittenInBlock());
+					}
+
+					++blockIndex;
+				}
+
 			} else {
 
 				CDFSBlockLocation[] blockLocations;

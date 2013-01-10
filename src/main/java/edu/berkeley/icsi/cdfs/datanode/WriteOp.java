@@ -6,36 +6,24 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
-import edu.berkeley.icsi.cdfs.CDFS;
 import edu.berkeley.icsi.cdfs.cache.Buffer;
 import edu.berkeley.icsi.cdfs.cache.BufferPool;
-import edu.berkeley.icsi.cdfs.cache.CompressedBufferCache;
-import edu.berkeley.icsi.cdfs.cache.UncompressedBufferCache;
 import edu.berkeley.icsi.cdfs.compression.Compressor;
-import edu.berkeley.icsi.cdfs.protocols.DataNodeNameNodeProtocol;
 import edu.berkeley.icsi.cdfs.utils.NumberUtils;
-import edu.berkeley.icsi.cdfs.utils.PathWrapper;
 
 final class WriteOp {
 
-	private final DataNodeNameNodeProtocol nameNode;
-
 	private final int blockSize;
 
-	private final BufferPool bufferPool;
+	private final Path hdfsPath;
+
+	private final FileSystem hdfs;
 
 	private final Compressor compressor;
-
-	private final Path cdfsPath;
-
-	private Path hdfsPath;
-
-	private FileSystem hdfs = null;
 
 	private FSDataOutputStream hdfsOutputStream = null;
 
@@ -51,36 +39,24 @@ final class WriteOp {
 
 	private int numberOfBytesInCompressedBuffer = 0;
 
-	private int nextBlockIndex = 0;
-
 	private int bytesWrittenInBlock = 0;
 
 	private final List<Buffer> uncompressedBuffers;
 
 	private final List<Buffer> compressedBuffers;
 
-	WriteOp(final DataNodeNameNodeProtocol nameNode, final Path cdfsPath, final int blockSize) {
+	WriteOp(final FileSystem hdfs, final Path hdfsPath, final int blockSize) {
 
-		this.nameNode = nameNode;
+		this.hdfs = hdfs;
+		this.hdfsPath = hdfsPath;
 		this.blockSize = blockSize;
-		this.bufferPool = BufferPool.get();
 		this.compressor = new Compressor(BufferPool.BUFFER_SIZE);
-		this.cdfsPath = cdfsPath;
-		this.hdfsPath = CDFS.toHDFSPath(cdfsPath, "_" + this.nextBlockIndex);
+
 		this.uncompressedBuffers = new ArrayList<Buffer>();
 		this.compressedBuffers = new ArrayList<Buffer>();
 	}
 
 	private final void writeToHDFS() throws IOException {
-
-		if (this.hdfsOutputStream == null) {
-
-			if (this.hdfs == null) {
-				this.hdfs = this.hdfsPath.getFileSystem(new Configuration());
-			}
-
-			this.hdfsOutputStream = this.hdfs.create(this.hdfsPath);
-		}
 
 		if (this.numberOfBytesInCompressedBuffer > 0) {
 			this.hdfsOutputStream.write(this.compressedBuffer, 0, this.numberOfBytesInCompressedBuffer);
@@ -98,7 +74,7 @@ final class WriteOp {
 				this.numberOfBytesInUncompressedBuffer = 0;
 			}
 
-			this.uncompressedBuffer = this.bufferPool.lockBuffer();
+			this.uncompressedBuffer = BufferPool.get().lockBuffer();
 			if (this.uncompressedBuffer == null) {
 				clearUncompressedBuffers();
 				this.uncompressedBuffer = new byte[BufferPool.BUFFER_SIZE];
@@ -127,7 +103,7 @@ final class WriteOp {
 				this.numberOfBytesInCompressedBuffer = 0;
 			}
 
-			this.compressedBuffer = this.bufferPool.lockBuffer();
+			this.compressedBuffer = BufferPool.get().lockBuffer();
 			if (this.compressedBuffer == null) {
 
 				if (this.cacheUncompressed) {
@@ -135,13 +111,13 @@ final class WriteOp {
 					if (this.numberOfBytesInUncompressedBuffer > 0) {
 						final byte[] newBuf = new byte[BufferPool.BUFFER_SIZE];
 						System.arraycopy(this.uncompressedBuffer, 0, newBuf, 0, this.numberOfBytesInUncompressedBuffer);
-						this.bufferPool.releaseBuffer(this.uncompressedBuffer);
+						BufferPool.get().releaseBuffer(this.uncompressedBuffer);
 						this.uncompressedBuffer = newBuf;
 					}
 					this.cacheCompressed = false;
 				}
 
-				this.compressedBuffer = this.bufferPool.lockBuffer();
+				this.compressedBuffer = BufferPool.get().lockBuffer();
 				if (this.compressedBuffer == null) {
 					if (this.cacheCompressed) {
 						clearCompressedBuffers();
@@ -156,144 +132,126 @@ final class WriteOp {
 		}
 	}
 
-	void write(final InputStream inputStream) throws IOException {
+	boolean write(final InputStream inputStream) throws IOException {
 
-		while (true) {
+		boolean readEOF = false;
 
-			// Get a new uncompressed buffer
-			swapUncompressedBuffer();
+		try {
 
-			// Read the complete block
-			int r;
+			this.hdfsOutputStream = this.hdfs.create(this.hdfsPath, true);
+
 			while (true) {
 
-				final int bytesToRead = Math.min(this.uncompressedBuffer.length
-					- this.numberOfBytesInUncompressedBuffer, this.blockSize - this.bytesWrittenInBlock);
+				// Get a new uncompressed buffer
+				swapUncompressedBuffer();
 
-				r = inputStream.read(this.uncompressedBuffer, this.numberOfBytesInUncompressedBuffer, bytesToRead);
-				if (r < 0) {
+				// Read the complete block
+				int r;
+				while (true) {
+
+					final int bytesToRead = Math.min(this.uncompressedBuffer.length
+						- this.numberOfBytesInUncompressedBuffer, this.blockSize - this.bytesWrittenInBlock);
+
+					r = inputStream.read(this.uncompressedBuffer, this.numberOfBytesInUncompressedBuffer, bytesToRead);
+					if (r < 0) {
+						readEOF = true;
+						break;
+					}
+
+					this.numberOfBytesInUncompressedBuffer += r;
+					this.bytesWrittenInBlock += r;
+
+					// Buffer is full
+					if (this.numberOfBytesInUncompressedBuffer == this.uncompressedBuffer.length) {
+						break;
+					}
+
+					// Block limit is reached
+					if (this.bytesWrittenInBlock == this.blockSize) {
+						break;
+					}
+				}
+
+				if (this.numberOfBytesInUncompressedBuffer == 0 && this.bytesWrittenInBlock != this.blockSize) {
+					if (this.cacheUncompressed) {
+						BufferPool.get().releaseBuffer(this.uncompressedBuffer);
+						this.uncompressedBuffer = null;
+					}
 					break;
 				}
 
-				this.numberOfBytesInUncompressedBuffer += r;
-				this.bytesWrittenInBlock += r;
+				// System.out.println("WRITE " + this.numberOfBytesInUncompressedBuffer);
 
-				// Buffer is full
-				if (this.numberOfBytesInUncompressedBuffer == this.uncompressedBuffer.length) {
-					break;
-				}
+				// Compress the block
+				final int numberOfCompressedBytes = this.compressor.compress(this.uncompressedBuffer,
+					this.numberOfBytesInUncompressedBuffer);
 
-				// Block limit is reached
-				if (this.bytesWrittenInBlock == this.blockSize) {
-					break;
-				}
-			}
-
-			if (this.numberOfBytesInUncompressedBuffer == 0 && this.bytesWrittenInBlock != this.blockSize) {
-				if (this.cacheUncompressed) {
-					this.bufferPool.releaseBuffer(this.uncompressedBuffer);
-					this.uncompressedBuffer = null;
-				}
-				break;
-			}
-
-			// System.out.println("WRITE " + this.numberOfBytesInUncompressedBuffer);
-
-			// Compress the block
-			final int numberOfCompressedBytes = this.compressor.compress(this.uncompressedBuffer,
-				this.numberOfBytesInUncompressedBuffer);
-
-			// System.out.println("COMPRESSED " + numberOfCompressedBytes);
-
-			swapCompressedBuffer();
-
-			NumberUtils.integerToByteArray(numberOfCompressedBytes, this.compressedBuffer,
-				this.numberOfBytesInCompressedBuffer);
-			this.numberOfBytesInCompressedBuffer += 4;
-
-			r = 0;
-			while (r < numberOfCompressedBytes) {
-
-				final int bytesToCopy = Math.min(numberOfCompressedBytes - r, this.compressedBuffer.length
-					- this.numberOfBytesInCompressedBuffer);
-				System.arraycopy(this.compressor.getCompressedBuffer(), r, this.compressedBuffer,
-					this.numberOfBytesInCompressedBuffer, bytesToCopy);
-
-				r += bytesToCopy;
-				this.numberOfBytesInCompressedBuffer += bytesToCopy;
-
-				swapCompressedBuffer();
-			}
-
-			if (this.bytesWrittenInBlock == this.blockSize) {
+				// System.out.println("COMPRESSED " + numberOfCompressedBytes);
 
 				swapCompressedBuffer();
 
-				if (this.hdfsOutputStream != null) {
-					this.hdfsOutputStream.close();
-					this.hdfsOutputStream = null;
+				NumberUtils.integerToByteArray(numberOfCompressedBytes, this.compressedBuffer,
+					this.numberOfBytesInCompressedBuffer);
+				this.numberOfBytesInCompressedBuffer += 4;
+
+				r = 0;
+				while (r < numberOfCompressedBytes) {
+
+					final int bytesToCopy = Math.min(numberOfCompressedBytes - r, this.compressedBuffer.length
+						- this.numberOfBytesInCompressedBuffer);
+					System.arraycopy(this.compressor.getCompressedBuffer(), r, this.compressedBuffer,
+						this.numberOfBytesInCompressedBuffer, bytesToCopy);
+
+					r += bytesToCopy;
+					this.numberOfBytesInCompressedBuffer += bytesToCopy;
+
+					swapCompressedBuffer();
 				}
 
-				synchronized (this.nameNode) {
-					this.nameNode.createNewBlock(new PathWrapper(this.cdfsPath), new PathWrapper(this.hdfsPath),
-						this.nextBlockIndex, this.bytesWrittenInBlock);
+				if (this.bytesWrittenInBlock == this.blockSize || readEOF) {
+					break;
 				}
-
-				this.bytesWrittenInBlock = 0;
-				++this.nextBlockIndex;
-				this.hdfsPath = CDFS.toHDFSPath(this.cdfsPath, "_" + this.nextBlockIndex);
 			}
 
-			// Check if this was the last buffer
-			if (this.numberOfBytesInUncompressedBuffer < uncompressedBuffer.length) {
-				break;
+			if (this.uncompressedBuffer != null && this.cacheUncompressed) {
+				final Buffer buffer = new Buffer(this.uncompressedBuffer, this.numberOfBytesInUncompressedBuffer);
+				this.uncompressedBuffers.add(buffer);
+				this.numberOfBytesInUncompressedBuffer = 0;
+				this.uncompressedBuffer = null;
 			}
-		}
 
-		if (this.uncompressedBuffer != null && this.cacheUncompressed) {
-			final Buffer buffer = new Buffer(this.uncompressedBuffer, this.numberOfBytesInUncompressedBuffer);
-			this.uncompressedBuffers.add(buffer);
-			this.numberOfBytesInUncompressedBuffer = 0;
-			this.uncompressedBuffer = null;
-		}
+			if (this.compressedBuffer != null) {
 
-		if (this.compressedBuffer != null) {
+				writeToHDFS();
 
-			writeToHDFS();
+				if (this.cacheCompressed) {
+					final Buffer buffer = new Buffer(this.compressedBuffer, this.numberOfBytesInCompressedBuffer);
+					this.compressedBuffers.add(buffer);
+					this.numberOfBytesInCompressedBuffer = 0;
+					this.compressedBuffer = null;
+				}
+			}
 
-			if (this.cacheCompressed) {
-				final Buffer buffer = new Buffer(this.compressedBuffer, this.numberOfBytesInCompressedBuffer);
-				this.compressedBuffers.add(buffer);
-				this.numberOfBytesInCompressedBuffer = 0;
-				this.compressedBuffer = null;
+		} finally {
+
+			if (this.hdfsOutputStream != null) {
+				this.hdfsOutputStream.close();
 			}
 		}
 
-		// Report last block
-		synchronized (this.nameNode) {
-			this.nameNode.createNewBlock(new PathWrapper(this.cdfsPath), new PathWrapper(this.hdfsPath),
-				this.nextBlockIndex, this.bytesWrittenInBlock);
-		}
+		return readEOF;
+	}
 
-		if (this.hdfsOutputStream != null) {
-			this.hdfsOutputStream.close();
-			this.hdfsOutputStream = null;
-		}
+	public int getBytesWrittenInBlock() {
 
-		if (!this.uncompressedBuffers.isEmpty()) {
-			UncompressedBufferCache.get().addCachedBlock(this.cdfsPath, this.nextBlockIndex, this.uncompressedBuffers);
-		}
-
-		if (!this.compressedBuffers.isEmpty()) {
-			CompressedBufferCache.get().addCachedBlock(this.cdfsPath, this.nextBlockIndex, this.compressedBuffers);
-		}
+		return this.bytesWrittenInBlock;
 	}
 
 	private final void clearUncompressedBuffers() {
 
 		final Iterator<Buffer> it = this.uncompressedBuffers.iterator();
 		while (it.hasNext()) {
-			this.bufferPool.releaseBuffer(it.next().getData());
+			BufferPool.get().releaseBuffer(it.next().getData());
 		}
 
 		this.uncompressedBuffers.clear();
@@ -303,7 +261,7 @@ final class WriteOp {
 
 		final Iterator<Buffer> it = this.compressedBuffers.iterator();
 		while (it.hasNext()) {
-			this.bufferPool.releaseBuffer(it.next().getData());
+			BufferPool.get().releaseBuffer(it.next().getData());
 		}
 
 		this.compressedBuffers.clear();
