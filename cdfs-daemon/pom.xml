@@ -5,11 +5,17 @@
 
 	<modelVersion>4.0.0</modelVersion>
 
+	<parent>
+		<artifactId>cdfs</artifactId>
+		<groupId>edu.berkeley.icsi</groupId>
+		<version>0.1</version>
+	</parent>
+
 	<groupId>edu.berkeley.icsi</groupId>
-	<artifactId>compression-hdfs</artifactId>
+	<artifactId>cdfs-daemon</artifactId>
 	<version>0.1</version>
 
-	<name>compression-hdfs</name>
+	<name>cdfs-daemon</name>
 	<url>http://icsi.berkeley.edu</url>
 	<inceptionYear>2012</inceptionYear>
 
