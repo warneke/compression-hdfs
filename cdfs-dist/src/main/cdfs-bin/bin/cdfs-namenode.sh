@@ -15,8 +15,8 @@ if [ "$CDFS_IDENT_STRING" = "" ]; then
 	CDFS_IDENT_STRING="$USER"
 fi
 
-out=$CDFST_LOG_DIR/cdfs-$CDFS_IDENT_STRING-datanode-$HOSTNAME.out
-pid=$CDFS_PID_DIR/cdfs-$CDFS_IDENT_STRING-datanode.pid
+out=$CDFST_LOG_DIR/cdfs-$CDFS_IDENT_STRING-namenode-$HOSTNAME.out
+pid=$CDFS_PID_DIR/cdfs-$CDFS_IDENT_STRING-namenode.pid
 
 JVM_ARGS="$JVM_ARGS -Xms64m -Xmx64m"
 
@@ -26,26 +26,26 @@ case $STARTSTOP in
 		mkdir -p "$CDFS_PID_DIR"
 		if [ -f $pid ]; then
 			if kill -0 `cat $pid` > /dev/null 2>&1; then
-				echo CDFS datanode running as process `cat $pid` on host $HOSTNAME.  Stop it first.
+				echo CDFS namenode running as process `cat $pid` on host $HOSTNAME.  Stop it first.
 				exit 1
      			fi
 		fi
 
-		echo Starting CDFS datanode on host $HOSTNAME
-		$JAVA_HOME/bin/java $JVM_ARGS -classpath $CLASSPATH edu.berkeley.icsi.cdfs.datanode.DataNode > "$out" 2>&1 < /dev/null &
+		echo Starting CDFS namenode on host $HOSTNAME
+		$JAVA_HOME/bin/java $JVM_ARGS -classpath $CLASSPATH edu.berkeley.icsi.cdfs.namenode.NameNode > "$out" 2>&1 < /dev/null &
 		echo $! > $pid
 	;;
 
 	(stop)
 		if [ -f $pid ]; then
 			if kill -0 `cat $pid` > /dev/null 2>&1; then
-				echo Stopping CDFS datanode on host $HOSTNAME
+				echo Stopping CDFS namenode on host $HOSTNAME
 				kill `cat $pid`
 			else
-				echo No CDFS datanode to stop on host $HOSTNAME
+				echo No CDFS namenode to stop on host $HOSTNAME
 			fi
 		else
-			echo No CDFS datanode to stop on host $HOSTNAME
+			echo No CDFS namenode to stop on host $HOSTNAME
 		fi
 	;;
 
