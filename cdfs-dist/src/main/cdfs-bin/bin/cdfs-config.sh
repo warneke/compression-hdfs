@@ -20,7 +20,7 @@ this="$bin/$script"
 
 # Define JAVA_HOME if it is not already set
 if [ -z "${JAVA_HOME+x}" ]; then
-        JAVA_HOME=/usr/lib/jvm/java-6-sun/
+        JAVA_HOME=/opt/jdk1.6.0_35/
 fi
 
 # Define HOSTNAME if it is not already set
@@ -35,7 +35,11 @@ CDFS_BIN_DIR=$CDFS_ROOT_DIR/bin
 CDFS_LIB_DIR=$CDFS_ROOT_DIR/lib
 CDFS_LOG_DIR=$CDFS_ROOT_DIR/log
 
-# Arguments for the JVM. 
+# Define the heap sizes for the JVMs
+NAMENODE_HEAP_SIZE=128
+DATANODE_HEAP_SIZE=1024
+
+# Arguments for the JVM 
 JVM_ARGS="-Djava.net.preferIPv4Stack=true"
 
 # Default classpath 

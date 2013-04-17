@@ -18,7 +18,7 @@ fi
 out=$CDFS_LOG_DIR/cdfs-$CDFS_IDENT_STRING-datanode-$HOSTNAME.out
 pid=$CDFS_PID_DIR/cdfs-$CDFS_IDENT_STRING-datanode.pid
 
-JVM_ARGS="$JVM_ARGS -Xms64m -Xmx64m"
+JVM_ARGS="$JVM_ARGS -Xms"$DATANODE_HEAP_SIZE"m -Xmx"$DATANODE_HEAP_SIZE"m"
 
 case $STARTSTOP in
 
