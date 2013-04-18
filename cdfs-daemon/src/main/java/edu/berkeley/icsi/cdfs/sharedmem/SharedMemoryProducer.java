@@ -30,8 +30,12 @@ public final class SharedMemoryProducer {
 	private boolean bufferReady;
 
 	public SharedMemoryProducer(final SocketAddress remoteAddress) throws IOException {
+		this(new DatagramSocket(), remoteAddress);
+	}
+	
+	public SharedMemoryProducer(final DatagramSocket socket, final SocketAddress remoteAddress) throws IOException {
 
-		this.socket = new DatagramSocket();
+		this.socket = socket;
 		this.remoteAddress = remoteAddress;
 
 		// Prepare acknowledgment packet
@@ -45,6 +49,7 @@ public final class SharedMemoryProducer {
 
 		if (this.memoryMappedFile == null) {
 
+			System.out.println("Creating new buffer");
 			final String filename = getTempFilename();
 
 			// Create notification buffer;

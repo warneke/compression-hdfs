@@ -2,8 +2,9 @@ package edu.berkeley.icsi.cdfs.datanode;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.Socket;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.SocketAddress;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
@@ -20,16 +21,20 @@ import edu.berkeley.icsi.cdfs.utils.PathWrapper;
 
 final class Connection extends Thread {
 
-	private final Socket socket;
+	private final SocketAddress remoteAddress;
+
+	private final Header header;
 
 	private final DataNodeNameNodeProtocol nameNode;
 
 	private final Configuration conf;
 
-	Connection(final Socket socket, final DataNodeNameNodeProtocol nameNode, final Configuration conf) {
-		super("DataNodeConnection from " + socket.getRemoteSocketAddress());
+	Connection(final SocketAddress remoteAddress, final Header header, final DataNodeNameNodeProtocol nameNode,
+			final Configuration conf) {
+		super("DataNodeConnection from " + remoteAddress);
 
-		this.socket = socket;
+		this.remoteAddress = remoteAddress;
+		this.header = header;
 		this.nameNode = nameNode;
 		this.conf = conf;
 		start();
@@ -44,17 +49,22 @@ final class Connection extends Thread {
 		// Reference to HDFS
 		FileSystem hdfs = null;
 
+		// Socket for control messages
+		DatagramSocket socket = null;
+
 		// Read header first
 		try {
-			final InputStream inputStream = this.socket.getInputStream();
 
-			final Header header = Header.receiveHeader(inputStream);
-			if (header == null) {
-				throw new IOException("Unexpected end of header");
-			}
+			socket = new DatagramSocket();
 
 			// Mode
 			if (header.getConnectionMode() == ConnectionMode.WRITE) {
+
+				// Send packet to inform client about new socket's port
+				final byte[] buf = new byte[1];
+				final DatagramPacket ackPacket = new DatagramPacket(buf, buf.length);
+				ackPacket.setSocketAddress(this.remoteAddress);
+				socket.send(ackPacket);
 
 				// We are about to write to HDFS, prepare file system
 				if (hdfs == null) {
@@ -67,7 +77,8 @@ final class Connection extends Thread {
 				while (!readEOF) {
 					final Path hdfsPath = CDFS.toHDFSPath(header.getPath(), "_" + blockIndex);
 					final WriteOp wo = new WriteOp(hdfs, hdfsPath, 128 * 1024 * 1024, this.conf);
-					readEOF = wo.write(inputStream);
+					// TODO: Fixe me
+					// readEOF = wo.write(inputStream);
 
 					// Report block information to name node
 					synchronized (this.nameNode) {
@@ -126,7 +137,7 @@ final class Connection extends Thread {
 						try {
 							System.out.println("Reading block " + blockIndex + " from cache (uncompressed)");
 							final UncompressedCachedReadOp ro = new UncompressedCachedReadOp(uncompressedBuffers);
-							ro.read(this.socket.getOutputStream());
+							ro.read(this.remoteAddress);
 						} finally {
 							UncompressedBufferCache.get().unlock(header.getPath(), blockIndex);
 						}
@@ -139,7 +150,7 @@ final class Connection extends Thread {
 							try {
 								System.out.println("Reading block " + blockIndex + " from cache (compressed)");
 								final CompressedCachedReadOp ro = new CompressedCachedReadOp(compressedBuffers);
-								ro.read(this.socket.getOutputStream());
+								ro.read(this.remoteAddress);
 							} finally {
 								CompressedBufferCache.get().unlock(header.getPath(), blockIndex);
 							}
@@ -151,10 +162,10 @@ final class Connection extends Thread {
 							}
 
 							final CachingReadOp ro = new CachingReadOp(hdfs, CDFS.toHDFSPath(header.getPath(), "_"
-								+ blockIndex));
+								+ blockIndex), this.conf);
 
 							try {
-								ro.read(this.socket.getOutputStream());
+								ro.read(this.remoteAddress);
 							} catch (FileNotFoundException e) {
 								break;
 							}
@@ -170,11 +181,8 @@ final class Connection extends Thread {
 		} finally {
 
 			// Close the socket
-			if (this.socket != null) {
-				try {
-					this.socket.close();
-				} catch (IOException ioe) {
-				}
+			if (socket != null) {
+				socket.close();
 			}
 
 			// Close HDFS connection

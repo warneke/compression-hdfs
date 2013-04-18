@@ -1,9 +1,10 @@
 package edu.berkeley.icsi.cdfs.datanode;
 
 import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.net.SocketAddress;
 
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.logging.Log;
@@ -12,6 +13,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.ipc.RPC;
 
 import edu.berkeley.icsi.cdfs.CDFS;
+import edu.berkeley.icsi.cdfs.cache.BufferPool;
 import edu.berkeley.icsi.cdfs.protocols.DataNodeNameNodeProtocol;
 import edu.berkeley.icsi.cdfs.utils.ConfigUtils;
 
@@ -19,26 +21,40 @@ public class DataNode {
 
 	private static final Log LOG = LogFactory.getLog(DataNode.class);
 
-	private final ServerSocket serverSocket;
+	private final DatagramSocket serverSocket;
 
 	private final DataNodeNameNodeProtocol nameNode;
 
 	private final Configuration conf;
 
 	public DataNode(final Configuration conf) throws IOException {
-		this.serverSocket = new ServerSocket(CDFS.DATANODE_DATA_PORT);
+
+		LOG.info("Starting CDFS datanode on port" + CDFS.DATANODE_DATA_PORT);
+
+		this.serverSocket = new DatagramSocket(CDFS.DATANODE_DATA_PORT);
 		this.conf = conf;
 
 		this.nameNode = (DataNodeNameNodeProtocol) RPC.getProxy(
 			DataNodeNameNodeProtocol.class, 1, new InetSocketAddress(
 				"localhost", CDFS.NAMENODE_RPC_PORT), this.conf);
+
+		// Force initialization of buffer pool at the beginning
+		BufferPool.get();
 	}
 
 	void run() throws IOException {
 
+		final byte[] buf = new byte[512];
+		final DatagramPacket dp = new DatagramPacket(buf, buf.length);
+
 		while (true) {
-			final Socket socket = this.serverSocket.accept();
-			new Connection(socket, this.nameNode, this.conf);
+
+			this.serverSocket.receive(dp);
+
+			final SocketAddress remoteAddress = dp.getSocketAddress();
+			final Header header = Header.fromPacket(dp);
+
+			new Connection(remoteAddress, header, this.nameNode, this.conf);
 		}
 	}
 
@@ -71,10 +87,6 @@ public class DataNode {
 
 	void shutDown() {
 
-		try {
-			this.serverSocket.close();
-		} catch (IOException ioe) {
-			ioe.printStackTrace();
-		}
+		this.serverSocket.close();
 	}
 }

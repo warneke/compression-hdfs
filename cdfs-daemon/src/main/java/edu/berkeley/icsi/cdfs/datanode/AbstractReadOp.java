@@ -1,9 +1,9 @@
 package edu.berkeley.icsi.cdfs.datanode;
 
 import java.io.IOException;
-import java.io.OutputStream;
+import java.net.SocketAddress;
 
 abstract class AbstractReadOp {
 
-	abstract void read(final OutputStream outputStream) throws IOException;
+	abstract void read(final SocketAddress remoteAddress) throws IOException;
 }

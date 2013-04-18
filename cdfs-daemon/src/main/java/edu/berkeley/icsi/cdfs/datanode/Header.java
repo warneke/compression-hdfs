@@ -1,8 +1,7 @@
 package edu.berkeley.icsi.cdfs.datanode;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.net.DatagramPacket;
 
 import org.apache.hadoop.fs.Path;
 
@@ -23,61 +22,26 @@ final public class Header {
 		this.pos = pos;
 	}
 
-	public void sendHeader(final OutputStream outputStream) throws IOException {
+	public void toPacket(final DatagramPacket packet) throws IOException {
 
-		outputStream.write(this.connectionMode.toByte());
-		final byte[] size = new byte[8];
+		final byte[] buf = packet.getData();
+
+		buf[0] = this.connectionMode.toByte();
 		final byte[] path = this.path.toString().getBytes();
-		NumberUtils.integerToByteArray(path.length, size, 0);
-		outputStream.write(size, 0, 4);
-		outputStream.write(path);
-		NumberUtils.longToByteArray(this.pos, size, 0);
-		outputStream.write(size);
+		final int pathLength = path.length;
+		NumberUtils.integerToByteArray(pathLength, buf, 1);
+		System.arraycopy(path, 0, buf, 5, pathLength);
+		NumberUtils.longToByteArray(this.pos, buf, 5 + pathLength);
 	}
 
-	static Header receiveHeader(final InputStream inputStream) throws IOException {
+	static Header fromPacket(final DatagramPacket packet) throws IOException {
 
-		final int b = inputStream.read();
-		if (b < 0) {
-			return null;
-		}
+		final byte[] buf = packet.getData();
 
-		final ConnectionMode mode = ConnectionMode.toConnectionMode((byte) b);
-		final byte[] size = new byte[8];
-		int r = 0;
-		while (r < 4) {
-			final int read = inputStream.read(size, r, 4 - r);
-			if (read == -1) {
-				return null;
-			}
-
-			r += read;
-		}
-
-		final int pathLength = NumberUtils.byteArrayToInteger(size, 0);
-		final byte[] path = new byte[pathLength];
-		r = 0;
-		while (r < path.length) {
-			final int read = inputStream.read(path, r, path.length - r);
-			if (read == -1) {
-				return null;
-			}
-
-			r += read;
-		}
-
-		final Path p = new Path(new String(path));
-
-		r = 0;
-		while (r < 8) {
-			final int read = inputStream.read(size, r, 8 - r);
-			if (read == -1) {
-				return null;
-			}
-
-			r += read;
-		}
-		final long pos = NumberUtils.byteArrayToLong(size, 0);
+		final ConnectionMode mode = ConnectionMode.toConnectionMode(buf[0]);
+		final int pathLength = NumberUtils.byteArrayToInteger(buf, 1);
+		final Path p = new Path(new String(buf, 5, pathLength));
+		final long pos = NumberUtils.byteArrayToLong(buf, 5 + pathLength);
 
 		return new Header(mode, p, pos);
 	}

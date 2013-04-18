@@ -3,6 +3,11 @@ package edu.berkeley.icsi.cdfs;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.nio.ByteBuffer;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PositionedReadable;
@@ -10,24 +15,29 @@ import org.apache.hadoop.fs.Seekable;
 
 import edu.berkeley.icsi.cdfs.datanode.ConnectionMode;
 import edu.berkeley.icsi.cdfs.datanode.Header;
+import edu.berkeley.icsi.cdfs.sharedmem.SharedMemoryConsumer;
+import edu.berkeley.icsi.cdfs.utils.NumberUtils;
 
-final class SeekableInputStream extends InputStream implements Seekable, PositionedReadable {
-
-	private final InputStream inputStream;
-
-	private final OutputStream outputStream;
+final class SharedMemoryInputStream extends InputStream implements Seekable, PositionedReadable {
 
 	private final Path path;
+
+	private final SocketAddress socketAddress;
+
+	private final DatagramSocket socket;
 
 	private long seek = 0L;
 
 	private boolean headerSent = false;
 
-	SeekableInputStream(final InputStream inputStream, final OutputStream outputStream, final Path path) {
+	private SharedMemoryConsumer smc = null;
 
-		this.inputStream = inputStream;
-		this.outputStream = outputStream;
+	SharedMemoryInputStream(final String hostname, final int port, final Path path) throws IOException {
+
+		this.socketAddress = new InetSocketAddress(hostname, port);
 		this.path = path;
+
+		this.socket = new DatagramSocket();
 	}
 
 	/**
@@ -102,7 +112,9 @@ final class SeekableInputStream extends InputStream implements Seekable, Positio
 	@Override
 	public int read() throws IOException {
 
-		return this.inputStream.read();
+		System.out.println("Read 1");
+
+		return 0;
 	}
 
 	/**
@@ -122,12 +134,33 @@ final class SeekableInputStream extends InputStream implements Seekable, Positio
 
 		// If this is the first read attempt, send header first
 		if (!this.headerSent) {
+
+			final byte[] buf = new byte[256];
+			final DatagramPacket dp = new DatagramPacket(buf, buf.length);
+			dp.setSocketAddress(this.socketAddress);
+
 			final Header header = new Header(ConnectionMode.READ, this.path, this.seek);
-			header.sendHeader(this.outputStream);
+			header.toPacket(dp);
+			this.socket.send(dp);
 			this.headerSent = true;
 		}
 
-		return this.inputStream.read(b, off, len);
+		if (this.smc == null) {
+			this.smc = new SharedMemoryConsumer(this.socket);
+		}
+
+		final ByteBuffer sharedMemBuf = this.smc.lockSharedMemory();
+		if (sharedMemBuf == null) {
+			return -1;
+		}
+		final int dataToRead = Math.min(sharedMemBuf.remaining(), len);
+		sharedMemBuf.get(b, off, dataToRead);
+
+		if (!sharedMemBuf.hasRemaining()) {
+			this.smc.unlockSharedMemory();
+		}
+
+		return dataToRead;
 	}
 
 	/**
@@ -136,7 +169,9 @@ final class SeekableInputStream extends InputStream implements Seekable, Positio
 	@Override
 	public int available() throws IOException {
 
-		return this.inputStream.available();
+		System.out.println("Available");
+
+		return 0;
 	}
 
 	/**
@@ -145,7 +180,7 @@ final class SeekableInputStream extends InputStream implements Seekable, Positio
 	@Override
 	public void close() throws IOException {
 
-		this.inputStream.close();
+		this.socket.close();
 	}
 
 	/**
@@ -154,7 +189,7 @@ final class SeekableInputStream extends InputStream implements Seekable, Positio
 	@Override
 	public void mark(final int readlimit) {
 
-		this.inputStream.mark(readlimit);
+		System.out.println("Mark");
 	}
 
 	/**
@@ -163,7 +198,9 @@ final class SeekableInputStream extends InputStream implements Seekable, Positio
 	@Override
 	public boolean markSupported() {
 
-		return this.inputStream.markSupported();
+		System.out.println("Mark supported");
+
+		return false;
 	}
 
 	/**
@@ -172,7 +209,7 @@ final class SeekableInputStream extends InputStream implements Seekable, Positio
 	@Override
 	public void reset() throws IOException {
 
-		this.inputStream.reset();
+		System.out.println("Reset");
 	}
 
 	/**
@@ -181,6 +218,8 @@ final class SeekableInputStream extends InputStream implements Seekable, Positio
 	@Override
 	public long skip(final long n) throws IOException {
 
-		return this.inputStream.skip(n);
+		System.out.println("Skip");
+
+		return 0;
 	}
 }

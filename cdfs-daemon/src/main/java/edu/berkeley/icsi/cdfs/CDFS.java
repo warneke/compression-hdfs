@@ -2,9 +2,9 @@ package edu.berkeley.icsi.cdfs;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.OutputStream;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.net.URI;
 import java.net.URISyntaxException;
 
@@ -67,11 +67,17 @@ public class CDFS extends FileSystem {
 			throw new IOException("File " + f + " does already exist");
 		}
 
-		final Socket socket = new Socket("localhost", DATANODE_DATA_PORT);
-		final OutputStream outputStream = socket.getOutputStream();
+		final DatagramSocket socket = new DatagramSocket();
+
+		final byte[] buf = new byte[256];
+		final DatagramPacket dp = new DatagramPacket(buf, buf.length);
+		dp.setSocketAddress(new InetSocketAddress("localhost", DATANODE_DATA_PORT));
 		final Header header = new Header(ConnectionMode.WRITE, f, 0L);
-		header.sendHeader(outputStream);
-		return new CDFSDataOutputStream(outputStream);
+		header.toPacket(dp);
+
+		socket.send(dp);
+
+		return new CDFSDataOutputStream(socket);
 	}
 
 	@Override
@@ -172,8 +178,7 @@ public class CDFS extends FileSystem {
 	@Override
 	public FSDataInputStream open(final Path arg0, int arg1) throws IOException {
 
-		final Socket socket = new Socket("localhost", DATANODE_DATA_PORT);
-		return new CDFSDataInputStream(socket.getInputStream(), socket.getOutputStream(), arg0);
+		return new CDFSDataInputStream("localhost", DATANODE_DATA_PORT, arg0);
 	}
 
 	@Override

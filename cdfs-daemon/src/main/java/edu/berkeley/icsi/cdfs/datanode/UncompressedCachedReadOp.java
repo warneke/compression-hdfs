@@ -1,7 +1,7 @@
 package edu.berkeley.icsi.cdfs.datanode;
 
 import java.io.IOException;
-import java.io.OutputStream;
+import java.net.SocketAddress;
 import java.util.Iterator;
 import java.util.List;
 
@@ -19,13 +19,14 @@ final class UncompressedCachedReadOp extends AbstractReadOp {
 	 * {@inheritDoc}
 	 */
 	@Override
-	void read(final OutputStream outputStream) throws IOException {
+	void read(final SocketAddress remoteAddress) throws IOException {
 
 		final Iterator<Buffer> it = this.buffers.iterator();
 		while (it.hasNext()) {
 
-			final Buffer buffer = it.next();
-			outputStream.write(buffer.getData(), 0, buffer.getLength());
+			// TODO: Fix me
+			//final Buffer buffer = it.next();
+			//outputStream.write(buffer.getData(), 0, buffer.getLength());
 		}
 
 		// TODO: Release buffers
