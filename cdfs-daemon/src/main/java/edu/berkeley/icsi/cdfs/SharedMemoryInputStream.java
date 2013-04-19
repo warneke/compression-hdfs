@@ -2,7 +2,6 @@ package edu.berkeley.icsi.cdfs;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
@@ -16,7 +15,6 @@ import org.apache.hadoop.fs.Seekable;
 import edu.berkeley.icsi.cdfs.datanode.ConnectionMode;
 import edu.berkeley.icsi.cdfs.datanode.Header;
 import edu.berkeley.icsi.cdfs.sharedmem.SharedMemoryConsumer;
-import edu.berkeley.icsi.cdfs.utils.NumberUtils;
 
 final class SharedMemoryInputStream extends InputStream implements Seekable, PositionedReadable {
 
