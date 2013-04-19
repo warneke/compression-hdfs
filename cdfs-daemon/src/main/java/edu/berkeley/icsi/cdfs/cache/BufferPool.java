@@ -6,9 +6,9 @@ public final class BufferPool {
 
 	private static final BufferPool INSTANCE = new BufferPool();
 
-	private static final int NUMBER_OF_BUFFERS = 20000;
+	private static final int NUMBER_OF_BUFFERS = 800;
 
-	public static final int BUFFER_SIZE = 64 * 1024;
+	public static final int BUFFER_SIZE = 2 * 1024 * 1024;
 
 	private final ArrayBlockingQueue<byte[]> buffers = new ArrayBlockingQueue<byte[]>(NUMBER_OF_BUFFERS);
 

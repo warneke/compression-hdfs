@@ -74,11 +74,11 @@ final class Connection extends Thread {
 				int blockIndex = 0;
 				boolean readEOF = false;
 				final PathWrapper cdfsPath = new PathWrapper(header.getPath());
+				final WriteOp wo = new WriteOp(socket, hdfs, this.conf);
 				while (!readEOF) {
 					final Path hdfsPath = CDFS.toHDFSPath(header.getPath(), "_" + blockIndex);
-					final WriteOp wo = new WriteOp(hdfs, hdfsPath, 128 * 1024 * 1024, this.conf);
-					// TODO: Fixe me
-					// readEOF = wo.write(inputStream);
+					
+					readEOF = wo.write(hdfsPath, 128 * 1024 * 1024);
 
 					// Report block information to name node
 					synchronized (this.nameNode) {

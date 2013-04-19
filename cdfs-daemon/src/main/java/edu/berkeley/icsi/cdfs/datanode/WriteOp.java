@@ -27,11 +27,11 @@ final class WriteOp implements Closeable {
 
 	private final Compressor compressor;
 
-	private final List<Buffer> uncompressedBuffers = new ArrayList<Buffer>();
+	private final SharedMemoryConsumer sharedMemoryConsumer;
 
-	private final List<Buffer> compressedBuffers = new ArrayList<Buffer>();
+	private List<Buffer> uncompressedBuffers = null;
 
-	private SharedMemoryConsumer sharedMemoryConsumer = null;
+	private List<Buffer> compressedBuffers = null;
 
 	private int bytesWrittenInBlock = 0;
 
@@ -55,9 +55,9 @@ final class WriteOp implements Closeable {
 
 	boolean write(final Path hdfsPath, final int blockSize) throws IOException {
 
-		// Clear old cache lists
-		this.uncompressedBuffers.clear();
-		this.compressedBuffers.clear();
+		// Create new cache lists
+		this.uncompressedBuffers = new ArrayList<Buffer>();
+		this.compressedBuffers = new ArrayList<Buffer>();
 
 		System.out.println("Write to " + hdfsPath);
 		boolean readEOF = false;
