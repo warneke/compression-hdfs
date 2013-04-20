@@ -28,10 +28,6 @@ public final class SharedMemoryProducer {
 	private MappedByteBuffer sharedMemoryBuffer = null;
 
 	private boolean bufferReady;
-
-	public SharedMemoryProducer(final SocketAddress remoteAddress) throws IOException {
-		this(new DatagramSocket(), remoteAddress);
-	}
 	
 	public SharedMemoryProducer(final DatagramSocket socket, final SocketAddress remoteAddress) throws IOException {
 
