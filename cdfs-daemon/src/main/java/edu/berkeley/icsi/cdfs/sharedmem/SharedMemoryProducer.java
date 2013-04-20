@@ -1,5 +1,6 @@
 package edu.berkeley.icsi.cdfs.sharedmem;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.DatagramPacket;
@@ -28,7 +29,7 @@ public final class SharedMemoryProducer {
 	private MappedByteBuffer sharedMemoryBuffer = null;
 
 	private boolean bufferReady;
-	
+
 	public SharedMemoryProducer(final DatagramSocket socket, final SocketAddress remoteAddress) throws IOException {
 
 		this.socket = socket;
@@ -45,16 +46,15 @@ public final class SharedMemoryProducer {
 
 		if (this.memoryMappedFile == null) {
 
-			System.out.println("Creating new buffer");
-			final String filename = getTempFilename();
+			final File file = getTmpFile();
 
 			// Create notification buffer;
-			final byte[] filenameBuf = filename.getBytes();
+			final byte[] filenameBuf = file.getAbsolutePath().getBytes();
 			final byte[] notificationBuf = new byte[filenameBuf.length + 4];
 			System.arraycopy(filenameBuf, 0, notificationBuf, 4, filenameBuf.length);
 			this.notificationPacket = new DatagramPacket(notificationBuf, notificationBuf.length);
 			this.notificationPacket.setSocketAddress(this.remoteAddress);
-			this.memoryMappedFile = new RandomAccessFile(filename, "rw");
+			this.memoryMappedFile = new RandomAccessFile(file, "rw");
 			final FileChannel fc = this.memoryMappedFile.getChannel();
 			this.sharedMemoryBuffer = fc.map(MapMode.READ_WRITE, 0, BufferPool.BUFFER_SIZE);
 		}
@@ -62,9 +62,12 @@ public final class SharedMemoryProducer {
 		return this.sharedMemoryBuffer;
 	}
 
-	private static String getTempFilename() {
+	private static File getTmpFile() throws IOException {
 
-		return "/tmp/daniel_1234";
+		final File tmpFile = File.createTempFile("cdfs_", "_pipe.dat");
+		tmpFile.deleteOnExit();
+
+		return tmpFile;
 	}
 
 	public ByteBuffer lockSharedMemory() throws IOException {
