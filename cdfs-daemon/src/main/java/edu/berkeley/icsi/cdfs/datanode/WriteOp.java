@@ -10,6 +10,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
@@ -18,6 +19,7 @@ import edu.berkeley.icsi.cdfs.cache.BufferPool;
 import edu.berkeley.icsi.cdfs.compression.Compressor;
 import edu.berkeley.icsi.cdfs.sharedmem.SharedMemoryConsumer;
 import edu.berkeley.icsi.cdfs.utils.ConfigUtils;
+import edu.berkeley.icsi.cdfs.utils.NumberUtils;
 
 final class WriteOp implements Closeable {
 
@@ -35,22 +37,12 @@ final class WriteOp implements Closeable {
 
 	private int bytesWrittenInBlock = 0;
 
-	private boolean cacheUncompressed;
-
-	private boolean cacheCompressed;
-
 	WriteOp(final DatagramSocket socket, final FileSystem hdfs, final Configuration conf) throws IOException {
 
 		this.hdfs = hdfs;
 		this.conf = conf;
 		this.sharedMemoryConsumer = new SharedMemoryConsumer(socket);
 		this.compressor = new Compressor(BufferPool.BUFFER_SIZE);
-
-		this.cacheUncompressed = conf.getBoolean(ConfigUtils.ENABLE_UNCOMPRESSED_CACHING_KEY,
-			ConfigUtils.DEFAULT_ENABLE_UNCOMPRESSED_CACHING);
-
-		this.cacheCompressed = conf.getBoolean(ConfigUtils.ENABLE_COMPRESSED_CACHING_KEY,
-			ConfigUtils.DEFAULT_ENABLE_COMPRESSED_CACHING);
 	}
 
 	boolean write(final Path hdfsPath, final int blockSize) throws IOException {
@@ -59,7 +51,27 @@ final class WriteOp implements Closeable {
 		this.uncompressedBuffers = new ArrayList<Buffer>();
 		this.compressedBuffers = new ArrayList<Buffer>();
 
-		System.out.println("Write to " + hdfsPath);
+		boolean cacheUncompressed = this.conf.getBoolean(ConfigUtils.ENABLE_UNCOMPRESSED_CACHING_KEY,
+			ConfigUtils.DEFAULT_ENABLE_UNCOMPRESSED_CACHING);
+
+		boolean cacheCompressed = this.conf.getBoolean(ConfigUtils.ENABLE_COMPRESSED_CACHING_KEY,
+			ConfigUtils.DEFAULT_ENABLE_COMPRESSED_CACHING);
+
+		byte[] uncompressedBuffer = null;
+		byte[] compressedBuffer = null;
+		int numberOfBytesInCompressedBuffer = 0;
+
+		if (!cacheUncompressed) {
+			uncompressedBuffer = new byte[BufferPool.BUFFER_SIZE];
+		}
+
+		if (!cacheUncompressed) {
+			compressedBuffer = new byte[BufferPool.BUFFER_SIZE];
+		}
+
+		// Open HDFS output stream
+		final FSDataOutputStream hdfsOutputStream = this.hdfs.create(hdfsPath, true);
+
 		boolean readEOF = false;
 
 		BufferPool bufferPool = BufferPool.get();
@@ -76,28 +88,93 @@ final class WriteOp implements Closeable {
 			// Check out how much data we can read before we cross the block boundary
 			final int bytesToRead = Math.min(sharedBuffer.remaining(), blockSize - readBytes);
 
-			if (this.cacheUncompressed) {
-
-				// Get buffer to cache
-				final byte[] uncompressedBuffer = bufferPool.lockBuffer();
-				if (uncompressedBuffer != null) {
-					sharedBuffer.get(uncompressedBuffer, 0, bytesToRead);
-					final Buffer buffer = new Buffer(uncompressedBuffer, bytesToRead);
-					this.uncompressedBuffers.add(buffer);
-				} else {
+			// Get buffer to cache if uncompressed caching is enabled
+			if (cacheUncompressed) {
+				uncompressedBuffer = bufferPool.lockBuffer();
+				if (uncompressedBuffer == null) {
 					clearUncompressedBuffers();
-					this.cacheUncompressed = false;
+					cacheUncompressed = false;
+					uncompressedBuffer = new byte[BufferPool.BUFFER_SIZE];
 				}
 			}
 
+			// Copy data from shared buffer
+			sharedBuffer.get(uncompressedBuffer, 0, bytesToRead);
+
+			if (cacheUncompressed) {
+				final Buffer buffer = new Buffer(uncompressedBuffer, bytesToRead);
+				this.uncompressedBuffers.add(buffer);
+			}
+
+			// Update number of bytes read from the stream
 			readBytes += bytesToRead;
 
 			if (!sharedBuffer.hasRemaining()) {
 				this.sharedMemoryConsumer.unlockSharedMemory();
 			}
+
+			// uncompressedBuffer now contains bytesToRead bytes ready to compress
+			final int numberOfCompressedBytes = this.compressor.compress(uncompressedBuffer, bytesToRead);
+
+			// Make sure we have a buffer to write the compressed data to
+			while (true) {
+
+				// We still have an compressed buffer
+				if (compressedBuffer != null) {
+					if (numberOfBytesInCompressedBuffer + numberOfCompressedBytes + 4 <= compressedBuffer.length) {
+						// There is enough memory left in the buffer, we can write to it
+						break;
+					} else {
+						// The buffer is full, write it to HDFS and then decide what to do with it
+						hdfsOutputStream.write(compressedBuffer, 0, numberOfBytesInCompressedBuffer);
+						if (cacheCompressed) {
+							final Buffer buffer = new Buffer(compressedBuffer, numberOfBytesInCompressedBuffer);
+							this.compressedBuffers.add(buffer);
+							numberOfBytesInCompressedBuffer = 0;
+							compressedBuffer = null;
+						} else {
+							numberOfBytesInCompressedBuffer = 0;
+							break;
+						}
+					}
+				} else {
+
+					if (cacheCompressed) {
+						compressedBuffer = bufferPool.lockBuffer();
+						if (compressedBuffer == null) {
+							compressedBuffer = new byte[BufferPool.BUFFER_SIZE];
+							clearCompressedBuffers();
+							cacheCompressed = false;
+						}
+						break;
+					} else {
+						System.out.println("Illegal state!!!!");
+					}
+
+				}
+			}
+
+			// Write the number of compressed bytes to the compressed buffer
+			NumberUtils.integerToByteArray(numberOfCompressedBytes, compressedBuffer, numberOfBytesInCompressedBuffer);
+			numberOfBytesInCompressedBuffer += 4;
+			// Write the compressed data itself
+			System.arraycopy(this.compressor.getCompressedBuffer(), 0, compressedBuffer,
+				numberOfBytesInCompressedBuffer, numberOfCompressedBytes);
+			numberOfBytesInCompressedBuffer += numberOfCompressedBytes;
 		}
 
+		// We still need to write the remaining data from the compressed buffer to HDFS
+		if (numberOfBytesInCompressedBuffer > 0) {
+			hdfsOutputStream.write(compressedBuffer, 0, numberOfBytesInCompressedBuffer);
+			if (cacheCompressed) {
+				final Buffer buffer = new Buffer(compressedBuffer, numberOfBytesInCompressedBuffer);
+				this.compressedBuffers.add(buffer);
+			}
+		}
+
+		// Clean up
 		this.bytesWrittenInBlock = readBytes;
+		hdfsOutputStream.close();
 
 		System.out.println("Finished block after " + readBytes + " " + readEOF);
 

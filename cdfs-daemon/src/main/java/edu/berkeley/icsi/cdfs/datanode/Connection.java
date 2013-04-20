@@ -1,5 +1,6 @@
 package edu.berkeley.icsi.cdfs.datanode;
 
+import java.io.Closeable;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -51,6 +52,7 @@ final class Connection extends Thread {
 
 		// Socket for control messages
 		DatagramSocket socket = null;
+		Closeable operation = null;
 
 		// Read header first
 		try {
@@ -58,7 +60,7 @@ final class Connection extends Thread {
 			socket = new DatagramSocket();
 
 			// Mode
-			if (header.getConnectionMode() == ConnectionMode.WRITE) {
+			if (this.header.getConnectionMode() == ConnectionMode.WRITE) {
 
 				// Send packet to inform client about new socket's port
 				final byte[] buf = new byte[1];
@@ -68,16 +70,17 @@ final class Connection extends Thread {
 
 				// We are about to write to HDFS, prepare file system
 				if (hdfs == null) {
-					hdfs = CDFS.toHDFSPath(header.getPath(), "_0").getFileSystem(this.conf);
+					hdfs = CDFS.toHDFSPath(this.header.getPath(), "_0").getFileSystem(this.conf);
 				}
 
 				int blockIndex = 0;
 				boolean readEOF = false;
-				final PathWrapper cdfsPath = new PathWrapper(header.getPath());
+				final PathWrapper cdfsPath = new PathWrapper(this.header.getPath());
 				final WriteOp wo = new WriteOp(socket, hdfs, this.conf);
+				operation = wo;
 				while (!readEOF) {
-					final Path hdfsPath = CDFS.toHDFSPath(header.getPath(), "_" + blockIndex);
-					
+					final Path hdfsPath = CDFS.toHDFSPath(this.header.getPath(), "_" + blockIndex);
+
 					readEOF = wo.write(hdfsPath, 128 * 1024 * 1024);
 
 					// Report block information to name node
@@ -110,8 +113,8 @@ final class Connection extends Thread {
 
 				CDFSBlockLocation[] blockLocations;
 				synchronized (this.nameNode) {
-					blockLocations = this.nameNode.getFileBlockLocations(new PathWrapper(header.getPath()),
-						header.getPos(), 0L);
+					blockLocations = this.nameNode.getFileBlockLocations(new PathWrapper(this.header.getPath()),
+						this.header.getPos(), 0L);
 				}
 
 				if (blockLocations == null) {
@@ -122,55 +125,66 @@ final class Connection extends Thread {
 					throw new IllegalStateException("Length of blockLocations is " + blockLocations.length);
 				}
 
-				if (header.getPos() != blockLocations[0].getOffset()) {
+				if (this.header.getPos() != blockLocations[0].getOffset()) {
 					throw new IllegalStateException("Unable to seek to position other than block offset");
 				}
 
 				int blockIndex = blockLocations[0].getIndex();
+
+				final ReadOp readOp = new ReadOp(socket, this.remoteAddress, this.conf);
+				operation = readOp;
 
 				while (true) {
 
 					// See if we have the uncompressed version cached
 					final List<Buffer> uncompressedBuffers = UncompressedBufferCache.get().lock(header.getPath(),
 						blockIndex);
+
 					if (uncompressedBuffers != null) {
 						try {
-							System.out.println("Reading block " + blockIndex + " from cache (uncompressed)");
-							final UncompressedCachedReadOp ro = new UncompressedCachedReadOp(uncompressedBuffers);
-							ro.read(this.remoteAddress);
+							System.out.println("Reading block " + blockIndex + " from cache (uncompressed) "
+								+ uncompressedBuffers.size());
+							readOp.readFromCacheUncompressed(uncompressedBuffers);
 						} finally {
-							UncompressedBufferCache.get().unlock(header.getPath(), blockIndex);
+							UncompressedBufferCache.get().unlock(this.header.getPath(), blockIndex);
 						}
-					} else {
 
-						// See if we have the compressed version cached
-						final List<Buffer> compressedBuffers = CompressedBufferCache.get().lock(header.getPath(),
-							blockIndex);
-						if (compressedBuffers != null) {
-							try {
-								System.out.println("Reading block " + blockIndex + " from cache (compressed)");
-								final CompressedCachedReadOp ro = new CompressedCachedReadOp(compressedBuffers);
-								ro.read(this.remoteAddress);
-							} finally {
-								CompressedBufferCache.get().unlock(header.getPath(), blockIndex);
-							}
-						} else {
-
-							// We are about to read from HDFS, prepare file system
-							if (hdfs == null) {
-								hdfs = CDFS.toHDFSPath(header.getPath(), "_0").getFileSystem(this.conf);
-							}
-
-							final CachingReadOp ro = new CachingReadOp(hdfs, CDFS.toHDFSPath(header.getPath(), "_"
-								+ blockIndex), this.conf);
-
-							try {
-								ro.read(this.remoteAddress);
-							} catch (FileNotFoundException e) {
-								break;
-							}
-						}
+						++blockIndex;
+						continue;
 					}
+
+					// See if we have the compressed version cached
+					final List<Buffer> compressedBuffers = CompressedBufferCache.get().lock(header.getPath(),
+						blockIndex);
+					if (compressedBuffers != null) {
+						try {
+							System.out.println("Reading block " + blockIndex + " from cache (compressed) "
+								+ compressedBuffers.size());
+							readOp.readFromCacheCompressed(compressedBuffers);
+						} finally {
+							CompressedBufferCache.get().unlock(this.header.getPath(), blockIndex);
+						}
+
+						// TODO: Check if we cached the uncompressed version
+
+						++blockIndex;
+						continue;
+					}
+
+					// We don't have the block cached, need to get it from HDFS
+					final Path hdfsPath = CDFS.toHDFSPath(this.header.getPath(), "_" + blockIndex);
+					if (hdfs == null) {
+						// Create a file system object to ensure proper clean up
+						hdfs = hdfsPath.getFileSystem(this.conf);
+					}
+
+					try {
+						readOp.readFromHDFSCompressed(hdfs, hdfsPath);
+					} catch (FileNotFoundException fnfe) {
+						break;
+					}
+
+					// TODO: Check if we cached the uncompressed or compressed version
 
 					++blockIndex;
 				}
@@ -180,17 +194,22 @@ final class Connection extends Thread {
 			ioe.printStackTrace();
 		} finally {
 
-			// Close the socket
-			if (socket != null) {
-				socket.close();
-			}
-
-			// Close HDFS connection
-			if (hdfs != null) {
-				try {
-					hdfs.close();
-				} catch (IOException ioe) {
+			try {
+				// Close the operation
+				if (operation != null) {
+					operation.close();
 				}
+
+				// Close the socket
+				if (socket != null) {
+					socket.close();
+				}
+
+				// Close HDFS connection
+				if (hdfs != null) {
+					hdfs.close();
+				}
+			} catch (IOException ioe) {
 			}
 		}
 	}
