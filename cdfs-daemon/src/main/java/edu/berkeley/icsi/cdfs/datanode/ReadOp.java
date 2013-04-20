@@ -6,6 +6,7 @@ import java.net.DatagramSocket;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -241,5 +242,15 @@ final class ReadOp implements Closeable {
 		}
 
 		this.compressedBuffers.clear();
+	}
+
+	List<Buffer> getUncompressedBuffers() {
+
+		return Collections.unmodifiableList(this.uncompressedBuffers);
+	}
+
+	List<Buffer> getCompressedBuffers() {
+
+		return Collections.unmodifiableList(this.compressedBuffers);
 	}
 }

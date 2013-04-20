@@ -76,21 +76,21 @@ final class Connection extends Thread {
 				int blockIndex = 0;
 				boolean readEOF = false;
 				final PathWrapper cdfsPath = new PathWrapper(this.header.getPath());
-				final WriteOp wo = new WriteOp(socket, hdfs, this.conf);
-				operation = wo;
+				final WriteOp writeOp = new WriteOp(socket, hdfs, this.conf);
+				operation = writeOp;
 				while (!readEOF) {
 					final Path hdfsPath = CDFS.toHDFSPath(this.header.getPath(), "_" + blockIndex);
 
-					readEOF = wo.write(hdfsPath, 128 * 1024 * 1024);
+					readEOF = writeOp.write(hdfsPath, 128 * 1024 * 1024);
 
 					// Report block information to name node
 					synchronized (this.nameNode) {
 						this.nameNode.createNewBlock(cdfsPath, new PathWrapper(hdfsPath), blockIndex,
-							wo.getBytesWrittenInBlock());
+							writeOp.getBytesWrittenInBlock());
 					}
 
 					// See if we had enough buffers to cache the written data
-					final List<Buffer> uncompressedBuffers = wo.getUncompressedBuffers();
+					final List<Buffer> uncompressedBuffers = writeOp.getUncompressedBuffers();
 					if (!uncompressedBuffers.isEmpty()) {
 						UncompressedBufferCache.get().addCachedBlock(header.getPath(), blockIndex, uncompressedBuffers);
 						synchronized (this.nameNode) {
@@ -98,7 +98,7 @@ final class Connection extends Thread {
 						}
 					}
 
-					final List<Buffer> compressedBuffers = wo.getCompressedBuffers();
+					final List<Buffer> compressedBuffers = writeOp.getCompressedBuffers();
 					if (!compressedBuffers.isEmpty()) {
 						CompressedBufferCache.get().addCachedBlock(header.getPath(), blockIndex, compressedBuffers);
 						synchronized (this.nameNode) {
@@ -110,6 +110,8 @@ final class Connection extends Thread {
 				}
 
 			} else {
+
+				final PathWrapper cdfsPath = new PathWrapper(this.header.getPath());
 
 				CDFSBlockLocation[] blockLocations;
 				synchronized (this.nameNode) {
@@ -137,7 +139,7 @@ final class Connection extends Thread {
 				while (true) {
 
 					// See if we have the uncompressed version cached
-					final List<Buffer> uncompressedBuffers = UncompressedBufferCache.get().lock(header.getPath(),
+					List<Buffer> uncompressedBuffers = UncompressedBufferCache.get().lock(this.header.getPath(),
 						blockIndex);
 
 					if (uncompressedBuffers != null) {
@@ -154,7 +156,7 @@ final class Connection extends Thread {
 					}
 
 					// See if we have the compressed version cached
-					final List<Buffer> compressedBuffers = CompressedBufferCache.get().lock(header.getPath(),
+					List<Buffer> compressedBuffers = CompressedBufferCache.get().lock(header.getPath(),
 						blockIndex);
 					if (compressedBuffers != null) {
 						try {
@@ -165,7 +167,15 @@ final class Connection extends Thread {
 							CompressedBufferCache.get().unlock(this.header.getPath(), blockIndex);
 						}
 
-						// TODO: Check if we cached the uncompressed version
+						// See if we had enough buffers to cache the uncompressed data
+						uncompressedBuffers = readOp.getUncompressedBuffers();
+						if (!uncompressedBuffers.isEmpty()) {
+							UncompressedBufferCache.get().addCachedBlock(this.header.getPath(), blockIndex,
+								uncompressedBuffers);
+							synchronized (this.nameNode) {
+								this.nameNode.reportUncompressedCachedBlock(cdfsPath, blockIndex);
+							}
+						}
 
 						++blockIndex;
 						continue;
@@ -184,7 +194,24 @@ final class Connection extends Thread {
 						break;
 					}
 
-					// TODO: Check if we cached the uncompressed or compressed version
+					// See if we had enough buffers to cache the written data
+					uncompressedBuffers = readOp.getUncompressedBuffers();
+					if (!uncompressedBuffers.isEmpty()) {
+						UncompressedBufferCache.get().addCachedBlock(this.header.getPath(), blockIndex,
+							uncompressedBuffers);
+						synchronized (this.nameNode) {
+							this.nameNode.reportUncompressedCachedBlock(cdfsPath, blockIndex);
+						}
+					}
+
+					compressedBuffers = readOp.getCompressedBuffers();
+					if (!compressedBuffers.isEmpty()) {
+						CompressedBufferCache.get()
+							.addCachedBlock(this.header.getPath(), blockIndex, compressedBuffers);
+						synchronized (this.nameNode) {
+							this.nameNode.reportCompressedCachedBlock(cdfsPath, blockIndex);
+						}
+					}
 
 					++blockIndex;
 				}
