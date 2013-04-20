@@ -18,7 +18,7 @@ fi
 out=$CDFS_LOG_DIR/cdfs-$CDFS_IDENT_STRING-datanode-$HOSTNAME.out
 pid=$CDFS_PID_DIR/cdfs-$CDFS_IDENT_STRING-datanode.pid
 
-JVM_ARGS="$JVM_ARGS -Xms"$DATANODE_HEAP_SIZE"m -Xmx"$DATANODE_HEAP_SIZE"m"
+JVM_ARGS="$JVM_ARGS -XX:+UseParNewGC -XX:NewRatio=8 -XX:PretenureSizeThreshold=64m -Xms"$DATANODE_HEAP_SIZE"m -Xmx"$DATANODE_HEAP_SIZE"m"
 
 case $STARTSTOP in
 
@@ -32,7 +32,7 @@ case $STARTSTOP in
 		fi
 
 		echo Starting CDFS datanode on host $HOSTNAME
-		$JAVA_HOME/bin/java $JVM_ARGS -classpath $CLASSPATH edu.berkeley.icsi.cdfs.datanode.DataNode > "$out" 2>&1 < /dev/null &
+		$JAVA_HOME/bin/java $JVM_ARGS -classpath $CLASSPATH edu.berkeley.icsi.cdfs.datanode.DataNode -confDir $CDFS_CONF_DIR > "$out" 2>&1 < /dev/null &
 		echo $! > $pid
 	;;
 
