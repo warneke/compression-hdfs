@@ -48,6 +48,10 @@ public final class Benchmark {
 
 		// Determine the size of the data to write
 		int sizeInMB = 1024;
+
+		// The compressibility
+		int compressibility = 60;
+
 		if (!readOnly) {
 			if (cmd.hasOption("s")) {
 				try {
@@ -63,10 +67,22 @@ public final class Benchmark {
 					return;
 				}
 			}
-		}
 
-		// The compressibility
-		int compressibility = 60;
+			if (cmd.hasOption("c")) {
+
+				try {
+					compressibility = Integer.parseInt(cmd.getOptionValue("c"));
+				} catch (NumberFormatException nfe) {
+					System.err.println("Cannot parse compressibility: " + nfe.getMessage());
+					return;
+				}
+
+				if (compressibility < 1 || compressibility > 100) {
+					System.err.println("compressibility must be between 0 and 100");
+					return;
+				}
+			}
+		}
 
 		// Create CDFS object
 		final Configuration conf = new Configuration();
@@ -140,7 +156,7 @@ public final class Benchmark {
 	private static double toMBPerSecond(final long numberOfBytesWritten, final long durationInMs) {
 
 		final double numberOfMBWritten = (double) numberOfBytesWritten / (double) (1024L * 1024L);
-		return numberOfMBWritten / (double) durationInMs * 1000.0;
+		return Math.round(numberOfMBWritten / (double) durationInMs * 10000.0) / 10.0;
 	}
 
 	private static void read(final FileSystem cdfs, final Path path) throws IOException {
