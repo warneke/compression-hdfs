@@ -16,7 +16,6 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
-import org.apache.hadoop.hdfs.server.namenode.NameNode;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.util.Progressable;
 
@@ -135,8 +134,6 @@ public class CDFS extends FileSystem {
 			throw new IOException("Incomplete CDFS URI, no host: " + uri);
 		}
 
-		final InetSocketAddress nnAddress = NameNode.getAddress(uri
-			.getAuthority());
 		// this.dfs = new DFSClient(namenode, conf, statistics);
 		this.uri = URI.create(uri.getScheme() + "://" + uri.getAuthority());
 		this.workingDir = getHomeDirectory();

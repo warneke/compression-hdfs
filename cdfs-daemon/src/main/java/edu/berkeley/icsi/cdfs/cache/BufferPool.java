@@ -67,8 +67,7 @@ public final class BufferPool {
 		if (tenuredpool != null) {
 			final MemoryUsage usage = tenuredpool.getUsage();
 			long tenuredSize = usage.getMax() - usage.getUsed();
-			LOG.info("Found Tenured Gen pool (max: " + tenuredSize + ", used: "
-				+ usage.getUsed() + ")");
+			LOG.info("Found Tenured Gen pool (max: " + tenuredSize + ", used: " + usage.getUsed() + ")");
 			// TODO: make the constant configurable
 			return (long) (tenuredSize * TENURED_POOL_THRESHOLD);
 		}

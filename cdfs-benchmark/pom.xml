@@ -11,9 +11,7 @@
 		<version>0.1</version>
 	</parent>
 
-	<groupId>edu.berkeley.icsi</groupId>
 	<artifactId>cdfs-benchmark</artifactId>
-	<version>0.1</version>
 
 	<name>cdfs-benchmark</name>
 	<url>http://icsi.berkeley.edu</url>
