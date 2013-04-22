@@ -9,6 +9,8 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -22,6 +24,8 @@ import edu.berkeley.icsi.cdfs.utils.ConfigUtils;
 import edu.berkeley.icsi.cdfs.utils.NumberUtils;
 
 final class WriteOp implements Closeable {
+
+	private static final Log LOG = LogFactory.getLog(WriteOp.class);
 
 	private final FileSystem hdfs;
 
@@ -65,7 +69,7 @@ final class WriteOp implements Closeable {
 			uncompressedBuffer = new byte[BufferPool.BUFFER_SIZE];
 		}
 
-		if (!cacheUncompressed) {
+		if (!cacheCompressed) {
 			compressedBuffer = new byte[BufferPool.BUFFER_SIZE];
 		}
 
@@ -148,7 +152,7 @@ final class WriteOp implements Closeable {
 						}
 						break;
 					} else {
-						System.out.println("Illegal state!!!!");
+						System.out.println("Illegal state2!!!!");
 					}
 
 				}
@@ -176,7 +180,7 @@ final class WriteOp implements Closeable {
 		this.bytesWrittenInBlock = readBytes;
 		hdfsOutputStream.close();
 
-		System.out.println("Finished block after " + readBytes + " " + readEOF);
+		LOG.info("Finished block after " + readBytes + " " + readEOF);
 
 		return readEOF;
 	}

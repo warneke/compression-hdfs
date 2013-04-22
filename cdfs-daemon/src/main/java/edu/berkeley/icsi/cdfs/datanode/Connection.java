@@ -8,6 +8,8 @@ import java.net.DatagramSocket;
 import java.net.SocketAddress;
 import java.util.List;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -21,6 +23,8 @@ import edu.berkeley.icsi.cdfs.protocols.DataNodeNameNodeProtocol;
 import edu.berkeley.icsi.cdfs.utils.PathWrapper;
 
 final class Connection extends Thread {
+
+	private static final Log LOG = LogFactory.getLog(Connection.class);
 
 	private final SocketAddress remoteAddress;
 
@@ -81,6 +85,7 @@ final class Connection extends Thread {
 				while (!readEOF) {
 					final Path hdfsPath = CDFS.toHDFSPath(this.header.getPath(), "_" + blockIndex);
 
+					LOG.info("Writing block " + blockIndex + " to disk");
 					readEOF = writeOp.write(hdfsPath, 128 * 1024 * 1024);
 
 					// Report block information to name node
@@ -144,8 +149,8 @@ final class Connection extends Thread {
 
 					if (uncompressedBuffers != null) {
 						try {
-							System.out.println("Reading block " + blockIndex + " from cache (uncompressed) "
-								+ uncompressedBuffers.size());
+							LOG.info("Reading block " + blockIndex + " from cache (uncompressed), "
+								+ uncompressedBuffers.size() + " buffers");
 							readOp.readFromCacheUncompressed(uncompressedBuffers);
 						} finally {
 							UncompressedBufferCache.get().unlock(this.header.getPath(), blockIndex);
@@ -160,8 +165,8 @@ final class Connection extends Thread {
 						blockIndex);
 					if (compressedBuffers != null) {
 						try {
-							System.out.println("Reading block " + blockIndex + " from cache (compressed) "
-								+ compressedBuffers.size());
+							LOG.info("Reading block " + blockIndex + " from cache (compressed), "
+								+ compressedBuffers.size() + " buffers");
 							readOp.readFromCacheCompressed(compressedBuffers);
 						} finally {
 							CompressedBufferCache.get().unlock(this.header.getPath(), blockIndex);
@@ -189,6 +194,7 @@ final class Connection extends Thread {
 					}
 
 					try {
+						LOG.info("Reading block " + blockIndex + " from disk");
 						readOp.readFromHDFSCompressed(hdfs, hdfsPath);
 					} catch (FileNotFoundException fnfe) {
 						break;
