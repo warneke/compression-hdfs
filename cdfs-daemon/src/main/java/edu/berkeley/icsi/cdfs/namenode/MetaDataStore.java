@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 
@@ -18,6 +20,8 @@ import edu.berkeley.icsi.cdfs.CDFS;
 import edu.berkeley.icsi.cdfs.CDFSBlockLocation;
 
 final class MetaDataStore {
+
+	private static final Log LOG = LogFactory.getLog(MetaDataStore.class);
 
 	private final String storageLocation;
 
@@ -119,7 +123,7 @@ final class MetaDataStore {
 
 		final CDFSBlockLocation[] blockLocations = new CDFSBlockLocation[blocks.length];
 
-		System.out.println("Block locations for " + path + " " + blocks.length);
+		LOG.info("Number of block locations for " + path + " (start " + start + ", len " + len + "): " + blocks.length);
 
 		for (int i = 0; i < blocks.length; ++i) {
 			final CDFSBlockLocation blockLocation = new CDFSBlockLocation(blocks[i].getIndex(), names, hosts,

@@ -2,7 +2,6 @@ package edu.berkeley.icsi.cdfs.datanode;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.net.DatagramSocket;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -22,6 +21,7 @@ import edu.berkeley.icsi.cdfs.compression.Compressor;
 import edu.berkeley.icsi.cdfs.sharedmem.SharedMemoryConsumer;
 import edu.berkeley.icsi.cdfs.utils.ConfigUtils;
 import edu.berkeley.icsi.cdfs.utils.NumberUtils;
+import edu.berkeley.icsi.cdfs.utils.ReliableDatagramSocket;
 
 final class WriteOp implements Closeable {
 
@@ -41,7 +41,7 @@ final class WriteOp implements Closeable {
 
 	private int bytesWrittenInBlock = 0;
 
-	WriteOp(final DatagramSocket socket, final FileSystem hdfs, final Configuration conf) throws IOException {
+	WriteOp(final ReliableDatagramSocket socket, final FileSystem hdfs, final Configuration conf) throws IOException {
 
 		this.hdfs = hdfs;
 		this.conf = conf;

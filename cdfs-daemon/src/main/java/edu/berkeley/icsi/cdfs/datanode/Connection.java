@@ -4,7 +4,6 @@ import java.io.Closeable;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.DatagramPacket;
-import java.net.DatagramSocket;
 import java.net.SocketAddress;
 import java.util.List;
 
@@ -21,6 +20,7 @@ import edu.berkeley.icsi.cdfs.cache.CompressedBufferCache;
 import edu.berkeley.icsi.cdfs.cache.UncompressedBufferCache;
 import edu.berkeley.icsi.cdfs.protocols.DataNodeNameNodeProtocol;
 import edu.berkeley.icsi.cdfs.utils.PathWrapper;
+import edu.berkeley.icsi.cdfs.utils.ReliableDatagramSocket;
 
 final class Connection extends Thread {
 
@@ -55,13 +55,13 @@ final class Connection extends Thread {
 		FileSystem hdfs = null;
 
 		// Socket for control messages
-		DatagramSocket socket = null;
+		ReliableDatagramSocket socket = null;
 		Closeable operation = null;
 
 		// Read header first
 		try {
 
-			socket = new DatagramSocket();
+			socket = new ReliableDatagramSocket();
 
 			// Mode
 			if (this.header.getConnectionMode() == ConnectionMode.WRITE) {

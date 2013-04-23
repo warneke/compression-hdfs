@@ -3,7 +3,6 @@ package edu.berkeley.icsi.cdfs;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.DatagramPacket;
-import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -23,6 +22,7 @@ import edu.berkeley.icsi.cdfs.datanode.ConnectionMode;
 import edu.berkeley.icsi.cdfs.datanode.Header;
 import edu.berkeley.icsi.cdfs.protocols.ClientNameNodeProtocol;
 import edu.berkeley.icsi.cdfs.utils.PathWrapper;
+import edu.berkeley.icsi.cdfs.utils.ReliableDatagramSocket;
 
 public class CDFS extends FileSystem {
 
@@ -66,7 +66,7 @@ public class CDFS extends FileSystem {
 			throw new IOException("File " + f + " does already exist");
 		}
 
-		final DatagramSocket socket = new DatagramSocket();
+		final ReliableDatagramSocket socket = new ReliableDatagramSocket();
 
 		final byte[] buf = new byte[256];
 		final DatagramPacket dp = new DatagramPacket(buf, buf.length);
@@ -181,13 +181,15 @@ public class CDFS extends FileSystem {
 	@Override
 	public boolean rename(Path arg0, Path arg1) throws IOException {
 		// TODO Auto-generated method stub
+		System.out.println("rename");
+		
 		return false;
 	}
 
 	@Override
 	public void setWorkingDirectory(Path arg0) {
 		// TODO Auto-generated method stub
-
+		System.out.println("setWorkingDirectory");
 	}
 
 	public static Path toHDFSPath(final Path cdfsPath, final String suffix) {

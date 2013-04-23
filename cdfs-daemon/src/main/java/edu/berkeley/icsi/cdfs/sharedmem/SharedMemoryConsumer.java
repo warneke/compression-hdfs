@@ -3,7 +3,6 @@ package edu.berkeley.icsi.cdfs.sharedmem;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.DatagramPacket;
-import java.net.DatagramSocket;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
@@ -11,10 +10,11 @@ import java.nio.channels.FileChannel.MapMode;
 
 import edu.berkeley.icsi.cdfs.cache.BufferPool;
 import edu.berkeley.icsi.cdfs.utils.NumberUtils;
+import edu.berkeley.icsi.cdfs.utils.ReliableDatagramSocket;
 
 public final class SharedMemoryConsumer {
 
-	private final DatagramSocket socket;
+	private final ReliableDatagramSocket socket;
 
 	private final DatagramPacket notificationPacket;
 
@@ -26,7 +26,7 @@ public final class SharedMemoryConsumer {
 
 	private boolean bufferReady = true;
 
-	public SharedMemoryConsumer(final DatagramSocket socket) throws IOException {
+	public SharedMemoryConsumer(final ReliableDatagramSocket socket) throws IOException {
 		this.socket = socket;
 
 		// Create notification packet

@@ -2,7 +2,6 @@ package edu.berkeley.icsi.cdfs.datanode;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
-import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 
@@ -16,12 +15,13 @@ import edu.berkeley.icsi.cdfs.CDFS;
 import edu.berkeley.icsi.cdfs.cache.BufferPool;
 import edu.berkeley.icsi.cdfs.protocols.DataNodeNameNodeProtocol;
 import edu.berkeley.icsi.cdfs.utils.ConfigUtils;
+import edu.berkeley.icsi.cdfs.utils.ReliableDatagramSocket;
 
 public class DataNode {
 
 	private static final Log LOG = LogFactory.getLog(DataNode.class);
 
-	private final DatagramSocket serverSocket;
+	private final ReliableDatagramSocket serverSocket;
 
 	private final DataNodeNameNodeProtocol nameNode;
 
@@ -31,7 +31,7 @@ public class DataNode {
 
 		LOG.info("Starting CDFS datanode on port" + CDFS.DATANODE_DATA_PORT);
 
-		this.serverSocket = new DatagramSocket(CDFS.DATANODE_DATA_PORT);
+		this.serverSocket = new ReliableDatagramSocket(CDFS.DATANODE_DATA_PORT);
 		this.conf = conf;
 
 		this.nameNode = (DataNodeNameNodeProtocol) RPC.getProxy(

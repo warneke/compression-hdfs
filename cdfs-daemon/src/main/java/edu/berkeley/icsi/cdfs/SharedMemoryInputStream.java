@@ -3,7 +3,6 @@ package edu.berkeley.icsi.cdfs;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.DatagramPacket;
-import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
@@ -15,6 +14,7 @@ import org.apache.hadoop.fs.Seekable;
 import edu.berkeley.icsi.cdfs.datanode.ConnectionMode;
 import edu.berkeley.icsi.cdfs.datanode.Header;
 import edu.berkeley.icsi.cdfs.sharedmem.SharedMemoryConsumer;
+import edu.berkeley.icsi.cdfs.utils.ReliableDatagramSocket;
 
 final class SharedMemoryInputStream extends InputStream implements Seekable, PositionedReadable {
 
@@ -22,7 +22,7 @@ final class SharedMemoryInputStream extends InputStream implements Seekable, Pos
 
 	private final SocketAddress socketAddress;
 
-	private final DatagramSocket socket;
+	private final ReliableDatagramSocket socket;
 
 	private long seek = 0L;
 
@@ -35,7 +35,7 @@ final class SharedMemoryInputStream extends InputStream implements Seekable, Pos
 		this.socketAddress = new InetSocketAddress(hostname, port);
 		this.path = path;
 
-		this.socket = new DatagramSocket();
+		this.socket = new ReliableDatagramSocket();
 	}
 
 	/**

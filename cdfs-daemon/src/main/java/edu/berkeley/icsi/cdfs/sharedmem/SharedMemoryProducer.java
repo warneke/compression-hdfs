@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.DatagramPacket;
-import java.net.DatagramSocket;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
@@ -13,10 +12,11 @@ import java.nio.channels.FileChannel.MapMode;
 
 import edu.berkeley.icsi.cdfs.cache.BufferPool;
 import edu.berkeley.icsi.cdfs.utils.NumberUtils;
+import edu.berkeley.icsi.cdfs.utils.ReliableDatagramSocket;
 
 public final class SharedMemoryProducer {
 
-	private final DatagramSocket socket;
+	private final ReliableDatagramSocket socket;
 
 	private final SocketAddress remoteAddress;
 
@@ -30,7 +30,8 @@ public final class SharedMemoryProducer {
 
 	private boolean bufferReady;
 
-	public SharedMemoryProducer(final DatagramSocket socket, final SocketAddress remoteAddress) throws IOException {
+	public SharedMemoryProducer(final ReliableDatagramSocket socket, final SocketAddress remoteAddress)
+			throws IOException {
 
 		this.socket = socket;
 		this.remoteAddress = remoteAddress;
