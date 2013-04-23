@@ -5,9 +5,12 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.Path;
 
 abstract class AbstractCache {
+
+	private static final Log LOG = LogFactory.getLog(AbstractCache.class);
 
 	private static final class BlockKey {
 
@@ -51,6 +54,21 @@ abstract class AbstractCache {
 		public int hashCode() {
 
 			return this.path.hashCode() + this.index;
+		}
+
+		/**
+		 * {@inheritDoc}
+		 */
+		@Override
+		public String toString() {
+
+			final StringBuilder sb = new StringBuilder(this.path);
+			sb.append(' ');
+			sb.append('(');
+			sb.append(this.index);
+			sb.append(')');
+
+			return sb.toString();
 		}
 	}
 
@@ -111,13 +129,13 @@ abstract class AbstractCache {
 
 			if (this.cache.containsKey(bk)) {
 				// Another has already been added for the same block in the meantime
-				throw new IllegalStateException("destroyCachedBlock(cachedBlock)");
+				throw new IllegalStateException(bk + " is already contained in cache " + getName());
 			}
 
-			getLog().info("Adding " + path + " to cache (" + buffers.size() + " buffers)");
+			LOG.info("Adding " + path + " to cache " + getName() + " (" + buffers.size() + " buffers)");
 			this.cache.put(bk, new CacheEntry(buffers));
 		}
 	}
 
-	protected abstract Log getLog();
+	protected abstract String getName();
 }
