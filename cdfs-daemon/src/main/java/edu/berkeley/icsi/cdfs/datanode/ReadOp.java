@@ -2,7 +2,7 @@ package edu.berkeley.icsi.cdfs.datanode;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.net.SocketAddress;
+import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -20,7 +20,6 @@ import edu.berkeley.icsi.cdfs.compression.Decompressor;
 import edu.berkeley.icsi.cdfs.sharedmem.SharedMemoryProducer;
 import edu.berkeley.icsi.cdfs.utils.ConfigUtils;
 import edu.berkeley.icsi.cdfs.utils.NumberUtils;
-import edu.berkeley.icsi.cdfs.utils.ReliableDatagramSocket;
 
 final class ReadOp implements Closeable {
 
@@ -32,9 +31,9 @@ final class ReadOp implements Closeable {
 
 	private List<Buffer> compressedBuffers = null;
 
-	ReadOp(final ReliableDatagramSocket socket, final SocketAddress remoteAddress, final Configuration conf)
+	ReadOp(final Socket socket, final Configuration conf)
 			throws IOException {
-		this.sharedMemoryProducer = new SharedMemoryProducer(socket, remoteAddress);
+		this.sharedMemoryProducer = new SharedMemoryProducer(socket);
 		this.conf = conf;
 	}
 

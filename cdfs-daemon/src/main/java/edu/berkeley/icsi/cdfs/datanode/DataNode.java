@@ -1,9 +1,9 @@
 package edu.berkeley.icsi.cdfs.datanode;
 
 import java.io.IOException;
-import java.net.DatagramPacket;
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
 
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.logging.Log;
@@ -15,13 +15,12 @@ import edu.berkeley.icsi.cdfs.CDFS;
 import edu.berkeley.icsi.cdfs.cache.BufferPool;
 import edu.berkeley.icsi.cdfs.protocols.DataNodeNameNodeProtocol;
 import edu.berkeley.icsi.cdfs.utils.ConfigUtils;
-import edu.berkeley.icsi.cdfs.utils.ReliableDatagramSocket;
 
 public class DataNode {
 
 	private static final Log LOG = LogFactory.getLog(DataNode.class);
 
-	private final ReliableDatagramSocket serverSocket;
+	private final ServerSocket serverSocket;
 
 	private final DataNodeNameNodeProtocol nameNode;
 
@@ -31,7 +30,7 @@ public class DataNode {
 
 		LOG.info("Starting CDFS datanode on port" + CDFS.DATANODE_DATA_PORT);
 
-		this.serverSocket = new ReliableDatagramSocket(CDFS.DATANODE_DATA_PORT);
+		this.serverSocket = new ServerSocket(CDFS.DATANODE_DATA_PORT);
 		this.conf = conf;
 
 		this.nameNode = (DataNodeNameNodeProtocol) RPC.getProxy(
@@ -44,17 +43,13 @@ public class DataNode {
 
 	void run() throws IOException {
 
-		final byte[] buf = new byte[512];
-		final DatagramPacket dp = new DatagramPacket(buf, buf.length);
-
 		while (true) {
 
-			this.serverSocket.receive(dp);
+			final Socket socket = this.serverSocket.accept();
 
-			final SocketAddress remoteAddress = dp.getSocketAddress();
-			final Header header = Header.fromPacket(dp);
+			final Header header = Header.fromInputStream(socket.getInputStream());
 
-			new Connection(remoteAddress, header, this.nameNode, this.conf);
+			new Connection(socket, header, this.nameNode, this.conf);
 		}
 	}
 
@@ -87,6 +82,10 @@ public class DataNode {
 
 	void shutDown() {
 
-		this.serverSocket.close();
+		try {
+			this.serverSocket.close();
+		} catch (IOException ioe) {
+			ioe.printStackTrace();
+		}
 	}
 }

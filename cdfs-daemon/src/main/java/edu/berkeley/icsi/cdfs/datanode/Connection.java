@@ -3,8 +3,7 @@ package edu.berkeley.icsi.cdfs.datanode;
 import java.io.Closeable;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.SocketAddress;
+import java.net.Socket;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
@@ -20,13 +19,12 @@ import edu.berkeley.icsi.cdfs.cache.CompressedBufferCache;
 import edu.berkeley.icsi.cdfs.cache.UncompressedBufferCache;
 import edu.berkeley.icsi.cdfs.protocols.DataNodeNameNodeProtocol;
 import edu.berkeley.icsi.cdfs.utils.PathWrapper;
-import edu.berkeley.icsi.cdfs.utils.ReliableDatagramSocket;
 
 final class Connection extends Thread {
 
 	private static final Log LOG = LogFactory.getLog(Connection.class);
 
-	private final SocketAddress remoteAddress;
+	private final Socket socket;
 
 	private final Header header;
 
@@ -34,11 +32,11 @@ final class Connection extends Thread {
 
 	private final Configuration conf;
 
-	Connection(final SocketAddress remoteAddress, final Header header, final DataNodeNameNodeProtocol nameNode,
+	Connection(final Socket socket, final Header header, final DataNodeNameNodeProtocol nameNode,
 			final Configuration conf) {
-		super("DataNodeConnection from " + remoteAddress);
+		super("DataNodeConnection from " + socket.getRemoteSocketAddress());
 
-		this.remoteAddress = remoteAddress;
+		this.socket = socket;
 		this.header = header;
 		this.nameNode = nameNode;
 		this.conf = conf;
@@ -54,23 +52,16 @@ final class Connection extends Thread {
 		// Reference to HDFS
 		FileSystem hdfs = null;
 
-		// Socket for control messages
-		ReliableDatagramSocket socket = null;
+		// The operation this connection handles
 		Closeable operation = null;
+
+		LOG.info("Starting connection for " + this.header);
 
 		// Read header first
 		try {
 
-			socket = new ReliableDatagramSocket();
-
 			// Mode
 			if (this.header.getConnectionMode() == ConnectionMode.WRITE) {
-
-				// Send packet to inform client about new socket's port
-				final byte[] buf = new byte[1];
-				final DatagramPacket ackPacket = new DatagramPacket(buf, buf.length);
-				ackPacket.setSocketAddress(this.remoteAddress);
-				socket.send(ackPacket);
 
 				// We are about to write to HDFS, prepare file system
 				if (hdfs == null) {
@@ -80,7 +71,7 @@ final class Connection extends Thread {
 				int blockIndex = 0;
 				boolean readEOF = false;
 				final PathWrapper cdfsPath = new PathWrapper(this.header.getPath());
-				final WriteOp writeOp = new WriteOp(socket, hdfs, this.conf);
+				final WriteOp writeOp = new WriteOp(this.socket, hdfs, this.conf);
 				operation = writeOp;
 				while (!readEOF) {
 					final Path hdfsPath = CDFS.toHDFSPath(this.header.getPath(), "_" + blockIndex);
@@ -138,7 +129,7 @@ final class Connection extends Thread {
 
 				int blockIndex = blockLocations[0].getIndex();
 
-				final ReadOp readOp = new ReadOp(socket, this.remoteAddress, this.conf);
+				final ReadOp readOp = new ReadOp(this.socket, this.conf);
 				operation = readOp;
 
 				while (true) {
@@ -244,6 +235,8 @@ final class Connection extends Thread {
 				}
 			} catch (IOException ioe) {
 			}
+
+			LOG.info("Finishing connection for " + this.header);
 		}
 	}
 }

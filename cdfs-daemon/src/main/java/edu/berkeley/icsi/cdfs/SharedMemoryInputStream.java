@@ -2,9 +2,7 @@ package edu.berkeley.icsi.cdfs;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.DatagramPacket;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
+import java.net.Socket;
 import java.nio.ByteBuffer;
 
 import org.apache.hadoop.fs.Path;
@@ -14,15 +12,12 @@ import org.apache.hadoop.fs.Seekable;
 import edu.berkeley.icsi.cdfs.datanode.ConnectionMode;
 import edu.berkeley.icsi.cdfs.datanode.Header;
 import edu.berkeley.icsi.cdfs.sharedmem.SharedMemoryConsumer;
-import edu.berkeley.icsi.cdfs.utils.ReliableDatagramSocket;
 
 final class SharedMemoryInputStream extends InputStream implements Seekable, PositionedReadable {
 
 	private final Path path;
 
-	private final SocketAddress socketAddress;
-
-	private final ReliableDatagramSocket socket;
+	private final Socket socket;
 
 	private long seek = 0L;
 
@@ -30,12 +25,10 @@ final class SharedMemoryInputStream extends InputStream implements Seekable, Pos
 
 	private SharedMemoryConsumer smc = null;
 
-	SharedMemoryInputStream(final String hostname, final int port, final Path path) throws IOException {
+	SharedMemoryInputStream(final Socket socket, final Path path) throws IOException {
 
-		this.socketAddress = new InetSocketAddress(hostname, port);
+		this.socket = socket;
 		this.path = path;
-
-		this.socket = new ReliableDatagramSocket();
 	}
 
 	/**
@@ -133,13 +126,8 @@ final class SharedMemoryInputStream extends InputStream implements Seekable, Pos
 		// If this is the first read attempt, send header first
 		if (!this.headerSent) {
 
-			final byte[] buf = new byte[256];
-			final DatagramPacket dp = new DatagramPacket(buf, buf.length);
-			dp.setSocketAddress(this.socketAddress);
-
 			final Header header = new Header(ConnectionMode.READ, this.path, this.seek);
-			header.toPacket(dp);
-			this.socket.send(dp);
+			header.toOutputStream(this.socket.getOutputStream());
 			this.headerSent = true;
 		}
 

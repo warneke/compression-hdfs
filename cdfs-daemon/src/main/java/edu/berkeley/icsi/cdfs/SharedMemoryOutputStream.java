@@ -3,6 +3,7 @@ package edu.berkeley.icsi.cdfs;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.DatagramPacket;
+import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 
@@ -16,7 +17,7 @@ final class SharedMemoryOutputStream extends OutputStream {
 
 	private static final Log LOG = LogFactory.getLog(SharedMemoryOutputStream.class);
 
-	private final ReliableDatagramSocket socket;
+	private final Socket socket;
 
 	private final SocketAddress remoteAddress;
 
@@ -26,7 +27,7 @@ final class SharedMemoryOutputStream extends OutputStream {
 
 	private long totalWritten = 0L;
 
-	SharedMemoryOutputStream(final ReliableDatagramSocket socket) throws IOException {
+	SharedMemoryOutputStream(final Socket socket) throws IOException {
 		this.socket = socket;
 
 		// Receive ack packet to get remote address

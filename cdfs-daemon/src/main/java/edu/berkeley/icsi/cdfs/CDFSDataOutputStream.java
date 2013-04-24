@@ -1,14 +1,13 @@
 package edu.berkeley.icsi.cdfs;
 
 import java.io.IOException;
+import java.net.Socket;
 
 import org.apache.hadoop.fs.FSDataOutputStream;
 
-import edu.berkeley.icsi.cdfs.utils.ReliableDatagramSocket;
-
 final class CDFSDataOutputStream extends FSDataOutputStream {
 
-	CDFSDataOutputStream(final ReliableDatagramSocket socket) throws IOException {
+	CDFSDataOutputStream(final Socket socket) throws IOException {
 		super(new SharedMemoryOutputStream(socket), null);
 	}
 }

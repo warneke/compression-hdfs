@@ -2,8 +2,8 @@ package edu.berkeley.icsi.cdfs;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.DatagramPacket;
 import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.net.URI;
 import java.net.URISyntaxException;
 
@@ -22,7 +22,6 @@ import edu.berkeley.icsi.cdfs.datanode.ConnectionMode;
 import edu.berkeley.icsi.cdfs.datanode.Header;
 import edu.berkeley.icsi.cdfs.protocols.ClientNameNodeProtocol;
 import edu.berkeley.icsi.cdfs.utils.PathWrapper;
-import edu.berkeley.icsi.cdfs.utils.ReliableDatagramSocket;
 
 public class CDFS extends FileSystem {
 
@@ -66,15 +65,12 @@ public class CDFS extends FileSystem {
 			throw new IOException("File " + f + " does already exist");
 		}
 
-		final ReliableDatagramSocket socket = new ReliableDatagramSocket();
+		final Socket socket = new Socket();
+		socket.connect(new InetSocketAddress("localhost", DATANODE_DATA_PORT));
 
-		final byte[] buf = new byte[256];
-		final DatagramPacket dp = new DatagramPacket(buf, buf.length);
-		dp.setSocketAddress(new InetSocketAddress("localhost", DATANODE_DATA_PORT));
+		// Send header
 		final Header header = new Header(ConnectionMode.WRITE, f, 0L);
-		header.toPacket(dp);
-
-		socket.send(dp);
+		header.toOutputStream(socket.getOutputStream());
 
 		return new CDFSDataOutputStream(socket);
 	}
@@ -175,14 +171,17 @@ public class CDFS extends FileSystem {
 	@Override
 	public FSDataInputStream open(final Path arg0, int arg1) throws IOException {
 
-		return new CDFSDataInputStream("localhost", DATANODE_DATA_PORT, arg0);
+		final Socket socket = new Socket();
+		socket.connect(new InetSocketAddress("localhost", DATANODE_DATA_PORT));
+
+		return new CDFSDataInputStream(socket, arg0);
 	}
 
 	@Override
 	public boolean rename(Path arg0, Path arg1) throws IOException {
 		// TODO Auto-generated method stub
 		System.out.println("rename");
-		
+
 		return false;
 	}
 
