@@ -2,24 +2,19 @@ package edu.berkeley.icsi.cdfs;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.net.DatagramPacket;
 import java.net.Socket;
-import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import edu.berkeley.icsi.cdfs.sharedmem.SharedMemoryProducer;
-import edu.berkeley.icsi.cdfs.utils.ReliableDatagramSocket;
 
 final class SharedMemoryOutputStream extends OutputStream {
 
 	private static final Log LOG = LogFactory.getLog(SharedMemoryOutputStream.class);
 
 	private final Socket socket;
-
-	private final SocketAddress remoteAddress;
 
 	private SharedMemoryProducer smp = null;
 
@@ -29,12 +24,6 @@ final class SharedMemoryOutputStream extends OutputStream {
 
 	SharedMemoryOutputStream(final Socket socket) throws IOException {
 		this.socket = socket;
-
-		// Receive ack packet to get remote address
-		final byte[] buf = new byte[1];
-		final DatagramPacket ackPacket = new DatagramPacket(buf, buf.length);
-		this.socket.receive(ackPacket);
-		this.remoteAddress = ackPacket.getSocketAddress();
 	}
 
 	@Override
@@ -78,7 +67,7 @@ final class SharedMemoryOutputStream extends OutputStream {
 	public void write(final byte[] b, final int off, final int len) throws IOException {
 
 		if (this.smp == null) {
-			this.smp = new SharedMemoryProducer(this.socket, this.remoteAddress);
+			this.smp = new SharedMemoryProducer(this.socket);
 		}
 
 		int written = 0;

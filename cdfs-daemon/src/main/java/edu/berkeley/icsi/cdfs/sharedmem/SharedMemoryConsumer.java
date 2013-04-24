@@ -2,7 +2,6 @@ package edu.berkeley.icsi.cdfs.sharedmem;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.net.DatagramPacket;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
@@ -12,51 +11,30 @@ import java.nio.channels.FileChannel.MapMode;
 import edu.berkeley.icsi.cdfs.cache.BufferPool;
 import edu.berkeley.icsi.cdfs.utils.NumberUtils;
 
-public final class SharedMemoryConsumer {
-
-	private final Socket socket;
-
-	private final DatagramPacket notificationPacket;
-
-	private final DatagramPacket ackPacket;
+public final class SharedMemoryConsumer extends AbstractSharedMemoryComponent {
 
 	private final RandomAccessFile memoryMappedFile;
 
 	private final MappedByteBuffer sharedMemoryBuffer;
 
-	private boolean bufferReady = true;
+	private boolean bufferReady = false;
 
 	public SharedMemoryConsumer(final Socket socket) throws IOException {
-		
-		this.socket = socket;
-
-		// Create notification packet
-		final byte[] buf = new byte[256];
-		this.notificationPacket = new DatagramPacket(buf, buf.length);
+		super(socket);
 
 		// Receive information about memory mapped file
-		socket.receive(this.notificationPacket);
-
-		final int bufSize = NumberUtils.byteArrayToInteger(buf, 0);
-		final String filename = new String(buf, 4, this.notificationPacket.getLength() - 4);
+		final String filename = readFilename();
 
 		this.memoryMappedFile = new RandomAccessFile(filename, "r");
 		final FileChannel fc = this.memoryMappedFile.getChannel();
 
 		this.sharedMemoryBuffer = fc.map(MapMode.READ_ONLY, 0, BufferPool.BUFFER_SIZE);
-		this.sharedMemoryBuffer.limit(bufSize);
-
-		// Create acknowledgment packet
-		final byte[] ackBuf = new byte[1];
-		this.ackPacket = new DatagramPacket(ackBuf, ackBuf.length);
-		this.ackPacket.setSocketAddress(this.notificationPacket.getSocketAddress());
 	}
 
 	public ByteBuffer lockSharedMemory() throws IOException {
 
 		if (!this.bufferReady) {
-			this.socket.receive(this.notificationPacket);
-			final int bufferSize = NumberUtils.byteArrayToInteger(this.notificationPacket.getData(), 0);
+			final int bufferSize = readBufferSize();
 			if (bufferSize == -1) {
 				return null;
 			}
@@ -71,11 +49,36 @@ public final class SharedMemoryConsumer {
 	public void unlockSharedMemory() throws IOException {
 
 		this.bufferReady = false;
-		this.socket.send(this.ackPacket);
+		sendACK();
+	}
+
+	private void sendACK() throws IOException {
+
+		this.outputStream.write(ACK_BYTE);
+	}
+
+	private int readBufferSize() throws IOException {
+
+		final byte[] buf = new byte[4];
+		readFully(buf, buf.length);
+
+		return NumberUtils.byteArrayToInteger(buf, 0);
+	}
+
+	private String readFilename() throws IOException {
+
+		final byte[] lenBuf = new byte[4];
+		readFully(lenBuf, lenBuf.length);
+		final int len = NumberUtils.byteArrayToInteger(lenBuf, 0);
+		final byte[] filenameBuf = new byte[len];
+		readFully(filenameBuf, len);
+
+		return new String(filenameBuf);
 	}
 
 	public void close() throws IOException {
 
 		this.memoryMappedFile.close();
+		super.close();
 	}
 }

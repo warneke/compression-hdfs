@@ -1,6 +1,7 @@
 package edu.berkeley.icsi.cdfs.datanode;
 
 import java.io.Closeable;
+import java.io.EOFException;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.Socket;
@@ -213,7 +214,8 @@ final class Connection extends Thread {
 					++blockIndex;
 				}
 			}
-
+		} catch (EOFException eof) {
+			LOG.info("Caught EOF exception");
 		} catch (IOException ioe) {
 			ioe.printStackTrace();
 		} finally {
