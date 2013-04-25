@@ -1,21 +1,23 @@
 package edu.berkeley.icsi.cdfs.wlgen;
 
-import eu.stratosphere.nephele.fs.Path;
-import eu.stratosphere.pact.common.contract.GenericDataSink;
-import eu.stratosphere.pact.common.contract.GenericDataSource;
-import eu.stratosphere.pact.common.contract.MapContract;
-import eu.stratosphere.pact.common.contract.ReduceContract;
-import eu.stratosphere.pact.common.plan.Plan;
-import eu.stratosphere.pact.common.type.base.PactString;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.Job;
 
-final class PactPlanGenerator {
+final class MRJobGenerator {
 
-	static Plan toPactPlan(final String basePath, final MapReduceJob mapReduceJob) {
+	static Job toMRJob(final String basePath, final MapReduceJob mapReduceJob) {
 
+		final Configuration conf = new Configuration();
+		conf.set("fs.cdfs.impl", "edu.berkeley.icsi.cdfs.CDFS");
+		final Job job = new Job(conf, mapReduceJob.getJobID());
+
+		
+		
 		System.out.println("Generating plan for job " + mapReduceJob.getJobID());
 		final String inputFilePath = basePath + Path.SEPARATOR + mapReduceJob.getInputFile().getName();
 		// final String outputFilePath = basePath + Path.SEPARATOR + mapReduceJob.getOutputFile().getName() + "_out";
-		final String outputFilePath = "file:///tmp/";//basePath + Path.SEPARATOR + "output";
+		final String outputFilePath = "file:///tmp/";// basePath + Path.SEPARATOR + "output";
 
 		final GenericDataSource<FixedByteInputFormat> source = new GenericDataSource<FixedByteInputFormat>(
 			FixedByteInputFormat.class, "Input");

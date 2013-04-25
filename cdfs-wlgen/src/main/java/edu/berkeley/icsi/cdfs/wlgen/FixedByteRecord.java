@@ -4,9 +4,9 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 
-import eu.stratosphere.pact.common.type.Key;
+import org.apache.hadoop.io.WritableComparable;
 
-public final class FixedByteRecord implements Key {
+public final class FixedByteRecord implements WritableComparable<FixedByteRecord> {
 
 	public static final int LENGTH = 100;
 
@@ -14,10 +14,11 @@ public final class FixedByteRecord implements Key {
 
 	private final byte[] buf = new byte[LENGTH];
 
-	public void set(final byte[] src, final int offset) {
-		System.arraycopy(src, offset, this.buf, 0, LENGTH);
+	public byte[] getData() {
+		
+		return this.buf;
 	}
-
+	
 	/**
 	 * {@inheritDoc}
 	 */
@@ -31,31 +32,24 @@ public final class FixedByteRecord implements Key {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void write(final DataOutput out) throws IOException {
+	public void readFields(final DataInput arg0) throws IOException {
 
-		out.write(this.buf);
+		arg0.readFully(this.buf);
 	}
 
 	/**
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void read(final DataInput in) throws IOException {
+	public void write(final DataOutput arg0) throws IOException {
 
-		in.readFully(this.buf);
+		arg0.write(this.buf);
 	}
 
 	/**
 	 * {@inheritDoc}
 	 */
 	@Override
-	public int compareTo(final Key o) {
-
-		// System.out.println("Slow compareTo called");
-
-		return compareTo((FixedByteRecord) o);
-	}
-
 	public int compareTo(final FixedByteRecord o) {
 
 		for (int i = 0; i < KEY_LENGTH; ++i) {
@@ -66,19 +60,5 @@ public final class FixedByteRecord implements Key {
 		}
 
 		return 0;
-	}
-
-	public void putNormalizedKey(final byte[] target, final int offset, final int numBytes) {
-
-		System.arraycopy(this.buf, 0, target, offset, numBytes);
-	}
-
-	public void copyTo(final FixedByteRecord record) {
-
-		System.arraycopy(this.buf, 0, record.buf, 0, LENGTH);
-	}
-
-	public byte[] getBuffer() {
-		return this.buf;
 	}
 }

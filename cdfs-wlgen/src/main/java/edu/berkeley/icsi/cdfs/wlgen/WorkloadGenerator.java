@@ -11,24 +11,11 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.PosixParser;
-
-import edu.berkeley.icsi.cdfs.wlgen.datagen.DataGenerator;
-import eu.stratosphere.nephele.client.JobClient;
-import eu.stratosphere.nephele.configuration.ConfigConstants;
-import eu.stratosphere.nephele.configuration.Configuration;
-import eu.stratosphere.nephele.configuration.GlobalConfiguration;
-import eu.stratosphere.nephele.fs.FileSystem;
-import eu.stratosphere.nephele.fs.Path;
-import eu.stratosphere.nephele.jobgraph.JobGraph;
-import eu.stratosphere.nephele.util.JarFileCreator;
-import eu.stratosphere.pact.common.plan.Plan;
-import eu.stratosphere.pact.compiler.PactCompiler;
-import eu.stratosphere.pact.compiler.jobgen.JobGraphGenerator;
-import eu.stratosphere.pact.compiler.plan.OptimizedPlan;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 
 public final class WorkloadGenerator {
-
-	final PactCompiler pactCompiler = new PactCompiler();
 
 	private MapReduceWorkload mapReduceWorkload = null;
 
@@ -39,11 +26,11 @@ public final class WorkloadGenerator {
 			filesizeLimit, jobLimit);
 	}
 
-	private void generateInputData(final InetSocketAddress jobManagerAddress, final String basePath) throws IOException {
+	private void generateInputData(final String basePath) throws IOException {
 
 		final Path path = new Path(basePath + Path.SEPARATOR + "exp");
 
-		final FileSystem fs = path.getFileSystem();
+		final FileSystem fs = path.getFileSystem(new Configuration());
 
 		fs.mkdirs(path);
 
@@ -51,7 +38,7 @@ public final class WorkloadGenerator {
 			throw new IllegalStateException("Please load the workload traces before generating the input data");
 		}
 
-		final DataGenerator dataGenerator = new DataGenerator(jobManagerAddress, basePath);
+		final DataGenerator dataGenerator = new DataGenerator(basePath);
 
 		final Map<Long, File> inputFiles = this.mapReduceWorkload.getInputFiles();
 		final Iterator<File> it = inputFiles.values().iterator();
@@ -168,16 +155,6 @@ public final class WorkloadGenerator {
 		if (cmd.hasOption("l")) {
 			jobLimit = Integer.parseInt(cmd.getOptionValue("l"));
 		}
-
-		// Local the global configuration
-		GlobalConfiguration.loadConfiguration(configDir);
-
-		final String jmAddress = GlobalConfiguration.getString(ConfigConstants.JOB_MANAGER_IPC_ADDRESS_KEY,
-			ConfigConstants.DEFAULT_JOB_MANAGER_IPC_ADDRESS);
-		final int jmPort = GlobalConfiguration.getInteger(ConfigConstants.JOB_MANAGER_IPC_PORT_KEY,
-			ConfigConstants.DEFAULT_JOB_MANAGER_IPC_PORT);
-
-		final InetSocketAddress jobManagerAddress = new InetSocketAddress(jmAddress, jmPort);
 
 		final WorkloadGenerator wlg = new WorkloadGenerator();
 

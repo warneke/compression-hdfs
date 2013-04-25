@@ -1,8 +1,14 @@
 package edu.berkeley.icsi.cdfs.wlgen;
 
-import eu.stratosphere.pact.common.stubs.Collector;
+import java.io.IOException;
+
+import org.apache.hadoop.io.NullWritable;
+import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.Mapper;
 
 final class IORatioAdapter {
+
+	private final NullWritable nullWritable;
 
 	private final boolean reduceMode;
 
@@ -11,6 +17,8 @@ final class IORatioAdapter {
 	private int counter = 0;
 
 	IORatioAdapter(final float ioRatio) {
+
+		this.nullWritable = NullWritable.get();
 
 		if (ioRatio >= 1.0f) {
 			this.reduceMode = true;
@@ -21,19 +29,37 @@ final class IORatioAdapter {
 		}
 	}
 
-	void collect(final FixedByteRecord record, final Collector<FixedByteRecord> out) {
+	void collect(final FixedByteRecord record,
+			final Mapper<FixedByteRecord, NullWritable, FixedByteRecord, NullWritable>.Context context)
+			throws IOException, InterruptedException {
 
 		if (this.reduceMode) {
 			if (++this.counter == this.ratio) {
-				out.collect(record);
+				context.write(record, this.nullWritable);
 				this.counter = 0;
 			}
 
 		} else {
 			for (int i = 0; i < this.ratio; ++i) {
-				out.collect(record);
+				context.write(record, this.nullWritable);
 			}
 		}
+	}
 
+	void collect(final FixedByteRecord record,
+			final Reducer<FixedByteRecord, NullWritable, FixedByteRecord, NullWritable>.Context context)
+			throws IOException, InterruptedException {
+
+		if (this.reduceMode) {
+			if (++this.counter == this.ratio) {
+				context.write(record, this.nullWritable);
+				this.counter = 0;
+			}
+
+		} else {
+			for (int i = 0; i < this.ratio; ++i) {
+				context.write(record, this.nullWritable);
+			}
+		}
 	}
 }

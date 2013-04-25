@@ -1,14 +1,14 @@
 package edu.berkeley.icsi.cdfs.wlgen;
 
+import java.io.IOException;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.NullWritable;
+import org.apache.hadoop.mapreduce.Mapper;
 
-import eu.stratosphere.nephele.configuration.Configuration;
-import eu.stratosphere.pact.common.generic.AbstractStub;
-import eu.stratosphere.pact.common.generic.GenericMapper;
-import eu.stratosphere.pact.common.stubs.Collector;
-
-public final class MapTask extends AbstractStub implements GenericMapper<FixedByteRecord, FixedByteRecord> {
+public final class MapTask extends Mapper<FixedByteRecord, NullWritable, FixedByteRecord, NullWritable> {
 
 	private static final Log LOG = LogFactory.getLog(MapTask.class);
 
@@ -20,19 +20,25 @@ public final class MapTask extends AbstractStub implements GenericMapper<FixedBy
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void open(final Configuration parameters) {
+	public void setup(final Context context) throws IOException, InterruptedException {
 
-		final float ioRatio = parameters.getFloat(INPUT_OUTPUT_RATIO, -1.0f);
+		System.out.println("SETUP");
+		final Configuration conf = context.getConfiguration();
+		final float ioRatio = conf.getFloat(INPUT_OUTPUT_RATIO, -1.0f);
 		if (ioRatio < 0.0f) {
 			throw new IllegalStateException("I/O ratio is not set");
 		}
 		this.ioRatioAdapter = new IORatioAdapter(ioRatio);
-		LOG.info("Map task initiated with I/O ratio " + ioRatio);
+		LOG.info("Started mapper with I/O ratio " + ioRatio);
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public void map(FixedByteRecord record, Collector<FixedByteRecord> out) throws Exception {
+	public void map(final FixedByteRecord key, final NullWritable value, final Context context)
+			throws IOException, InterruptedException {
 
-		this.ioRatioAdapter.collect(record, out);
+		this.ioRatioAdapter.collect(key, context);
 	}
 }

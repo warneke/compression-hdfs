@@ -1,16 +1,14 @@
 package edu.berkeley.icsi.cdfs.wlgen;
 
-import java.util.Iterator;
+import java.io.IOException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.NullWritable;
+import org.apache.hadoop.mapreduce.Reducer;
 
-import eu.stratosphere.nephele.configuration.Configuration;
-import eu.stratosphere.pact.common.generic.AbstractStub;
-import eu.stratosphere.pact.common.generic.GenericReducer;
-import eu.stratosphere.pact.common.stubs.Collector;
-
-public class ReduceTask extends AbstractStub implements GenericReducer<FixedByteRecord, FixedByteRecord> {
+public class ReduceTask extends Reducer<FixedByteRecord, NullWritable, FixedByteRecord, NullWritable> {
 
 	private static final Log LOG = LogFactory.getLog(ReduceTask.class);
 
@@ -22,31 +20,25 @@ public class ReduceTask extends AbstractStub implements GenericReducer<FixedByte
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void open(final Configuration parameters) {
+	public void setup(final Context context) throws IOException, InterruptedException {
 
-		final float ioRatio = parameters.getFloat(INPUT_OUTPUT_RATIO, -1.0f);
+		System.out.println("SETUP");
+		final Configuration conf = context.getConfiguration();
+		final float ioRatio = conf.getFloat(INPUT_OUTPUT_RATIO, -1.0f);
 		if (ioRatio < 0.0f) {
 			throw new IllegalStateException("I/O ratio is not set");
 		}
 		this.ioRatioAdapter = new IORatioAdapter(ioRatio);
-		LOG.info("Reduce task initiated with I/O ratio " + ioRatio);
-	}
-
-	@Override
-	public void reduce(final Iterator<FixedByteRecord> records, final Collector<FixedByteRecord> out) throws Exception {
-		
-		while (records.hasNext()) {
-			this.ioRatioAdapter.collect(records.next(), out);
-		}
+		LOG.info("Started reducer with I/O ratio " + ioRatio);
 	}
 
 	/**
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void combine(final Iterator<FixedByteRecord> records, final Collector<FixedByteRecord> out) throws Exception {
+	public void reduce(final FixedByteRecord key, final Iterable<NullWritable> values, final Context context)
+			throws IOException, InterruptedException {
 
-		throw new RuntimeException("combine called");
+		this.ioRatioAdapter.collect(key, context);
 	}
-
 }
