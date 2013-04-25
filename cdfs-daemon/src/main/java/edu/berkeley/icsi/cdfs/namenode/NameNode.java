@@ -31,9 +31,9 @@ public class NameNode implements ClientNameNodeProtocol, DataNodeNameNodeProtoco
 		this.rpcServer = RPC.getServer(this, "localhost", CDFS.NAMENODE_RPC_PORT, conf);
 		this.rpcServer.start();
 
-		this.hdfs = new Path("hdfs://localhost:9000").getFileSystem(conf);
+		this.hdfs = new Path("hdfs://localhost:" + CDFS.HDFS_NAMENODE_PORT).getFileSystem(conf);
 
-		this.metaDataStore = new MetaDataStore();
+		this.metaDataStore = new MetaDataStore(hdfs);
 	}
 
 	public void shutDown() {
@@ -108,7 +108,9 @@ public class NameNode implements ClientNameNodeProtocol, DataNodeNameNodeProtoco
 	public boolean mkdirs(final PathWrapper path, final FsPermission permission) throws IOException {
 
 		// We don't care about the directory structure, so let HDFS handle this
-		return this.hdfs.mkdirs(CDFS.toHDFSPath(path.getPath(), ""), permission);
+		synchronized (this.hdfs) {
+			return this.hdfs.mkdirs(CDFS.toHDFSPath(path.getPath(), ""), permission);
+		}
 	}
 
 	/**
@@ -125,17 +127,19 @@ public class NameNode implements ClientNameNodeProtocol, DataNodeNameNodeProtoco
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void reportUncompressedCachedBlock(final PathWrapper cdfsPath, final int blockIndex) throws IOException {
+	public void reportUncompressedCachedBlock(final PathWrapper cdfsPath, final int blockIndex, final String host)
+			throws IOException {
 
-		this.metaDataStore.reportUncompressedCachedBlock(cdfsPath.getPath(), blockIndex, null);
+		this.metaDataStore.reportUncompressedCachedBlock(cdfsPath.getPath(), blockIndex, host);
 	}
 
 	/**
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void reportCompressedCachedBlock(final PathWrapper cdfsPath, final int blockIndex) throws IOException {
+	public void reportCompressedCachedBlock(final PathWrapper cdfsPath, final int blockIndex, final String host)
+			throws IOException {
 
-		this.metaDataStore.reportCompressedCachedBlock(cdfsPath.getPath(), blockIndex, null);
+		this.metaDataStore.reportCompressedCachedBlock(cdfsPath.getPath(), blockIndex, host);
 	}
 }

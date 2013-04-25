@@ -29,6 +29,37 @@ public class CDFSBlockLocation extends BlockLocation {
 	 * {@inheritDoc}
 	 */
 	@Override
+	public String toString() {
+
+		final StringBuilder sb = new StringBuilder("[");
+		sb.append(this.index);
+		sb.append(", ");
+		sb.append(getOffset());
+		sb.append(", ");
+		sb.append(getLength());
+		sb.append(", (");
+
+		try {
+			final String[] hosts = getHosts();
+			for (int i = 0; i < hosts.length; ++i) {
+				sb.append(hosts[i]);
+				if (i < (hosts.length - 1)) {
+					sb.append(", ");
+				}
+			}
+		} catch (IOException ioe) {
+			ioe.printStackTrace();
+		}
+
+		sb.append(")]");
+
+		return sb.toString();
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
 	public void write(final DataOutput out) throws IOException {
 
 		out.writeInt(this.index);

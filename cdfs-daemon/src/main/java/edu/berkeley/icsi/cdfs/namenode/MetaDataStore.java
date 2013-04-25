@@ -9,7 +9,9 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 import com.esotericsoftware.kryo.Kryo;
@@ -23,13 +25,17 @@ final class MetaDataStore {
 
 	private static final Log LOG = LogFactory.getLog(MetaDataStore.class);
 
+	private final FileSystem hdfs;
+
 	private final String storageLocation;
 
 	private final Map<String, FileMetaData> metaData = new HashMap<String, FileMetaData>();
 
 	private final Kryo kryo = new Kryo();
 
-	public MetaDataStore() throws IOException {
+	public MetaDataStore(final FileSystem hdfs) throws IOException {
+
+		this.hdfs = hdfs;
 
 		String userName = System.getProperty("user.name");
 		if (userName == null) {
@@ -111,26 +117,41 @@ final class MetaDataStore {
 			return null;
 		}
 
+		LOG.info("Computing block locations for " + path + ", start " + start + ", len " + len);
+
 		final BlockMetaData[] blocks = fmd.getBlockMetaData(start, len);
 		if (blocks == null) {
 			return null;
 		}
 
-		final String names[] = new String[1];
-		names[0] = "localhost:" + CDFS.DATANODE_DATA_PORT;
-		final String hosts[] = new String[1];
-		hosts[0] = "localhost";
-
+		// Construct host priorities
 		final CDFSBlockLocation[] blockLocations = new CDFSBlockLocation[blocks.length];
-
-		LOG.info("Number of block locations for " + path + " (start " + start + ", len " + len + "): " + blocks.length);
-
 		for (int i = 0; i < blocks.length; ++i) {
-			final CDFSBlockLocation blockLocation = new CDFSBlockLocation(blocks[i].getIndex(), names, hosts,
-				blocks[i].getOffset(), blocks[i].getLength());
-			blockLocations[i] = blockLocation;
-		}
 
+			final Path hdfsPath = CDFS.toHDFSPath(path, "_" + blocks[i].getIndex());
+			BlockLocation[] hdfsBlockLocations;
+			synchronized (this.hdfs) {
+				final FileStatus fileStatus = this.hdfs.getFileStatus(hdfsPath);
+				hdfsBlockLocations = this.hdfs.getFileBlockLocations(fileStatus, 0L, fileStatus.getLen());
+			}
+			if (hdfsBlockLocations == null) {
+				throw new IllegalStateException("Could not retrieve block locations for " + hdfsPath);
+			}
+
+			if (hdfsBlockLocations.length != 1) {
+				throw new IllegalStateException(hdfsPath + " spreads across " + blockLocations.length + " blocks");
+			}
+
+			final String hosts[] = blocks[i].constructHostList(hdfsBlockLocations[0].getHosts());
+			final String names[] = new String[hosts.length];
+			for (int j = 0; j < hosts.length; ++j) {
+				names[j] = hosts[j] + ":" + CDFS.DATANODE_DATA_PORT;
+			}
+
+			blockLocations[i] = new CDFSBlockLocation(blocks[i].getIndex(), names, hosts, blocks[i].getOffset(),
+				blocks[i].getLength());
+			LOG.info("Constructed " + blockLocations[i]);
+		}
 		return blockLocations;
 	}
 

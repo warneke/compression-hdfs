@@ -1,6 +1,9 @@
 package edu.berkeley.icsi.cdfs.namenode;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.hadoop.fs.Path;
@@ -53,6 +56,34 @@ final class BlockMetaData implements KryoSerializable {
 
 	long getOffset() {
 		return this.offset;
+	}
+
+	String[] constructHostList(final String[] hdfsHosts) {
+
+		final List<String> hosts = new ArrayList<String>();
+
+		// Add hosts with uncompressed cached blocks
+		hosts.addAll(this.cachedUncompressed);
+
+		// Add additional hosts with compressed cached blocks
+		final Iterator<String> it = this.cachedCompressed.iterator();
+		while (it.hasNext()) {
+
+			final String candidate = it.next();
+			if (!this.cachedUncompressed.contains(candidate)) {
+				hosts.add(candidate);
+			}
+		}
+
+		// Finally, add additional hosts with disk-local blocks
+		for (int i = 0; i < hdfsHosts.length; ++i) {
+			final String candidate = hdfsHosts[i];
+			if (!this.cachedUncompressed.contains(candidate) && !this.cachedCompressed.contains(candidate)) {
+				hosts.add(candidate);
+			}
+		}
+
+		return hosts.toArray(new String[0]);
 	}
 
 	void addCachedBlock(final String host, final boolean compressed) {

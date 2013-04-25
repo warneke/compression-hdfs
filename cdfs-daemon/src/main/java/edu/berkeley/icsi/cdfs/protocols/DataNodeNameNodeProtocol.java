@@ -8,7 +8,7 @@ public interface DataNodeNameNodeProtocol extends CommonNameNodeProtocol {
 
 	void createNewBlock(PathWrapper cdfsPath, PathWrapper hdfsPath, int blockIndex, int blockLength) throws IOException;
 
-	void reportUncompressedCachedBlock(PathWrapper cdfsPath, int blockIndex) throws IOException;
+	void reportUncompressedCachedBlock(PathWrapper cdfsPath, int blockIndex, String host) throws IOException;
 
-	void reportCompressedCachedBlock(PathWrapper cdfsPath, int blockIndex) throws IOException;
+	void reportCompressedCachedBlock(PathWrapper cdfsPath, int blockIndex, String host) throws IOException;
 }

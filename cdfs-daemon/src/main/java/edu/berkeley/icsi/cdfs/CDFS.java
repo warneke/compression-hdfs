@@ -25,6 +25,8 @@ import edu.berkeley.icsi.cdfs.utils.PathWrapper;
 
 public class CDFS extends FileSystem {
 
+	public static final int HDFS_NAMENODE_PORT = 9000;
+
 	public static final int NAMENODE_RPC_PORT = 10000;
 
 	public static final int DATANODE_RPC_PORT = 10001;
@@ -197,8 +199,8 @@ public class CDFS extends FileSystem {
 
 		URI uri;
 		try {
-			uri = new URI("hdfs", cdfsURI.getUserInfo(), cdfsURI.getHost(), 9000, cdfsURI.getPath() + suffix,
-				cdfsURI.getQuery(), cdfsURI.getFragment());
+			uri = new URI("hdfs", cdfsURI.getUserInfo(), cdfsURI.getHost(), HDFS_NAMENODE_PORT, cdfsURI.getPath()
+				+ suffix, cdfsURI.getQuery(), cdfsURI.getFragment());
 		} catch (URISyntaxException e) {
 			throw new RuntimeException(e);
 		}

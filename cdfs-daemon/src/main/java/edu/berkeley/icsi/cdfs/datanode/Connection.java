@@ -33,14 +33,17 @@ final class Connection extends Thread {
 
 	private final Configuration conf;
 
+	private final String host;
+
 	Connection(final Socket socket, final Header header, final DataNodeNameNodeProtocol nameNode,
-			final Configuration conf) {
+			final Configuration conf, final String host) {
 		super("DataNodeConnection from " + socket.getRemoteSocketAddress());
 
 		this.socket = socket;
 		this.header = header;
 		this.nameNode = nameNode;
 		this.conf = conf;
+		this.host = host;
 		start();
 	}
 
@@ -91,7 +94,7 @@ final class Connection extends Thread {
 					if (!uncompressedBuffers.isEmpty()) {
 						UncompressedBufferCache.get().addCachedBlock(header.getPath(), blockIndex, uncompressedBuffers);
 						synchronized (this.nameNode) {
-							this.nameNode.reportUncompressedCachedBlock(cdfsPath, blockIndex);
+							this.nameNode.reportUncompressedCachedBlock(cdfsPath, blockIndex, this.host);
 						}
 					}
 
@@ -99,7 +102,7 @@ final class Connection extends Thread {
 					if (!compressedBuffers.isEmpty()) {
 						CompressedBufferCache.get().addCachedBlock(header.getPath(), blockIndex, compressedBuffers);
 						synchronized (this.nameNode) {
-							this.nameNode.reportCompressedCachedBlock(cdfsPath, blockIndex);
+							this.nameNode.reportCompressedCachedBlock(cdfsPath, blockIndex, this.host);
 						}
 					}
 
@@ -170,7 +173,7 @@ final class Connection extends Thread {
 							UncompressedBufferCache.get().addCachedBlock(this.header.getPath(), blockIndex,
 								uncompressedBuffers);
 							synchronized (this.nameNode) {
-								this.nameNode.reportUncompressedCachedBlock(cdfsPath, blockIndex);
+								this.nameNode.reportUncompressedCachedBlock(cdfsPath, blockIndex, this.host);
 							}
 						}
 
@@ -198,7 +201,7 @@ final class Connection extends Thread {
 						UncompressedBufferCache.get().addCachedBlock(this.header.getPath(), blockIndex,
 							uncompressedBuffers);
 						synchronized (this.nameNode) {
-							this.nameNode.reportUncompressedCachedBlock(cdfsPath, blockIndex);
+							this.nameNode.reportUncompressedCachedBlock(cdfsPath, blockIndex, this.host);
 						}
 					}
 
@@ -207,7 +210,7 @@ final class Connection extends Thread {
 						CompressedBufferCache.get()
 							.addCachedBlock(this.header.getPath(), blockIndex, compressedBuffers);
 						synchronized (this.nameNode) {
-							this.nameNode.reportCompressedCachedBlock(cdfsPath, blockIndex);
+							this.nameNode.reportCompressedCachedBlock(cdfsPath, blockIndex, this.host);
 						}
 					}
 
