@@ -227,8 +227,8 @@ final class Connection extends Thread {
 				}
 
 				// Close the socket
-				if (socket != null) {
-					socket.close();
+				if (this.socket != null) {
+					this.socket.close();
 				}
 
 				// Close HDFS connection

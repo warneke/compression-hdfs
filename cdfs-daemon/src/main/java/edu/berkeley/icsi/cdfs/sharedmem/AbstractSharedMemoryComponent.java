@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.net.SocketException;
 
 public abstract class AbstractSharedMemoryComponent implements Closeable {
 
@@ -28,16 +29,24 @@ public abstract class AbstractSharedMemoryComponent implements Closeable {
 		int bytesRead = 0;
 		while (bytesRead < len) {
 
-			final int r = this.inputStream.read(buf, bytesRead, len - bytesRead);
-			if (r < 0) {
+			try {
+				final int r = this.inputStream.read(buf, bytesRead, len - bytesRead);
+				if (r < 0) {
+					if (bytesRead == 0) {
+						throw new EOFException();
+					} else {
+						throw new IOException("Unexpected end of stream");
+					}
+				}
+
+				bytesRead += r;
+			} catch (SocketException se) {
 				if (bytesRead == 0) {
-					throw new EOFException("End of stream");
+					throw new EOFException();
 				} else {
-					throw new IOException("Unexpected end of stream");
+					throw se;
 				}
 			}
-
-			bytesRead += r;
 		}
 	}
 

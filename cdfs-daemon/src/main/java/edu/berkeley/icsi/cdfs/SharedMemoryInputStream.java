@@ -1,5 +1,6 @@
 package edu.berkeley.icsi.cdfs;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
@@ -135,10 +136,13 @@ final class SharedMemoryInputStream extends InputStream implements Seekable, Pos
 			this.smc = new SharedMemoryConsumer(this.socket);
 		}
 
-		final ByteBuffer sharedMemBuf = this.smc.lockSharedMemory();
-		if (sharedMemBuf == null) {
+		final ByteBuffer sharedMemBuf;
+		try {
+			sharedMemBuf = this.smc.lockSharedMemory();
+		} catch (EOFException eof) {
 			return -1;
 		}
+
 		final int dataToRead = Math.min(sharedMemBuf.remaining(), len);
 		sharedMemBuf.get(b, off, dataToRead);
 
