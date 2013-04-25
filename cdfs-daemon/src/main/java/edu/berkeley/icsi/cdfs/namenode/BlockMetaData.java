@@ -1,5 +1,8 @@
 package edu.berkeley.icsi.cdfs.namenode;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.apache.hadoop.fs.Path;
 
 import com.esotericsoftware.kryo.Kryo;
@@ -16,6 +19,10 @@ final class BlockMetaData implements KryoSerializable {
 	private int length;
 
 	private long offset;
+
+	private final Set<String> cachedCompressed = new HashSet<String>();
+
+	private final Set<String> cachedUncompressed = new HashSet<String>();
 
 	BlockMetaData(final int index, final Path hdfsPath, final int length, final long offset) {
 		this.index = index;
@@ -46,6 +53,24 @@ final class BlockMetaData implements KryoSerializable {
 
 	long getOffset() {
 		return this.offset;
+	}
+
+	void addCachedBlock(final String host, final boolean compressed) {
+
+		if (compressed) {
+			this.cachedCompressed.add(host);
+		} else {
+			this.cachedUncompressed.add(host);
+		}
+	}
+
+	void removeCachedBlock(final String host, final boolean compressed) {
+
+		if (compressed) {
+			this.cachedCompressed.remove(host);
+		} else {
+			this.cachedUncompressed.remove(host);
+		}
 	}
 
 	/**

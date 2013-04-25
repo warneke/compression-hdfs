@@ -133,4 +133,24 @@ final class MetaDataStore {
 
 		return blockLocations;
 	}
+
+	private void reportCachedBlock(final Path path, final int blockIndex, final String host, final boolean compressed) {
+
+		final FileMetaData fmd = this.metaData.get(path.toUri().getPath());
+		if (fmd == null) {
+			throw new IllegalStateException("Cannot find meta data for " + path);
+		}
+
+		fmd.addCachedBlock(blockIndex, host, compressed);
+	}
+
+	synchronized void reportUncompressedCachedBlock(final Path path, final int blockIndex, final String host) {
+
+		reportCachedBlock(path, blockIndex, host, false);
+	}
+
+	synchronized void reportCompressedCachedBlock(final Path path, final int blockIndex, final String host) {
+
+		reportCachedBlock(path, blockIndex, host, true);
+	}
 }

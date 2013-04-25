@@ -127,6 +127,7 @@ public class NameNode implements ClientNameNodeProtocol, DataNodeNameNodeProtoco
 	@Override
 	public void reportUncompressedCachedBlock(final PathWrapper cdfsPath, final int blockIndex) throws IOException {
 
+		this.metaDataStore.reportUncompressedCachedBlock(cdfsPath.getPath(), blockIndex, null);
 	}
 
 	/**
@@ -135,5 +136,6 @@ public class NameNode implements ClientNameNodeProtocol, DataNodeNameNodeProtoco
 	@Override
 	public void reportCompressedCachedBlock(final PathWrapper cdfsPath, final int blockIndex) throws IOException {
 
+		this.metaDataStore.reportCompressedCachedBlock(cdfsPath.getPath(), blockIndex, null);
 	}
 }

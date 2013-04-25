@@ -101,6 +101,16 @@ final class FileMetaData implements KryoSerializable {
 		return this.modificationTime;
 	}
 
+	void addCachedBlock(final int blockIndex, final String host, final boolean compressed) {
+
+		this.blocks.get(blockIndex).addCachedBlock(host, compressed);
+	}
+
+	void removeCachedBlock(final int blockIndex, final String host, final boolean compressed) {
+
+		this.blocks.get(blockIndex).removeCachedBlock(host, compressed);
+	}
+
 	/**
 	 * {@inheritDoc}
 	 */
