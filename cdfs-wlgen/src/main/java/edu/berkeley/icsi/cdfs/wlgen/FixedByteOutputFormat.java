@@ -2,27 +2,45 @@ package edu.berkeley.icsi.cdfs.wlgen;
 
 import java.io.IOException;
 
-import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.NullWritable;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.OutputFormat;
-import org.apache.hadoop.mapred.RecordWriter;
-import org.apache.hadoop.util.Progressable;
+import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapreduce.OutputCommitter;
+import org.apache.hadoop.mapreduce.OutputFormat;
+import org.apache.hadoop.mapreduce.RecordWriter;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
-public final class FixedByteOutputFormat implements OutputFormat<FixedByteRecord, NullWritable> {
+public final class FixedByteOutputFormat extends OutputFormat<FixedByteRecord, NullWritable> {
 
+	public static final String OUTPUT_PATH = "output.path";
+
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public void checkOutputSpecs(FileSystem arg0, JobConf arg1) throws IOException {
-		// TODO Auto-generated method stub
-		
+	public void checkOutputSpecs(final JobContext arg0) throws IOException, InterruptedException {
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public RecordWriter<FixedByteRecord, NullWritable> getRecordWriter(FileSystem arg0, JobConf arg1, String arg2,
-			Progressable arg3) throws IOException {
-		// TODO Auto-generated method stub
-		return null;
+	public OutputCommitter getOutputCommitter(TaskAttemptContext arg0) throws IOException, InterruptedException {
+		return new FixedByteOutputCommitter();
 	}
 
-	
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public RecordWriter<FixedByteRecord, NullWritable> getRecordWriter(final TaskAttemptContext arg0)
+			throws IOException, InterruptedException {
+
+		final Configuration conf = arg0.getConfiguration();
+		final String outputPath = conf.get(OUTPUT_PATH);
+
+		return new FixedByteRecordWriter(new Path(outputPath), conf);
+	}
+
 }

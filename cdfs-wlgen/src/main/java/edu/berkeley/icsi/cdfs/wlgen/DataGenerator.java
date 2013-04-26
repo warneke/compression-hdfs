@@ -344,10 +344,4 @@ final class DataGenerator {
 		final Job job = generateJob(this.basePath, inputFile);
 		job.waitForCompletion(true);
 	}
-
-	public static void main(final String[] args) throws Exception {
-
-		final DataGenerator dg = new DataGenerator("hdfs://localhost:9000/");
-		dg.generate(new File(10000));
-	}
 }

@@ -1,6 +1,7 @@
 package edu.berkeley.icsi.cdfs.wlgen;
 
 import java.io.IOException;
+import java.util.Iterator;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -39,6 +40,12 @@ public class ReduceTask extends Reducer<FixedByteRecord, NullWritable, FixedByte
 	public void reduce(final FixedByteRecord key, final Iterable<NullWritable> values, final Context context)
 			throws IOException, InterruptedException {
 
-		this.ioRatioAdapter.collect(key, context);
+		System.out.println("REDUCE: " + key);
+
+		final Iterator<NullWritable> it = values.iterator();
+		while (it.hasNext()) {
+			this.ioRatioAdapter.collect(key, context);
+			it.next();
+		}
 	}
 }

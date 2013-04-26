@@ -1,7 +1,6 @@
 package edu.berkeley.icsi.cdfs.wlgen;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -14,6 +13,7 @@ import org.apache.commons.cli.PosixParser;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.Job;
 
 public final class WorkloadGenerator {
 
@@ -44,54 +44,35 @@ public final class WorkloadGenerator {
 		final Iterator<File> it = inputFiles.values().iterator();
 
 		while (it.hasNext()) {
-			dataGenerator.generate(it.next());
+			try {
+				dataGenerator.generate(it.next());
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (ClassNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 	}
 
-	private void runJobs(final InetSocketAddress jobManagerAddress, final String basePath) throws IOException {
+	private void runJobs(final String basePath) throws IOException {
 
 		final Map<String, MapReduceJob> mapReduceJobs = this.mapReduceWorkload.getMapReduceJobs();
 		final Iterator<MapReduceJob> it = mapReduceJobs.values().iterator();
 
-		// final MultiJobClient mjc = new MultiJobClient(jobManagerAddress);
-
-		final java.io.File jarFile = java.io.File.createTempFile("job_", ".jar");
-		jarFile.deleteOnExit();
-
-		final JarFileCreator jfc = new JarFileCreator(jarFile);
-		jfc.addClass(MapTask.class);
-		jfc.addClass(ReduceTask.class);
-		jfc.addClass(ReduceDataDistribution.class);
-		jfc.addClass(IORatioAdapter.class);
-		jfc.addClass(FixedByteInputFormat.class);
-		jfc.addClass(FixedByteOutputFormat.class);
-		jfc.addClass(FixedByteOutputFormat.class);
-		jfc.addClass(FixedByteRecord.class);
-		jfc.addClass(FixedByteRecordFactory.class);
-		jfc.addClass(FixedByteRecordSerializer.class);
-		jfc.addClass(FixedByteRecordComparator.class);
-		jfc.createJarFile();
-
-		final Path jarFilePath = new Path("file:///" + jarFile.getAbsolutePath());
-
 		while (it.hasNext()) {
 
-			final Plan plan = PactPlanGenerator.toPactPlan(basePath, it.next());
-			final OptimizedPlan optimizedPlan = this.pactCompiler.compile(plan);
-			final JobGraphGenerator jobGraphGenerator = new JobGraphGenerator();
-			final JobGraph jobGraph = jobGraphGenerator.compileJobGraph(optimizedPlan);
-			final JobClient jobClient = new JobClient(jobGraph, new Configuration(), jobManagerAddress);
-
-			jobGraph.addJar(jarFilePath);
-
+			final Job job = MRJobGenerator.toMRJob(basePath, it.next());
 			try {
-				jobClient.submitJobAndWait();
-			} catch (Exception e) {
+				job.waitForCompletion(true);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
 				e.printStackTrace();
-				break;
+			} catch (ClassNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
-
-			jobClient.close();
 		}
 	}
 
@@ -110,7 +91,6 @@ public final class WorkloadGenerator {
 
 		String inputDir = null;
 		String basePath = null;
-		String configDir = null;
 		boolean generateInput = false;
 		int mapLimit = Integer.MAX_VALUE;
 		int reduceLimit = Integer.MAX_VALUE;
@@ -126,7 +106,7 @@ public final class WorkloadGenerator {
 			return;
 		}
 
-		if (!cmd.hasOption("i") || !cmd.hasOption("b") || !cmd.hasOption("c")) {
+		if (!cmd.hasOption("i") || !cmd.hasOption("b")) {
 			final HelpFormatter formatter = new HelpFormatter();
 			formatter.printHelp("wlgen", options);
 			return;
@@ -134,7 +114,6 @@ public final class WorkloadGenerator {
 
 		inputDir = cmd.getOptionValue("i");
 		basePath = cmd.getOptionValue("b");
-		configDir = cmd.getOptionValue("c");
 
 		if (cmd.hasOption("g")) {
 			generateInput = true;
@@ -164,10 +143,10 @@ public final class WorkloadGenerator {
 
 			// Generate input data if requested
 			if (generateInput) {
-				wlg.generateInputData(jobManagerAddress, basePath);
+				wlg.generateInputData(basePath);
 			}
 
-			wlg.runJobs(jobManagerAddress, basePath);
+			wlg.runJobs(basePath);
 
 		} catch (IOException ioe) {
 			ioe.printStackTrace();

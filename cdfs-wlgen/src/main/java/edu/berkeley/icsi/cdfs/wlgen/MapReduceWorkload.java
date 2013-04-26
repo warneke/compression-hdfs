@@ -5,11 +5,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Set;
 
 final class MapReduceWorkload {
 
@@ -34,7 +31,7 @@ final class MapReduceWorkload {
 
 		try {
 
-			br = new BufferedReader(new FileReader("/home/stratosphere/wlgen/JobStats.txt"));
+			br = new BufferedReader(new FileReader(inputDir + java.io.File.separator + "JobStats.txt"));
 
 			int count = 0;
 			while ((line = br.readLine()) != null) {
@@ -156,13 +153,11 @@ final class MapReduceWorkload {
 
 		try {
 
-			br = new BufferedReader(new FileReader("/home/stratosphere/wlgen/ReduceInputs.txt"));
+			br = new BufferedReader(new FileReader(inputDir + java.io.File.separator + "ReduceInputs.txt"));
 			while ((line = br.readLine()) != null) {
 
 				final String[] fields = line.split("\t");
 
-				System.out.println("READ " + line);
-				
 				if (fields.length != 9) {
 					System.err.println("Cannot parse trace '" + line + "', skipping it...");
 					continue;
@@ -256,8 +251,6 @@ final class MapReduceWorkload {
 			}
 		}
 
-		// findDependencies(mapReduceJobs);
-
 		return new MapReduceWorkload(mapReduceJobs, inputFiles);
 	}
 
@@ -269,37 +262,6 @@ final class MapReduceWorkload {
 	Map<String, MapReduceJob> getMapReduceJobs() {
 
 		return this.mapReduceJobs;
-	}
-
-	private static void findDependencies(final LinkedHashMap<String, MapReduceJob> mapReduceJobs) {
-
-		final Set<MapReduceJob> alreadyVisited = new HashSet<MapReduceJob>();
-
-		final Iterator<MapReduceJob> it = mapReduceJobs.values().iterator();
-		while (it.hasNext()) {
-			findDependencies(it.next(), alreadyVisited);
-			System.out.println("");
-		}
-	}
-
-	private static void findDependencies(final MapReduceJob mapReduceJob, final Set<MapReduceJob> alreadyVisited) {
-
-		if (!alreadyVisited.add(mapReduceJob)) {
-			return;
-		}
-
-		final File outputFile = mapReduceJob.getOutputFile();
-
-		final Iterator<MapReduceJob> it = outputFile.inputIterator();
-
-		System.out.print(mapReduceJob.getJobID());
-
-		while (it.hasNext()) {
-			System.out.print(" -> ");
-			findDependencies(it.next(), alreadyVisited);
-			System.out.println("");
-		}
-
 	}
 
 	private static long fromGB(final double size) {

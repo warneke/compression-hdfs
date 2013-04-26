@@ -4,12 +4,9 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 
-import edu.berkeley.icsi.cdfs.wlgen.datagen.DataGeneratorOutput;
-import eu.stratosphere.pact.common.contract.DataDistribution;
-import eu.stratosphere.pact.common.type.Key;
-import eu.stratosphere.pact.common.type.PactRecord;
+import org.apache.hadoop.mapreduce.Partitioner;
 
-public class ReduceDataDistribution implements DataDistribution {
+public class ReduceDataDistribution extends Partitioner<KEY, VALUE> {
 
 	private Key[] boundaries;
 
