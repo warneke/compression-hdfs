@@ -22,7 +22,6 @@ public final class MapTask extends Mapper<FixedByteRecord, NullWritable, FixedBy
 	@Override
 	public void setup(final Context context) throws IOException, InterruptedException {
 
-		System.out.println("SETUP");
 		final Configuration conf = context.getConfiguration();
 		final float ioRatio = conf.getFloat(INPUT_OUTPUT_RATIO, -1.0f);
 		if (ioRatio < 0.0f) {

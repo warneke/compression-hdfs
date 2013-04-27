@@ -23,7 +23,6 @@ public class ReduceTask extends Reducer<FixedByteRecord, NullWritable, FixedByte
 	@Override
 	public void setup(final Context context) throws IOException, InterruptedException {
 
-		System.out.println("SETUP");
 		final Configuration conf = context.getConfiguration();
 		final float ioRatio = conf.getFloat(INPUT_OUTPUT_RATIO, -1.0f);
 		if (ioRatio < 0.0f) {
@@ -42,10 +41,13 @@ public class ReduceTask extends Reducer<FixedByteRecord, NullWritable, FixedByte
 
 		System.out.println("REDUCE: " + key);
 
+		int count = 0;
 		final Iterator<NullWritable> it = values.iterator();
 		while (it.hasNext()) {
 			this.ioRatioAdapter.collect(key, context);
 			it.next();
+			++count;
 		}
+		System.out.println("Count: " + count);
 	}
 }

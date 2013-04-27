@@ -26,6 +26,9 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
 final class DataGenerator {
 
+	public static final byte[] KEY_ALPHABET = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c',
+		'd', 'e', 'f' };
+
 	private static final String FILE_SIZE = "file.size";
 
 	private static final String OUTPUT_PATH = "output.path";
@@ -106,10 +109,7 @@ final class DataGenerator {
 		}
 	}
 
-	private static class GeneratorRecordReader extends RecordReader<FixedByteRecord, NullWritable> {
-
-		private static final char[] KEY_ALPHABET = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c',
-			'd', 'e', 'f' };
+	static class GeneratorRecordReader extends RecordReader<FixedByteRecord, NullWritable> {
 
 		private final Random rnd = new Random();
 

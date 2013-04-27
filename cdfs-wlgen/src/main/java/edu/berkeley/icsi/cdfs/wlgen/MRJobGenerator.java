@@ -22,7 +22,10 @@ final class MRJobGenerator {
 		conf.setFloat(ReduceTask.INPUT_OUTPUT_RATIO, (float) ioRatio);
 		conf.set(FixedByteOutputFormat.OUTPUT_PATH, basePath + java.io.File.separator
 			+ mapReduceJob.getOutputFile().getName());
+		conf.set(ReducePartitioner.DATA_DISTRIBUTION,
+			ReducePartitioner.encodeDataDistribution(mapReduceJob.getDataDistribution()));
 
+		System.out.println("Number of reduce tasks: " + mapReduceJob.getNumberOfReduceTasks());
 		final Job job = new Job(conf, mapReduceJob.getJobID());
 		job.setMapperClass(MapTask.class);
 		job.setReducerClass(ReduceTask.class);
@@ -32,6 +35,7 @@ final class MRJobGenerator {
 		job.setOutputFormatClass(FixedByteOutputFormat.class);
 		job.setMapOutputKeyClass(FixedByteRecord.class);
 		job.setMapOutputValueClass(NullWritable.class);
+		job.setPartitionerClass(ReducePartitioner.class);
 
 		return job;
 	}
