@@ -1,7 +1,9 @@
 package edu.berkeley.icsi.cdfs.wlgen;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.cli.CommandLine;
@@ -15,18 +17,21 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 
+import edu.berkeley.icsi.cdfs.wlgen.datagen.DataGenerator;
+
 public final class WorkloadGenerator {
 
-	private MapReduceWorkload mapReduceWorkload = null;
+	private final MapReduceWorkload mapReduceWorkload;
 
-	private void loadWorkloadTraces(final String inputDir, final int mapLimit, final int reduceLimit,
+	private WorkloadGenerator(final String inputDir, final int mapLimit, final int reduceLimit,
 			final long filesizeLimit, final int jobLimit) throws IOException {
 
 		this.mapReduceWorkload = MapReduceWorkload.reconstructFromTraces(inputDir, mapLimit, reduceLimit,
 			filesizeLimit, jobLimit);
 	}
 
-	private void generateInputData(final String basePath) throws IOException {
+	private void generateInputData(final String basePath) throws ClassNotFoundException, InterruptedException,
+			IOException {
 
 		final Path path = new Path(basePath + Path.SEPARATOR + "exp");
 
@@ -38,22 +43,16 @@ public final class WorkloadGenerator {
 			throw new IllegalStateException("Please load the workload traces before generating the input data");
 		}
 
-		final DataGenerator dataGenerator = new DataGenerator(basePath);
-
 		final Map<Long, File> inputFiles = this.mapReduceWorkload.getInputFiles();
+		final List<Job> jobsToExecute = new ArrayList<Job>(inputFiles.size());
 		final Iterator<File> it = inputFiles.values().iterator();
 
 		while (it.hasNext()) {
-			try {
-				dataGenerator.generate(it.next());
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (ClassNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+			final Job job = DataGenerator.generateJob(basePath, it.next());
+			jobsToExecute.add(job);
 		}
+
+		RemoteJobRunner.submitAndWait(jobsToExecute);
 	}
 
 	private void runJobs(final String basePath) throws IOException {
@@ -135,21 +134,19 @@ public final class WorkloadGenerator {
 			jobLimit = Integer.parseInt(cmd.getOptionValue("l"));
 		}
 
-		final WorkloadGenerator wlg = new WorkloadGenerator();
-
 		try {
-			// Load the workload traces
-			wlg.loadWorkloadTraces(inputDir, mapLimit, reduceLimit, filesizeLimit, jobLimit);
+			final WorkloadGenerator wlg = new WorkloadGenerator(inputDir, mapLimit, reduceLimit, filesizeLimit,
+				jobLimit);
 
 			// Generate input data if requested
 			if (generateInput) {
 				wlg.generateInputData(basePath);
 			}
 
-			wlg.runJobs(basePath);
+			//wlg.runJobs(basePath);
 
-		} catch (IOException ioe) {
-			ioe.printStackTrace();
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 	}
 }

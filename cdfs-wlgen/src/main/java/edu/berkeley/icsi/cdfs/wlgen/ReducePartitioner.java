@@ -13,6 +13,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.Partitioner;
 
+import edu.berkeley.icsi.cdfs.wlgen.datagen.DataGenerator;
+
 public final class ReducePartitioner extends Partitioner<FixedByteRecord, NullWritable> implements Configurable {
 
 	private FixedByteRecord[] boundaries;
