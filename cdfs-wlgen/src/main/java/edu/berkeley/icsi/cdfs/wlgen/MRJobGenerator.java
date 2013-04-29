@@ -11,7 +11,7 @@ final class MRJobGenerator {
 	static Job toMRJob(final String basePath, final MapReduceJob mapReduceJob) throws IOException {
 
 		final Configuration conf = new Configuration();
-		conf.set("fs.cdfs.impl", "edu.berkeley.icsi.cdfs.CDFS");
+		ClusterConfigurator.addClusterConfiguration(conf);
 		conf.set(FixedByteInputFormat.INPUT_PATH, basePath + java.io.File.separator
 			+ mapReduceJob.getInputFile().getName());
 		conf.setInt(FixedByteInputFormat.NUMBER_OF_MAPPERS, mapReduceJob.getNumberOfMapTasks());
@@ -25,7 +25,6 @@ final class MRJobGenerator {
 		conf.set(ReducePartitioner.DATA_DISTRIBUTION,
 			ReducePartitioner.encodeDataDistribution(mapReduceJob.getDataDistribution()));
 
-		System.out.println("Number of reduce tasks: " + mapReduceJob.getNumberOfReduceTasks());
 		final Job job = new Job(conf, mapReduceJob.getJobID());
 		job.setMapperClass(MapTask.class);
 		job.setReducerClass(ReduceTask.class);

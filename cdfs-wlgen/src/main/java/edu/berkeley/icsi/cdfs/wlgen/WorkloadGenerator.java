@@ -55,24 +55,18 @@ public final class WorkloadGenerator {
 		RemoteJobRunner.submitAndWait(jobsToExecute);
 	}
 
-	private void runJobs(final String basePath) throws IOException {
+	private void runJobs(final String basePath) throws ClassNotFoundException, InterruptedException, IOException {
 
 		final Map<String, MapReduceJob> mapReduceJobs = this.mapReduceWorkload.getMapReduceJobs();
+		final List<Job> jobsToExecute = new ArrayList<Job>(mapReduceJobs.size());
 		final Iterator<MapReduceJob> it = mapReduceJobs.values().iterator();
 
 		while (it.hasNext()) {
-
 			final Job job = MRJobGenerator.toMRJob(basePath, it.next());
-			try {
-				job.waitForCompletion(true);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (ClassNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+			jobsToExecute.add(job);
 		}
+
+		RemoteJobRunner.submitAndWait(jobsToExecute);
 	}
 
 	public static void main(final String[] args) {
@@ -143,7 +137,7 @@ public final class WorkloadGenerator {
 				wlg.generateInputData(basePath);
 			}
 
-			//wlg.runJobs(basePath);
+			wlg.runJobs(basePath);
 
 		} catch (Exception e) {
 			e.printStackTrace();
