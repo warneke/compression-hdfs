@@ -12,12 +12,15 @@ public final class File {
 
 	private final String name;
 
-	private final long size;
+	private final long uncompressedFileSize;
 
-	File(final long size) {
+	private final int compressionRatio;
 
-		this.name = "file_" + size;
-		this.size = size;
+	File(final long uncompressedFileSize, final int compressionRatio) {
+
+		this.name = "file_" + uncompressedFileSize;
+		this.uncompressedFileSize = uncompressedFileSize;
+		this.compressionRatio = compressionRatio;
 	}
 
 	public String getName() {
@@ -25,9 +28,14 @@ public final class File {
 		return this.name;
 	}
 
-	public long getSize() {
+	public long getUncompressedFileSize() {
 
-		return this.size;
+		return this.uncompressedFileSize;
+	}
+
+	public int getCompressionRatio() {
+
+		return this.compressionRatio;
 	}
 
 	void usedAsInputBy(final MapReduceJob mapReduceJob) {
@@ -58,5 +66,37 @@ public final class File {
 	int getNumberOfOutputUsages() {
 
 		return this.usedAsOutput.size();
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public boolean equals(final Object obj) {
+
+		if (!(obj instanceof File)) {
+			return false;
+		}
+
+		final File file = (File) obj;
+
+		if (file.compressionRatio != this.compressionRatio) {
+			return false;
+		}
+
+		if (file.uncompressedFileSize != this.uncompressedFileSize) {
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public int hashCode() {
+
+		return this.compressionRatio * (int) (this.uncompressedFileSize % 17L);
 	}
 }

@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -43,9 +44,9 @@ public final class WorkloadGenerator {
 			throw new IllegalStateException("Please load the workload traces before generating the input data");
 		}
 
-		final Map<Long, File> inputFiles = this.mapReduceWorkload.getInputFiles();
+		final Set<File> inputFiles = this.mapReduceWorkload.getInputFiles();
 		final List<Job> jobsToExecute = new ArrayList<Job>(inputFiles.size());
-		final Iterator<File> it = inputFiles.values().iterator();
+		final Iterator<File> it = inputFiles.iterator();
 
 		while (it.hasNext()) {
 			final Job job = DataGenerator.generateJob(basePath, it.next());
@@ -134,10 +135,10 @@ public final class WorkloadGenerator {
 
 			// Generate input data if requested
 			if (generateInput) {
-				wlg.generateInputData(basePath);
+				//wlg.generateInputData(basePath);
 			}
 
-			wlg.runJobs(basePath);
+			//wlg.runJobs(basePath);
 
 		} catch (Exception e) {
 			e.printStackTrace();

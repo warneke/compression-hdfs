@@ -4,30 +4,31 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
 final class MapReduceWorkload {
 
 	private final Map<String, MapReduceJob> mapReduceJobs;
 
-	private final Map<Long, File> inputFiles;
+	private final Set<File> inputFiles;
 
-	private MapReduceWorkload(final LinkedHashMap<String, MapReduceJob> mapReduceJobs, final Map<Long, File> inputFiles) {
+	private MapReduceWorkload(final LinkedHashMap<String, MapReduceJob> mapReduceJobs, final Set<File> inputFiles) {
 
 		this.mapReduceJobs = Collections.unmodifiableMap(mapReduceJobs);
-		this.inputFiles = Collections.unmodifiableMap(inputFiles);
+		this.inputFiles = Collections.unmodifiableSet(inputFiles);
 	}
 
 	static MapReduceWorkload reconstructFromTraces(final String inputDir, final int mapLimit, final int reduceLimit,
 			final long filesizeLimit, final int jobLimit) throws IOException {
 
 		final LinkedHashMap<String, MapReduceJob> mapReduceJobs = new LinkedHashMap<String, MapReduceJob>();
-		final Map<Long, File> files = new HashMap<Long, File>();
-		final Map<Long, File> inputFiles = new HashMap<Long, File>();
 		BufferedReader br = null;
 		String line;
+
+		final Set<File> inputFiles = new HashSet<File>();
 
 		try {
 
@@ -67,20 +68,20 @@ final class MapReduceWorkload {
 					continue;
 				}
 
-				Long sizeOfInputData;
+				long sizeOfInputData;
 				try {
-					sizeOfInputData = Long.valueOf(fromGB(Double.parseDouble(fields[3])));
+					sizeOfInputData = fromGB(Double.parseDouble(fields[3]));
 				} catch (NumberFormatException nfe) {
 					System.err.println("Cannot parse trace '" + line + "', skipping it...");
 					continue;
 				}
 
-				if (sizeOfInputData.longValue() < 0L) {
+				if (sizeOfInputData < 0L) {
 					System.err.println("Skipping trace with negative input file size " + fields[3]);
 					continue;
 				}
 
-				if (sizeOfInputData.longValue() > filesizeLimit) {
+				if (sizeOfInputData > filesizeLimit) {
 					continue;
 				}
 
@@ -97,33 +98,25 @@ final class MapReduceWorkload {
 					continue;
 				}
 
-				Long sizeOfOutputData;
+				long sizeOfOutputData;
 				try {
-					sizeOfOutputData = Long.valueOf(fromGB(Double.parseDouble(fields[5])));
+					sizeOfOutputData = fromGB(Double.parseDouble(fields[5]));
 				} catch (NumberFormatException nfe) {
 					System.err.println("Cannot parse trace '" + line + "', skipping it...");
 					continue;
 				}
 
-				if (sizeOfOutputData.longValue() < 0L) {
+				if (sizeOfOutputData < 0L) {
 					System.err.println("Skipping trace with negative output file size " + fields[5]);
 					continue;
 				}
 
 				// Find input file
-				File inputFile = files.get(sizeOfInputData);
-				if (inputFile == null) {
-					inputFile = new File(sizeOfInputData.longValue());
-					files.put(sizeOfInputData, inputFile);
-					inputFiles.put(sizeOfInputData, inputFile);
-				}
+				final File inputFile = FileTracker.apply(sizeOfInputData, numberOfMapTasks, true);
+				inputFiles.add(inputFile);
 
 				// Find output file
-				File outputFile = files.get(sizeOfOutputData);
-				if (outputFile == null) {
-					outputFile = new File(sizeOfOutputData.longValue());
-					files.put(sizeOfOutputData, outputFile);
-				}
+				final File outputFile = FileTracker.apply(sizeOfOutputData, numberOfMapTasks, false);
 
 				// Extract sequence number
 				final int pos = fields[0].lastIndexOf('_');
@@ -150,6 +143,9 @@ final class MapReduceWorkload {
 				br = null;
 			}
 		}
+
+		// Show usage histogram of the files
+		Statistics.showUsageHistogram(inputFiles);
 
 		try {
 
@@ -254,7 +250,7 @@ final class MapReduceWorkload {
 		return new MapReduceWorkload(mapReduceJobs, inputFiles);
 	}
 
-	Map<Long, File> getInputFiles() {
+	Set<File> getInputFiles() {
 
 		return this.inputFiles;
 	}

@@ -15,10 +15,11 @@ final class MRJobGenerator {
 		conf.set(FixedByteInputFormat.INPUT_PATH, basePath + java.io.File.separator
 			+ mapReduceJob.getInputFile().getName());
 		conf.setInt(FixedByteInputFormat.NUMBER_OF_MAPPERS, mapReduceJob.getNumberOfMapTasks());
-		double ioRatio = (double) mapReduceJob.getInputFile().getSize()
+		double ioRatio = (double) mapReduceJob.getInputFile().getUncompressedFileSize()
 			/ (double) mapReduceJob.getSizeOfIntermediateData();
 		conf.setFloat(MapTask.INPUT_OUTPUT_RATIO, (float) ioRatio);
-		ioRatio = (double) mapReduceJob.getSizeOfIntermediateData() / (double) mapReduceJob.getOutputFile().getSize();
+		ioRatio = (double) mapReduceJob.getSizeOfIntermediateData()
+			/ (double) mapReduceJob.getOutputFile().getUncompressedFileSize();
 		conf.setFloat(ReduceTask.INPUT_OUTPUT_RATIO, (float) ioRatio);
 		conf.set(FixedByteOutputFormat.OUTPUT_PATH, basePath + java.io.File.separator
 			+ mapReduceJob.getOutputFile().getName());
