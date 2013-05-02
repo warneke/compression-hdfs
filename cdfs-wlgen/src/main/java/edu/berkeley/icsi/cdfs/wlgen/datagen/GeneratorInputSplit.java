@@ -11,8 +11,11 @@ public final class GeneratorInputSplit extends InputSplit implements Writable {
 
 	private long fileSize;
 
-	public GeneratorInputSplit(final long fileSize) {
+	private int compressionFactor;
+
+	public GeneratorInputSplit(final long fileSize, final int compressionFactor) {
 		this.fileSize = fileSize;
+		this.compressionFactor = compressionFactor;
 	}
 
 	public GeneratorInputSplit() {
@@ -25,6 +28,10 @@ public final class GeneratorInputSplit extends InputSplit implements Writable {
 	@Override
 	public long getLength() throws IOException, InterruptedException {
 		return this.fileSize;
+	}
+
+	public int getCompressionFactor() {
+		return this.compressionFactor;
 	}
 
 	/**
@@ -41,6 +48,7 @@ public final class GeneratorInputSplit extends InputSplit implements Writable {
 	@Override
 	public void readFields(final DataInput arg0) throws IOException {
 		this.fileSize = arg0.readLong();
+		this.compressionFactor = arg0.readInt();
 	}
 
 	/**
@@ -49,5 +57,6 @@ public final class GeneratorInputSplit extends InputSplit implements Writable {
 	@Override
 	public void write(final DataOutput arg0) throws IOException {
 		arg0.writeLong(this.fileSize);
+		arg0.writeInt(this.compressionFactor);
 	}
 }

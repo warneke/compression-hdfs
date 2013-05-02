@@ -24,7 +24,7 @@ public final class GeneratorInputFormat extends InputFormat<FixedByteRecord, Nul
 			final TaskAttemptContext arg1) throws IOException, InterruptedException {
 
 		final GeneratorInputSplit gis = (GeneratorInputSplit) arg0;
-		return new GeneratorRecordReader(gis.getLength());
+		return new GeneratorRecordReader(gis.getLength(), gis.getCompressionFactor());
 	}
 
 	/**
@@ -36,8 +36,10 @@ public final class GeneratorInputFormat extends InputFormat<FixedByteRecord, Nul
 		final Configuration conf = arg0.getConfiguration();
 		final long fileSize = conf.getLong(DataGenerator.FILE_SIZE, -1L);
 
+		final int compressionFactor = conf.getInt(DataGenerator.COMPRESSION_FACTOR, -1);
+
 		final List<InputSplit> list = new ArrayList<InputSplit>(1);
-		list.add(new GeneratorInputSplit(fileSize));
+		list.add(new GeneratorInputSplit(fileSize, compressionFactor));
 
 		return list;
 	}

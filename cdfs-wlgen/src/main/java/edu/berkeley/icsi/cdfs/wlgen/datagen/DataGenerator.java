@@ -19,6 +19,8 @@ public final class DataGenerator {
 
 	static final String OUTPUT_PATH = "output.path";
 
+	static final String COMPRESSION_FACTOR = "compression.factor";
+
 	private static String JAR_FILE = null;
 
 	public static Job generateJob(final String basePath, final File inputFile) throws IOException {
@@ -32,6 +34,7 @@ public final class DataGenerator {
 		conf.set("mapred.jar", JAR_FILE);
 		conf.setLong(FILE_SIZE, inputFile.getUncompressedFileSize());
 		conf.set(OUTPUT_PATH, basePath + inputFile.getName());
+		conf.setInt(COMPRESSION_FACTOR, inputFile.getCompressionFactor());
 		final Job job = new Job(conf, "Data generator for file " + inputFile.getName());
 		job.setInputFormatClass(GeneratorInputFormat.class);
 		job.setOutputFormatClass(GeneratorOutputFormat.class);

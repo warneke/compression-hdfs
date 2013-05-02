@@ -18,12 +18,16 @@ public final class GeneratorRecordReader extends RecordReader<FixedByteRecord, N
 
 	private final long numberOfBytesToGenerate;
 
+	private final int randomLength;
+
 	private FixedByteRecord key = new FixedByteRecord();
 
 	private long numberOfBytesGenerated = 0L;
 
-	GeneratorRecordReader(final long numberOfBytesToGenerate) {
+	GeneratorRecordReader(final long numberOfBytesToGenerate, final int compressionFactor) {
+
 		this.numberOfBytesToGenerate = numberOfBytesToGenerate;
+		this.randomLength = getRandomLength(compressionFactor);
 
 		// Prepare record
 		final byte[] buf = this.key.getData();
@@ -34,14 +38,44 @@ public final class GeneratorRecordReader extends RecordReader<FixedByteRecord, N
 		generateNewKey(buf);
 	}
 
+	private static int getRandomLength(final int compressionFactor) {
+
+		return (int) Math.floor((double) (FixedByteRecord.LENGTH - FixedByteRecord.KEY_LENGTH - 1)
+			/ (double) compressionFactor);
+	}
+
 	private void generateNewKey(final byte[] data) {
 
+		final Random rnd = this.rnd;
 		int i = this.rnd.nextInt();
 
+		// Generate key
 		for (int j = 0; j < FixedByteRecord.KEY_LENGTH; ++j) {
 			final int pos = 0x000f & i;
 			data[j] = (byte) DataGenerator.KEY_ALPHABET[pos];
 			i = i >> 4;
+		}
+
+		// Generate random part
+		final int rl = this.randomLength;
+		int r = 0;
+		for (i = 0; i < rl; ++i) {
+
+			if (i % 4 == 0) {
+				r = rnd.nextInt();
+			}
+
+			r = (r >>> 8);
+			byte b = (byte) (r & 0xff);
+			if (b == 0) {
+				b = 'a';
+			} else if (b == '\n') {
+				b = 'b';
+			} else if (b == '\r') {
+				b = 'c';
+			}
+
+			data[i + FixedByteRecord.KEY_LENGTH] = b;
 		}
 	}
 

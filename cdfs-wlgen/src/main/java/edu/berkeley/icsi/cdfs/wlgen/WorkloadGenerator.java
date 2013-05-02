@@ -135,10 +135,10 @@ public final class WorkloadGenerator {
 
 			// Generate input data if requested
 			if (generateInput) {
-				//wlg.generateInputData(basePath);
+				wlg.generateInputData(basePath);
 			}
 
-			//wlg.runJobs(basePath);
+			wlg.runJobs(basePath);
 
 		} catch (Exception e) {
 			e.printStackTrace();
