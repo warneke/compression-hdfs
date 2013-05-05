@@ -51,37 +51,27 @@ public final class FixedByteInputFormat extends InputFormat<FixedByteRecord, Nul
 		}
 
 		final List<InputSplit> inputSplits = new ArrayList<InputSplit>(numberOfMappers);
-		System.out.println("Number of mappers " + numberOfMappers);
 
 		// Talk to the file system to generate input splits
 		final Path inputPath = new Path(ip);
-		FileSystem fs = null;
-		try {
+		final FileSystem fs = inputPath.getFileSystem(conf);
+		final FileStatus fileStatus = fs.getFileStatus(inputPath);
+		if (fileStatus == null) {
+			throw new IllegalStateException("Cannot determine file status for " + ip);
+		}
 
-			fs = inputPath.getFileSystem(conf);
-			final FileStatus fileStatus = fs.getFileStatus(inputPath);
-			if (fileStatus == null) {
-				throw new IllegalStateException("Cannot determine file status for " + ip);
-			}
+		final BlockLocation[] blockLocations = fs.getFileBlockLocations(fileStatus, 0, fileStatus.getLen());
+		if (blockLocations == null) {
+			throw new IllegalStateException("Cannot determine block locations for " + ip);
+		}
 
-			final BlockLocation[] blockLocations = fs.getFileBlockLocations(fileStatus, 0, fileStatus.getLen());
-			if (blockLocations == null) {
-				throw new IllegalStateException("Cannot determine block locations for " + ip);
-			}
+		if (blockLocations.length != numberOfMappers) {
+			throw new IllegalStateException(blockLocations.length + " blocks but " + numberOfMappers + " mappers");
+		}
 
-			if (blockLocations.length != numberOfMappers) {
-				throw new IllegalStateException(blockLocations.length + " blocks but " + numberOfMappers + " mappers");
-			}
-
-			for (int i = 0; i < blockLocations.length; ++i) {
-				inputSplits.add(new FixedByteInputSplit(inputPath, blockLocations[i].getOffset(), blockLocations[i]
-					.getLength(), blockLocations[i].getHosts()));
-			}
-
-		} finally {
-			if (fs != null) {
-				fs.close();
-			}
+		for (int i = 0; i < blockLocations.length; ++i) {
+			inputSplits.add(new FixedByteInputSplit(inputPath, blockLocations[i].getOffset(), blockLocations[i]
+				.getLength(), blockLocations[i].getHosts()));
 		}
 
 		return inputSplits;

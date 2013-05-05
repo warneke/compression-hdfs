@@ -6,6 +6,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.Job;
 
+import edu.berkeley.icsi.cdfs.wlgen.datagen.DataGenerator;
+
 final class MRJobGenerator {
 
 	private static String JAR_FILE = null;
@@ -15,6 +17,7 @@ final class MRJobGenerator {
 		final java.io.File jarFile = java.io.File.createTempFile("datagen", ".jar");
 		jarFile.deleteOnExit();
 		final JarFileCreator jfc = new JarFileCreator(jarFile);
+		jfc.addClass(DataGenerator.class);
 		jfc.addClass(FixedByteInputFormat.class);
 		jfc.addClass(FixedByteInputSplit.class);
 		jfc.addClass(FixedByteRecordReader.class);
@@ -24,6 +27,7 @@ final class MRJobGenerator {
 		jfc.addClass(FixedByteRecord.class);
 		jfc.addClass(MapTask.class);
 		jfc.addClass(ReduceTask.class);
+		jfc.addClass(ReducePartitioner.class);
 		jfc.addClass(IORatioAdapter.class);
 		jfc.createJarFile();
 		return jarFile.getAbsolutePath();
@@ -48,7 +52,7 @@ final class MRJobGenerator {
 			/ (double) mapReduceJob.getOutputFile().getUncompressedFileSize();
 		conf.setFloat(ReduceTask.INPUT_OUTPUT_RATIO, (float) ioRatio);
 		conf.set(FixedByteOutputFormat.OUTPUT_PATH, basePath + java.io.File.separator
-			+ mapReduceJob.getOutputFile().getName());
+			+ mapReduceJob.getOutputFile().getName() + "_out");
 		conf.set(ReducePartitioner.DATA_DISTRIBUTION,
 			ReducePartitioner.encodeDataDistribution(mapReduceJob.getDataDistribution()));
 
