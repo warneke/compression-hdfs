@@ -39,15 +39,10 @@ public class ReduceTask extends Reducer<FixedByteRecord, NullWritable, FixedByte
 	public void reduce(final FixedByteRecord key, final Iterable<NullWritable> values, final Context context)
 			throws IOException, InterruptedException {
 
-		System.out.println("REDUCE: " + key);
-
-		int count = 0;
 		final Iterator<NullWritable> it = values.iterator();
 		while (it.hasNext()) {
 			this.ioRatioAdapter.collect(key, context);
 			it.next();
-			++count;
 		}
-		System.out.println("Count: " + count);
 	}
 }

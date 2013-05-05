@@ -8,6 +8,8 @@ import java.io.IOException;
 
 import org.apache.commons.codec.binary.Base64InputStream;
 import org.apache.commons.codec.binary.Base64OutputStream;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.NullWritable;
@@ -16,6 +18,8 @@ import org.apache.hadoop.mapreduce.Partitioner;
 import edu.berkeley.icsi.cdfs.wlgen.datagen.DataGenerator;
 
 public final class ReducePartitioner extends Partitioner<FixedByteRecord, NullWritable> implements Configurable {
+
+	private static final Log LOG = LogFactory.getLog(ReducePartitioner.class);
 
 	private FixedByteRecord[] boundaries;
 
@@ -68,6 +72,18 @@ public final class ReducePartitioner extends Partitioner<FixedByteRecord, NullWr
 		this.boundaries = new FixedByteRecord[dataDistribution.length];
 		for (int i = 0; i < dataDistribution.length; ++i) {
 			this.boundaries[i] = toBucketBoundary(dataDistribution[i]);
+		}
+
+		// Write boundaries to log
+		if (LOG.isInfoEnabled()) {
+			final StringBuilder sb = new StringBuilder("REDUCE PARTITIONER\n");
+			for (int i = 0; i < dataDistribution.length; ++i) {
+				sb.append(i);
+				sb.append(": ");
+				sb.append(this.boundaries[i]);
+			}
+
+			LOG.info(sb.toString());
 		}
 	}
 

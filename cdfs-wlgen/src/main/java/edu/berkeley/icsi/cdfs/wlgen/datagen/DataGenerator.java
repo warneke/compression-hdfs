@@ -33,7 +33,7 @@ public final class DataGenerator {
 		ClusterConfigurator.addClusterConfiguration(conf);
 		conf.set("mapred.jar", JAR_FILE);
 		conf.setLong(FILE_SIZE, inputFile.getUncompressedFileSize());
-		conf.set(OUTPUT_PATH, basePath + inputFile.getName());
+		conf.set(OUTPUT_PATH, basePath + java.io.File.separator + inputFile.getName());
 		conf.setInt(COMPRESSION_FACTOR, inputFile.getCompressionFactor());
 		final Job job = new Job(conf, "Data generator for file " + inputFile.getName());
 		job.setInputFormatClass(GeneratorInputFormat.class);
