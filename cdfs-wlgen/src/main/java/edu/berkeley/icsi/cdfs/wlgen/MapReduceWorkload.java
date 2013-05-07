@@ -44,6 +44,8 @@ final class MapReduceWorkload {
 					continue;
 				}
 
+				final String jobID = fields[0];
+
 				int numberOfMapTasks;
 				try {
 					numberOfMapTasks = Integer.parseInt(fields[1]);
@@ -111,6 +113,20 @@ final class MapReduceWorkload {
 					continue;
 				}
 
+				// Adjust number of mappers if necessary
+				if (numberOfMapTasks > 1 && (sizeOfInputData < FileTracker.BLOCK_SIZE)) {
+					System.err.println("Adjusting number of mappers for job " + jobID + " from " + numberOfMapTasks
+						+ " to 1");
+					numberOfMapTasks = 1;
+				}
+
+				// Adjust number of reducers if necessary
+				if (numberOfMapTasks < numberOfReduceTasks) {
+					System.err.println("Adjusting number of reducers for job " + jobID + " from " + numberOfReduceTasks
+						+ " to " + numberOfMapTasks);
+					numberOfReduceTasks = numberOfMapTasks;
+				}
+
 				// Find input file
 				final File inputFile = FileTracker.apply(sizeOfInputData, numberOfMapTasks, true);
 				inputFiles.add(inputFile);
@@ -121,13 +137,13 @@ final class MapReduceWorkload {
 				// Extract sequence number
 				final int pos = fields[0].lastIndexOf('_');
 				if (pos == -1) {
-					System.err.println("Cannot extract sequence number for job with ID " + fields[0]);
+					System.err.println("Cannot extract sequence number for job with ID " + jobID);
 					continue;
 				}
 
-				final int sequenceNumber = Integer.parseInt(fields[0].substring(pos + 1));
+				final int sequenceNumber = Integer.parseInt(jobID.substring(pos + 1));
 
-				final MapReduceJob mrj = new MapReduceJob(fields[0], sequenceNumber, numberOfMapTasks,
+				final MapReduceJob mrj = new MapReduceJob(jobID, sequenceNumber, numberOfMapTasks,
 					numberOfReduceTasks, inputFile, sizeOfIntermediateData, outputFile);
 
 				mapReduceJobs.put(mrj.getJobID(), mrj);
@@ -161,19 +177,6 @@ final class MapReduceWorkload {
 
 				final MapReduceJob mrj = mapReduceJobs.get(fields[0]);
 				if (mrj == null) {
-					continue;
-				}
-
-				int numberOfReduceTasks;
-				try {
-					numberOfReduceTasks = Integer.parseInt(fields[1]);
-				} catch (NumberFormatException nfe) {
-					System.err.println("Cannot parse trace '" + line + "', skipping it...");
-					continue;
-				}
-
-				if (numberOfReduceTasks != mrj.getNumberOfReduceTasks()) {
-					System.err.println("Number of reduce tasks does not match for job " + mrj.getJobID());
 					continue;
 				}
 

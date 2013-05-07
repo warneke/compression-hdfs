@@ -47,6 +47,11 @@ final class MapReduceJob {
 		return this.jobID;
 	}
 
+	int getSequenceNumber() {
+
+		return this.sequenceNumber;
+	}
+
 	int getNumberOfMapTasks() {
 
 		return this.numberOfMapTasks;

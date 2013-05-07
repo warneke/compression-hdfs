@@ -2,11 +2,15 @@ package edu.berkeley.icsi.cdfs.wlgen;
 
 import java.io.IOException;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.Mapper;
 
 final class IORatioAdapter {
+
+	private static final Log LOG = LogFactory.getLog(IORatioAdapter.class);
 
 	private final NullWritable nullWritable;
 
@@ -27,6 +31,8 @@ final class IORatioAdapter {
 			this.reduceMode = false;
 			this.ratio = Math.round(1.0f / ioRatio);
 		}
+
+		LOG.info("Reduce mode is " + (this.reduceMode ? "activated" : "deactivated") + ", ratio is " + this.ratio);
 	}
 
 	void collect(final FixedByteRecord record,
