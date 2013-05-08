@@ -7,13 +7,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import edu.berkeley.icsi.cdfs.conf.Configuration;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.PosixParser;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
@@ -37,7 +38,6 @@ public final class WorkloadGenerator {
 		final Path path = new Path(basePath + Path.SEPARATOR + "exp");
 
 		final Configuration conf = new Configuration();
-		ClusterConfigurator.addClusterConfiguration(conf);
 
 		final FileSystem fs = path.getFileSystem(conf);
 

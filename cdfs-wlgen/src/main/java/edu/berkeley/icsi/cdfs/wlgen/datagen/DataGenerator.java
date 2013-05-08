@@ -2,10 +2,10 @@ package edu.berkeley.icsi.cdfs.wlgen.datagen;
 
 import java.io.IOException;
 
-import org.apache.hadoop.conf.Configuration;
+import edu.berkeley.icsi.cdfs.conf.Configuration;
+
 import org.apache.hadoop.mapreduce.Job;
 
-import edu.berkeley.icsi.cdfs.wlgen.ClusterConfigurator;
 import edu.berkeley.icsi.cdfs.wlgen.File;
 import edu.berkeley.icsi.cdfs.wlgen.FixedByteRecord;
 import edu.berkeley.icsi.cdfs.wlgen.JarFileCreator;
@@ -30,7 +30,6 @@ public final class DataGenerator {
 		}
 
 		final Configuration conf = new Configuration();
-		ClusterConfigurator.addClusterConfiguration(conf);
 		conf.set("mapred.jar", JAR_FILE);
 		conf.setLong(FILE_SIZE, inputFile.getUncompressedFileSize());
 		conf.set(OUTPUT_PATH, basePath + java.io.File.separator + inputFile.getName());

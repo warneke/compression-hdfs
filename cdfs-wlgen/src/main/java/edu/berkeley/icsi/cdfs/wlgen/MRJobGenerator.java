@@ -2,7 +2,8 @@ package edu.berkeley.icsi.cdfs.wlgen;
 
 import java.io.IOException;
 
-import org.apache.hadoop.conf.Configuration;
+import edu.berkeley.icsi.cdfs.conf.Configuration;
+
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.Job;
 
@@ -40,7 +41,6 @@ final class MRJobGenerator {
 		}
 
 		final Configuration conf = new Configuration();
-		ClusterConfigurator.addClusterConfiguration(conf);
 		conf.set("mapred.jar", JAR_FILE);
 		conf.set(FixedByteInputFormat.INPUT_PATH, basePath + java.io.File.separator
 			+ mapReduceJob.getInputFile().getName());
