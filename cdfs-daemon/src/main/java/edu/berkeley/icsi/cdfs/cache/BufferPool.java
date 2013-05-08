@@ -9,6 +9,8 @@ import java.util.concurrent.ArrayBlockingQueue;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import edu.berkeley.icsi.cdfs.conf.ConfigConstants;
+
 public final class BufferPool {
 
 	private static final Log LOG = LogFactory.getLog(BufferPool.class);
@@ -24,11 +26,6 @@ public final class BufferPool {
 	private static float TENURED_POOL_THRESHOLD = 0.95f;
 
 	/**
-	 * The size of the buffers in bytes
-	 */
-	public static final int BUFFER_SIZE = 2 * 1024 * 1024;
-
-	/**
 	 * The singleton instance of the buffer pool
 	 */
 	private static final BufferPool INSTANCE = new BufferPool();
@@ -38,7 +35,7 @@ public final class BufferPool {
 	private BufferPool() {
 
 		final long availableMemoryForBuffers = getSizeOfFreeMemory();
-		final int numberOfBuffers = (int) (availableMemoryForBuffers / BUFFER_SIZE);
+		final int numberOfBuffers = (int) (availableMemoryForBuffers / ConfigConstants.BUFFER_SIZE);
 
 		LOG.info("Initialized buffer pool with " + availableMemoryForBuffers + " bytes of memory, creating "
 			+ numberOfBuffers + " buffers");
@@ -46,7 +43,7 @@ public final class BufferPool {
 		this.buffers = new ArrayBlockingQueue<byte[]>(numberOfBuffers);
 
 		for (int i = 0; i < numberOfBuffers; ++i) {
-			this.buffers.add(new byte[BUFFER_SIZE]);
+			this.buffers.add(new byte[ConfigConstants.BUFFER_SIZE]);
 		}
 	}
 

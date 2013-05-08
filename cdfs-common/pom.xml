@@ -11,9 +11,9 @@
 		<version>0.1</version>
 	</parent>
 
-	<artifactId>cdfs-daemon</artifactId>
+	<artifactId>cdfs-common</artifactId>
 
-	<name>cdfs-daemon</name>
+	<name>cdfs-common</name>
 	<url>http://icsi.berkeley.edu</url>
 	<inceptionYear>2012</inceptionYear>
 
@@ -78,22 +78,10 @@
 
  <dependencies>
        <dependency>
-           <groupId>edu.berkeley.icsi</groupId>
-           <artifactId>cdfs-common</artifactId>
-           <version>0.1</version>
+           <groupId>org.apache.hadoop</groupId>
+           <artifactId>hadoop-core</artifactId>
+           <version>1.1.1</version>
        </dependency>
-       <dependency>
-           <groupId>org.xerial.snappy</groupId>
-           <artifactId>snappy-java</artifactId>
-           <version>1.0.4</version>
-           <type>jar</type>
-           <scope>compile</scope>
-        </dependency>
-        <dependency>
-           <groupId>com.esotericsoftware.kryo</groupId>
-           <artifactId>kryo</artifactId>
-           <version>2.20</version>
-    </dependency>
         <!--<dependency>
            <groupId>org.apache.hadoop</groupId>
            <artifactId>hadoop-hdfs-httpfs</artifactId>

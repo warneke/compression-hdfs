@@ -10,8 +10,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PositionedReadable;
 import org.apache.hadoop.fs.Seekable;
 
-import edu.berkeley.icsi.cdfs.datanode.ConnectionMode;
-import edu.berkeley.icsi.cdfs.datanode.Header;
 import edu.berkeley.icsi.cdfs.sharedmem.SharedMemoryConsumer;
 
 final class SharedMemoryInputStream extends InputStream implements Seekable, PositionedReadable {

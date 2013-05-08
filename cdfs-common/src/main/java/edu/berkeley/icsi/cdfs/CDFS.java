@@ -18,8 +18,6 @@ import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.util.Progressable;
 
-import edu.berkeley.icsi.cdfs.datanode.ConnectionMode;
-import edu.berkeley.icsi.cdfs.datanode.Header;
 import edu.berkeley.icsi.cdfs.protocols.ClientNameNodeProtocol;
 import edu.berkeley.icsi.cdfs.utils.PathWrapper;
 

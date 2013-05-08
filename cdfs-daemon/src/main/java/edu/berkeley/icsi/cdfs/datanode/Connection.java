@@ -15,6 +15,8 @@ import org.apache.hadoop.fs.Path;
 
 import edu.berkeley.icsi.cdfs.CDFS;
 import edu.berkeley.icsi.cdfs.CDFSBlockLocation;
+import edu.berkeley.icsi.cdfs.ConnectionMode;
+import edu.berkeley.icsi.cdfs.Header;
 import edu.berkeley.icsi.cdfs.cache.Buffer;
 import edu.berkeley.icsi.cdfs.cache.CompressedBufferCache;
 import edu.berkeley.icsi.cdfs.cache.UncompressedBufferCache;

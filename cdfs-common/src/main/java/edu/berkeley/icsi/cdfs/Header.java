@@ -1,4 +1,4 @@
-package edu.berkeley.icsi.cdfs.datanode;
+package edu.berkeley.icsi.cdfs;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -36,7 +36,7 @@ final public class Header {
 		outputStream.flush();
 	}
 
-	static Header fromInputStream(final InputStream inputStream) throws IOException {
+	public static Header fromInputStream(final InputStream inputStream) throws IOException {
 
 		final byte[] tmp = new byte[512];
 		readFully(inputStream, tmp, 5);
@@ -65,17 +65,17 @@ final public class Header {
 		}
 	}
 
-	ConnectionMode getConnectionMode() {
+	public ConnectionMode getConnectionMode() {
 
 		return this.connectionMode;
 	}
 
-	Path getPath() {
+	public Path getPath() {
 
 		return this.path;
 	}
 
-	long getPos() {
+	public long getPos() {
 
 		return this.pos;
 	}

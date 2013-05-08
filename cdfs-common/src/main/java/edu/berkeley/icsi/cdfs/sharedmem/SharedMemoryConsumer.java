@@ -8,7 +8,7 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
 
-import edu.berkeley.icsi.cdfs.cache.BufferPool;
+import edu.berkeley.icsi.cdfs.conf.ConfigConstants;
 import edu.berkeley.icsi.cdfs.utils.NumberUtils;
 
 public final class SharedMemoryConsumer extends AbstractSharedMemoryComponent {
@@ -28,7 +28,7 @@ public final class SharedMemoryConsumer extends AbstractSharedMemoryComponent {
 		this.memoryMappedFile = new RandomAccessFile(filename, "r");
 		final FileChannel fc = this.memoryMappedFile.getChannel();
 
-		this.sharedMemoryBuffer = fc.map(MapMode.READ_ONLY, 0, BufferPool.BUFFER_SIZE);
+		this.sharedMemoryBuffer = fc.map(MapMode.READ_ONLY, 0, ConfigConstants.BUFFER_SIZE);
 	}
 
 	public ByteBuffer lockSharedMemory() throws IOException {

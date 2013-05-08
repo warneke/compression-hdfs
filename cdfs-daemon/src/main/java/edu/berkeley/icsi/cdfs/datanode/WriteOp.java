@@ -19,6 +19,7 @@ import org.apache.hadoop.fs.Path;
 import edu.berkeley.icsi.cdfs.cache.Buffer;
 import edu.berkeley.icsi.cdfs.cache.BufferPool;
 import edu.berkeley.icsi.cdfs.compression.Compressor;
+import edu.berkeley.icsi.cdfs.conf.ConfigConstants;
 import edu.berkeley.icsi.cdfs.sharedmem.SharedMemoryConsumer;
 import edu.berkeley.icsi.cdfs.utils.ConfigUtils;
 import edu.berkeley.icsi.cdfs.utils.NumberUtils;
@@ -46,7 +47,7 @@ final class WriteOp implements Closeable {
 		this.hdfs = hdfs;
 		this.conf = conf;
 		this.sharedMemoryConsumer = new SharedMemoryConsumer(socket);
-		this.compressor = new Compressor(BufferPool.BUFFER_SIZE);
+		this.compressor = new Compressor(ConfigConstants.BUFFER_SIZE);
 	}
 
 	boolean write(final Path hdfsPath, final int blockSize) throws IOException {
@@ -66,11 +67,11 @@ final class WriteOp implements Closeable {
 		int numberOfBytesInCompressedBuffer = 0;
 
 		if (!cacheUncompressed) {
-			uncompressedBuffer = new byte[BufferPool.BUFFER_SIZE];
+			uncompressedBuffer = new byte[ConfigConstants.BUFFER_SIZE];
 		}
 
 		if (!cacheCompressed) {
-			compressedBuffer = new byte[BufferPool.BUFFER_SIZE];
+			compressedBuffer = new byte[ConfigConstants.BUFFER_SIZE];
 		}
 
 		// Open HDFS output stream
@@ -98,7 +99,7 @@ final class WriteOp implements Closeable {
 				if (uncompressedBuffer == null) {
 					clearUncompressedBuffers();
 					cacheUncompressed = false;
-					uncompressedBuffer = new byte[BufferPool.BUFFER_SIZE];
+					uncompressedBuffer = new byte[ConfigConstants.BUFFER_SIZE];
 				}
 			}
 
@@ -146,7 +147,7 @@ final class WriteOp implements Closeable {
 					if (cacheCompressed) {
 						compressedBuffer = bufferPool.lockBuffer();
 						if (compressedBuffer == null) {
-							compressedBuffer = new byte[BufferPool.BUFFER_SIZE];
+							compressedBuffer = new byte[ConfigConstants.BUFFER_SIZE];
 							clearCompressedBuffers();
 							cacheCompressed = false;
 						}

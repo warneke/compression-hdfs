@@ -74,6 +74,7 @@
 	</build>
 
 	<modules>
+		<module>cdfs-common</module>
 		<module>cdfs-daemon</module>
 		<module>cdfs-benchmark</module>
 		<module>cdfs-dist</module>

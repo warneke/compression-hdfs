@@ -1,4 +1,4 @@
-package edu.berkeley.icsi.cdfs.datanode;
+package edu.berkeley.icsi.cdfs;
 
 public enum ConnectionMode {
 

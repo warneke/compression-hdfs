@@ -17,6 +17,7 @@ import org.apache.hadoop.fs.Path;
 import edu.berkeley.icsi.cdfs.cache.Buffer;
 import edu.berkeley.icsi.cdfs.cache.BufferPool;
 import edu.berkeley.icsi.cdfs.compression.Decompressor;
+import edu.berkeley.icsi.cdfs.conf.ConfigConstants;
 import edu.berkeley.icsi.cdfs.sharedmem.SharedMemoryProducer;
 import edu.berkeley.icsi.cdfs.utils.ConfigUtils;
 import edu.berkeley.icsi.cdfs.utils.NumberUtils;
@@ -62,7 +63,7 @@ final class ReadOp implements Closeable {
 		byte[] uncompressedBuffer = null;
 
 		if (!cacheUncompressed) {
-			uncompressedBuffer = new byte[BufferPool.BUFFER_SIZE];
+			uncompressedBuffer = new byte[ConfigConstants.BUFFER_SIZE];
 		}
 
 		final Iterator<Buffer> it = compressedBuffers.iterator();
@@ -78,7 +79,7 @@ final class ReadOp implements Closeable {
 				if (cacheUncompressed) {
 					uncompressedBuffer = bufferPool.lockBuffer();
 					if (uncompressedBuffer == null) {
-						uncompressedBuffer = new byte[BufferPool.BUFFER_SIZE];
+						uncompressedBuffer = new byte[ConfigConstants.BUFFER_SIZE];
 						cacheUncompressed = false;
 						clearUncompressedBuffers();
 					}
@@ -114,10 +115,10 @@ final class ReadOp implements Closeable {
 		byte[] uncompressedBuffer = null;
 
 		if (!cacheCompressed) {
-			compressedBuffer = new byte[BufferPool.BUFFER_SIZE];
+			compressedBuffer = new byte[ConfigConstants.BUFFER_SIZE];
 		}
 		if (!cacheUncompressed) {
-			uncompressedBuffer = new byte[BufferPool.BUFFER_SIZE];
+			uncompressedBuffer = new byte[ConfigConstants.BUFFER_SIZE];
 		}
 
 		final BufferPool bufferPool = BufferPool.get();
@@ -163,7 +164,7 @@ final class ReadOp implements Closeable {
 					if (cacheCompressed) {
 						compressedBuffer = bufferPool.lockBuffer();
 						if (compressedBuffer == null) {
-							compressedBuffer = new byte[BufferPool.BUFFER_SIZE];
+							compressedBuffer = new byte[ConfigConstants.BUFFER_SIZE];
 							clearCompressedBuffers();
 							cacheCompressed = false;
 						}
@@ -183,7 +184,7 @@ final class ReadOp implements Closeable {
 			if (cacheUncompressed) {
 				uncompressedBuffer = bufferPool.lockBuffer();
 				if (uncompressedBuffer == null) {
-					uncompressedBuffer = new byte[BufferPool.BUFFER_SIZE];
+					uncompressedBuffer = new byte[ConfigConstants.BUFFER_SIZE];
 					clearUncompressedBuffers();
 					cacheUncompressed = false;
 				}

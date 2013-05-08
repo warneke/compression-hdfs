@@ -10,7 +10,7 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
 
-import edu.berkeley.icsi.cdfs.cache.BufferPool;
+import edu.berkeley.icsi.cdfs.conf.ConfigConstants;
 import edu.berkeley.icsi.cdfs.utils.NumberUtils;
 
 public final class SharedMemoryProducer extends AbstractSharedMemoryComponent {
@@ -36,7 +36,7 @@ public final class SharedMemoryProducer extends AbstractSharedMemoryComponent {
 			// Open file and send filename to consumer
 			this.memoryMappedFile = new RandomAccessFile(file, "rw");
 			final FileChannel fc = this.memoryMappedFile.getChannel();
-			this.sharedMemoryBuffer = fc.map(MapMode.READ_WRITE, 0, BufferPool.BUFFER_SIZE);
+			this.sharedMemoryBuffer = fc.map(MapMode.READ_WRITE, 0, ConfigConstants.BUFFER_SIZE);
 			writeFilename(file.getAbsolutePath());
 		}
 
@@ -95,7 +95,7 @@ public final class SharedMemoryProducer extends AbstractSharedMemoryComponent {
 			throw new IOException("Received unexpected value for acknowlegment");
 		}
 	}
-	
+
 	private void writeFilename(final String filename) throws IOException {
 
 		final byte[] lenBuf = new byte[4];

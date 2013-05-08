@@ -36,7 +36,10 @@ public final class WorkloadGenerator {
 
 		final Path path = new Path(basePath + Path.SEPARATOR + "exp");
 
-		final FileSystem fs = path.getFileSystem(new Configuration());
+		final Configuration conf = new Configuration();
+		ClusterConfigurator.addClusterConfiguration(conf);
+
+		final FileSystem fs = path.getFileSystem(conf);
 
 		fs.mkdirs(path);
 
