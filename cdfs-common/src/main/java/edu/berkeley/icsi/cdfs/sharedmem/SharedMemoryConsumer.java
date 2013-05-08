@@ -35,9 +35,6 @@ public final class SharedMemoryConsumer extends AbstractSharedMemoryComponent {
 
 		if (!this.bufferReady) {
 			final int bufferSize = readBufferSize();
-			if (bufferSize == -1) {
-				return null;
-			}
 			this.sharedMemoryBuffer.position(0);
 			this.sharedMemoryBuffer.limit(bufferSize);
 			this.bufferReady = true;

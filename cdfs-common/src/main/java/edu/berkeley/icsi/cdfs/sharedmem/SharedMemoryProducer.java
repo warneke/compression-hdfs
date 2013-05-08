@@ -45,7 +45,9 @@ public final class SharedMemoryProducer extends AbstractSharedMemoryComponent {
 
 	private static File getTmpFile() throws IOException {
 
-		final File tmpFile = File.createTempFile("cdfs_", "_pipe.dat");
+		final int rnd = (int) (Math.random() * 100000.0);
+
+		final File tmpFile = new File("/tmp/cdfs_" + rnd + "_pipe.dat");
 		tmpFile.deleteOnExit();
 
 		return tmpFile;

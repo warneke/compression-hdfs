@@ -1,6 +1,7 @@
 package edu.berkeley.icsi.cdfs.datanode;
 
 import java.io.Closeable;
+import java.io.EOFException;
 import java.io.IOException;
 import java.net.Socket;
 import java.nio.ByteBuffer;
@@ -84,8 +85,10 @@ final class WriteOp implements Closeable {
 		int readBytes = 0;
 		while (readBytes < blockSize) {
 
-			final ByteBuffer sharedBuffer = this.sharedMemoryConsumer.lockSharedMemory();
-			if (sharedBuffer == null) {
+			final ByteBuffer sharedBuffer;
+			try {
+				sharedBuffer = this.sharedMemoryConsumer.lockSharedMemory();
+			} catch (EOFException e) {
 				readEOF = true;
 				break;
 			}
