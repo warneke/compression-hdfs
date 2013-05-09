@@ -20,6 +20,7 @@ import edu.berkeley.icsi.cdfs.Header;
 import edu.berkeley.icsi.cdfs.cache.Buffer;
 import edu.berkeley.icsi.cdfs.cache.CompressedBufferCache;
 import edu.berkeley.icsi.cdfs.cache.UncompressedBufferCache;
+import edu.berkeley.icsi.cdfs.conf.ConfigConstants;
 import edu.berkeley.icsi.cdfs.protocols.DataNodeNameNodeProtocol;
 import edu.berkeley.icsi.cdfs.utils.PathWrapper;
 
@@ -83,7 +84,7 @@ final class Connection extends Thread {
 					final Path hdfsPath = CDFS.toHDFSPath(this.header.getPath(), "_" + blockIndex);
 
 					LOG.info("Writing block " + blockIndex + " to disk");
-					readEOF = writeOp.write(hdfsPath, 128 * 1024 * 1024);
+					readEOF = writeOp.write(hdfsPath, ConfigConstants.BLOCK_SIZE);
 
 					// Report block information to name node
 					synchronized (this.nameNode) {

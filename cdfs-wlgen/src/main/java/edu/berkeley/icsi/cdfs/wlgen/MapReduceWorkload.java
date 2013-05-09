@@ -9,6 +9,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
+import edu.berkeley.icsi.cdfs.conf.ConfigConstants;
+
 final class MapReduceWorkload {
 
 	private final Map<String, MapReduceJob> mapReduceJobs;
@@ -114,7 +116,7 @@ final class MapReduceWorkload {
 				}
 
 				// Adjust number of mappers if necessary
-				if (numberOfMapTasks > 1 && (sizeOfInputData < FileTracker.BLOCK_SIZE)) {
+				if (numberOfMapTasks > 1 && (sizeOfInputData < ConfigConstants.BLOCK_SIZE)) {
 					System.err.println("Adjusting number of mappers for job " + jobID + " from " + numberOfMapTasks
 						+ " to 1");
 					numberOfMapTasks = 1;

@@ -21,6 +21,7 @@ import com.esotericsoftware.kryo.io.Output;
 
 import edu.berkeley.icsi.cdfs.CDFS;
 import edu.berkeley.icsi.cdfs.CDFSBlockLocation;
+import edu.berkeley.icsi.cdfs.conf.ConfigConstants;
 
 final class MetaDataStore {
 
@@ -125,8 +126,8 @@ final class MetaDataStore {
 			return null;
 		}
 
-		final FileStatus fs = new FileStatus(fmd.getLength(), false, CDFS.BLOCK_REPLICATION, CDFS.BLOCK_SIZE,
-			fmd.getModificationTime(), fmd.getPath());
+		final FileStatus fs = new FileStatus(fmd.getLength(), false, ConfigConstants.BLOCK_REPLICATION,
+			ConfigConstants.BLOCK_SIZE, fmd.getModificationTime(), fmd.getPath());
 
 		return fs;
 	}
