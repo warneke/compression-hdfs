@@ -9,7 +9,7 @@ import edu.berkeley.icsi.cdfs.utils.PathWrapper;
 
 public interface ClientNameNodeProtocol extends CommonNameNodeProtocol {
 
-	boolean create(PathWrapper path) throws IOException;
+	boolean create(PathWrapper path, boolean overwrite) throws IOException;
 
 	boolean mkdirs(PathWrapper path, FsPermission permission) throws IOException;
 

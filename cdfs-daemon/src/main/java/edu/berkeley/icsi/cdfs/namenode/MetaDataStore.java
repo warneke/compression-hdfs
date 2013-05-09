@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 import org.apache.commons.logging.Log;
@@ -71,13 +72,34 @@ final class MetaDataStore {
 		output.close();
 	}
 
-	synchronized boolean create(final Path path) throws IOException {
+	synchronized boolean create(final Path path, final boolean overwrite) throws IOException {
 
-		if (this.metaData.containsKey(path.toUri().getPath())) {
-			return false;
+		final String key = path.toUri().getPath();
+
+		FileMetaData fmd;
+
+		if (overwrite) {
+			// Delete file if it already exists
+			fmd = this.metaData.remove(key);
+			if (fmd != null) {
+				synchronized (this.hdfs) {
+					final Iterator<BlockMetaData> it = fmd.getBlockIterator();
+					while (it.hasNext()) {
+						final BlockMetaData bmd = it.next();
+						this.hdfs.delete(bmd.getHdfsPath(), false);
+					}
+				}
+			}
+
+		} else {
+			// Return with error if file already exists
+			if (this.metaData.containsKey(key)) {
+				return false;
+			}
 		}
 
-		final FileMetaData fmd = new FileMetaData(path);
+		// Create new meta data
+		fmd = new FileMetaData(path);
 		this.metaData.put(path.toUri().getPath(), fmd);
 
 		// Save meta data changes

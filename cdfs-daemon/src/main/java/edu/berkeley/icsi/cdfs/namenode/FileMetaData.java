@@ -1,6 +1,7 @@
 package edu.berkeley.icsi.cdfs.namenode;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -139,5 +140,10 @@ final class FileMetaData implements KryoSerializable {
 		for (int i = 0; i < numberOfBlocks; ++i) {
 			this.blocks.add(kryo.readObject(input, BlockMetaData.class));
 		}
+	}
+
+	Iterator<BlockMetaData> getBlockIterator() {
+
+		return Collections.unmodifiableList(this.blocks).iterator();
 	}
 }

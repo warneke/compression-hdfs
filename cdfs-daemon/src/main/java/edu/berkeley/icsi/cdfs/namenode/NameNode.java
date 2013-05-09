@@ -86,9 +86,9 @@ public class NameNode implements ClientNameNodeProtocol, DataNodeNameNodeProtoco
 	 * {@inheritDoc}
 	 */
 	@Override
-	public boolean create(final PathWrapper path) throws IOException {
+	public boolean create(final PathWrapper path, final boolean overwrite) throws IOException {
 
-		return this.metaDataStore.create(path.getPath());
+		return this.metaDataStore.create(path.getPath(), overwrite);
 	}
 
 	/**

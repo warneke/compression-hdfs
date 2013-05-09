@@ -61,7 +61,7 @@ public class CDFS extends FileSystem {
 			throws IOException {
 
 		// Check if the file already exists
-		if (!this.nameNode.create(new PathWrapper(f))) {
+		if (!this.nameNode.create(new PathWrapper(f), overwrite)) {
 			throw new IOException("File " + f + " does already exist");
 		}
 
