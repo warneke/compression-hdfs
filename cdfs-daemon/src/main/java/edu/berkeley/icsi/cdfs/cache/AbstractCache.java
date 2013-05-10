@@ -12,66 +12,6 @@ abstract class AbstractCache {
 
 	private static final Log LOG = LogFactory.getLog(AbstractCache.class);
 
-	private static final class BlockKey {
-
-		private final String path;
-
-		private final int index;
-
-		private BlockKey(final Path path, final int index) {
-
-			this.path = path.toUri().getPath();
-			this.index = index;
-		}
-
-		/**
-		 * {@inheritDoc}
-		 */
-		@Override
-		public boolean equals(final Object obj) {
-
-			if (!(obj instanceof BlockKey)) {
-				return false;
-			}
-
-			final BlockKey bk = (BlockKey) obj;
-
-			if (!this.path.equals(bk.path)) {
-				return false;
-			}
-
-			if (this.index != bk.index) {
-				return false;
-			}
-
-			return true;
-		}
-
-		/**
-		 * {@inheritDoc}
-		 */
-		@Override
-		public int hashCode() {
-
-			return this.path.hashCode() + this.index;
-		}
-
-		/**
-		 * {@inheritDoc}
-		 */
-		@Override
-		public String toString() {
-
-			final StringBuilder sb = new StringBuilder(this.path);
-			sb.append(' ');
-			sb.append('(');
-			sb.append(this.index);
-			sb.append(')');
-
-			return sb.toString();
-		}
-	}
-
 	private static final class CacheEntry {
 
 		private final List<Buffer> cachedBuffers;
@@ -138,4 +78,9 @@ abstract class AbstractCache {
 	}
 
 	protected abstract String getName();
+
+	public void evict(final BlockKey blockKey) {
+
+		System.out.println("IMPLEMENT ME: evict");
+	}
 }

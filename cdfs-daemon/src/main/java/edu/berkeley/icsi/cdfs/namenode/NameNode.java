@@ -12,6 +12,7 @@ import org.apache.hadoop.ipc.RPC.Server;
 
 import edu.berkeley.icsi.cdfs.CDFS;
 import edu.berkeley.icsi.cdfs.CDFSBlockLocation;
+import edu.berkeley.icsi.cdfs.cache.EvictionList;
 import edu.berkeley.icsi.cdfs.protocols.ClientNameNodeProtocol;
 import edu.berkeley.icsi.cdfs.protocols.DataNodeNameNodeProtocol;
 import edu.berkeley.icsi.cdfs.utils.PathWrapper;
@@ -141,5 +142,14 @@ public class NameNode implements ClientNameNodeProtocol, DataNodeNameNodeProtoco
 			throws IOException {
 
 		this.metaDataStore.reportCompressedCachedBlock(cdfsPath.getPath(), blockIndex, host);
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public EvictionList getFilesToEvict(final String host) throws IOException {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

@@ -1,15 +1,18 @@
 package edu.berkeley.icsi.cdfs.cache;
 
+import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryPoolMXBean;
 import java.lang.management.MemoryType;
 import java.lang.management.MemoryUsage;
+import java.util.Iterator;
 import java.util.concurrent.ArrayBlockingQueue;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import edu.berkeley.icsi.cdfs.conf.ConfigConstants;
+import edu.berkeley.icsi.cdfs.protocols.DataNodeNameNodeProtocol;
 
 public final class BufferPool {
 
@@ -28,11 +31,18 @@ public final class BufferPool {
 	/**
 	 * The singleton instance of the buffer pool
 	 */
-	private static final BufferPool INSTANCE = new BufferPool();
+	private static BufferPool INSTANCE = null;
+
+	private final DataNodeNameNodeProtocol nameNode;
+
+	private final String host;
 
 	private final ArrayBlockingQueue<byte[]> buffers;
 
-	private BufferPool() {
+	private BufferPool(final DataNodeNameNodeProtocol nameNode, final String host) {
+
+		this.nameNode = nameNode;
+		this.host = host;
 
 		final long availableMemoryForBuffers = getSizeOfFreeMemory();
 		final int numberOfBuffers = (int) (availableMemoryForBuffers / ConfigConstants.BUFFER_SIZE);
@@ -95,14 +105,51 @@ public final class BufferPool {
 		return null;
 	}
 
-	public static BufferPool get() {
+	public static synchronized BufferPool get() {
+
+		if (INSTANCE == null) {
+			throw new IllegalStateException("Buffer pool has not been initialized");
+		}
 
 		return INSTANCE;
 	}
 
-	public byte[] lockBuffer() {
+	public static synchronized void initialize(final DataNodeNameNodeProtocol nameNode, final String host) {
 
-		return this.buffers.poll();
+		if (INSTANCE != null) {
+			throw new IllegalStateException("Buffer pool has already been initialized");
+		}
+
+		INSTANCE = new BufferPool(nameNode, host);
+	}
+
+	public byte[] lockBuffer() throws IOException {
+
+		byte[] buffer = this.buffers.poll();
+
+		while (buffer == null) {
+
+			// Do cache eviction
+			final EvictionList el;
+			synchronized (this.nameNode) {
+				el = this.nameNode.getFilesToEvict(this.host);
+			}
+
+			final Iterator<ExtendedBlockKey> it = el.iterator();
+			while (it.hasNext()) {
+
+				final ExtendedBlockKey blockKey = it.next();
+				if (blockKey.getCompressed()) {
+					CompressedBufferCache.get().evict(blockKey);
+				} else {
+					UncompressedBufferCache.get().evict(blockKey);
+				}
+			}
+
+			buffer = this.buffers.poll();
+		}
+
+		return buffer;
 	}
 
 	public void releaseBuffer(final byte[] buffer) {

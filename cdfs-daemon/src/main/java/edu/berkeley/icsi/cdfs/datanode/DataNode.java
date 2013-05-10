@@ -45,8 +45,8 @@ public class DataNode {
 		this.host = determineHostname();
 		LOG.info("Determined hostname of datanode: " + this.host);
 
-		// Force initialization of buffer pool at the beginning
-		BufferPool.get();
+		// Initialization of buffer pool at the beginning
+		BufferPool.initialize(this.nameNode, this.host);
 	}
 
 	private static String determineHostname() {
