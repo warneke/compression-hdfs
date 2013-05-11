@@ -33,7 +33,7 @@ public class DataNode {
 
 	public DataNode(final Configuration conf) throws IOException {
 
-		LOG.info("Starting CDFS datanode on port" + CDFS.DATANODE_DATA_PORT);
+		LOG.info("Starting CDFS datanode on port " + CDFS.DATANODE_DATA_PORT);
 
 		this.serverSocket = new ServerSocket(CDFS.DATANODE_DATA_PORT);
 		this.conf = conf;

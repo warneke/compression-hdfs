@@ -17,6 +17,14 @@ public class BlockKey {
 		this(path.toUri().getPath(), index);
 	}
 
+	public String getPath() {
+		return this.path;
+	}
+
+	public int getIndex() {
+		return this.index;
+	}
+
 	/**
 	 * {@inheritDoc}
 	 */

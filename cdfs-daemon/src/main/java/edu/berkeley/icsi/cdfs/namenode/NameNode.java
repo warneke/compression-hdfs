@@ -149,7 +149,7 @@ public class NameNode implements ClientNameNodeProtocol, DataNodeNameNodeProtoco
 	 */
 	@Override
 	public EvictionList getFilesToEvict(final String host) throws IOException {
-		// TODO Auto-generated method stub
-		return null;
+
+		return this.metaDataStore.getFilesToEvictLIFE(host);
 	}
 }

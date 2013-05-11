@@ -21,6 +21,7 @@ import com.esotericsoftware.kryo.io.Output;
 
 import edu.berkeley.icsi.cdfs.CDFS;
 import edu.berkeley.icsi.cdfs.CDFSBlockLocation;
+import edu.berkeley.icsi.cdfs.cache.EvictionList;
 import edu.berkeley.icsi.cdfs.conf.ConfigConstants;
 
 final class MetaDataStore {
@@ -196,5 +197,12 @@ final class MetaDataStore {
 	synchronized void reportCompressedCachedBlock(final Path path, final int blockIndex, final String host) {
 
 		reportCachedBlock(path, blockIndex, host, true);
+	}
+	
+	synchronized EvictionList getFilesToEvictLIFE(final String host) {
+		
+		System.out.println("EVICT");
+		
+		return new EvictionList();
 	}
 }
