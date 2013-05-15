@@ -29,6 +29,8 @@ final class WriteOp implements Closeable {
 
 	private static final Log LOG = LogFactory.getLog(WriteOp.class);
 
+	private static final int HDFS_BUFFER_SIZE = 4 * 1024;
+
 	private final FileSystem hdfs;
 
 	private final Configuration conf;
@@ -76,7 +78,8 @@ final class WriteOp implements Closeable {
 		}
 
 		// Open HDFS output stream
-		final FSDataOutputStream hdfsOutputStream = this.hdfs.create(hdfsPath, true);
+		final FSDataOutputStream hdfsOutputStream = this.hdfs.create(hdfsPath, true, HDFS_BUFFER_SIZE, (short) 1,
+			blockSize);
 
 		boolean readEOF = false;
 

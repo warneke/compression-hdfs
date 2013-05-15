@@ -21,7 +21,7 @@ import com.esotericsoftware.kryo.io.Output;
 
 import edu.berkeley.icsi.cdfs.CDFS;
 import edu.berkeley.icsi.cdfs.CDFSBlockLocation;
-import edu.berkeley.icsi.cdfs.cache.EvictionList;
+import edu.berkeley.icsi.cdfs.cache.EvictionEntry;
 import edu.berkeley.icsi.cdfs.conf.ConfigConstants;
 
 final class MetaDataStore {
@@ -33,6 +33,8 @@ final class MetaDataStore {
 	private final String storageLocation;
 
 	private final Map<String, FileMetaData> metaData = new HashMap<String, FileMetaData>();
+
+	private final Map<String, HostCacheData> hostCacheData = new HashMap<String, HostCacheData>();
 
 	private final Kryo kryo = new Kryo();
 
@@ -179,30 +181,62 @@ final class MetaDataStore {
 		return blockLocations;
 	}
 
-	private void reportCachedBlock(final Path path, final int blockIndex, final String host, final boolean compressed) {
+	synchronized void reportCachedBlock(final Path path, final int blockIndex, final boolean compressed,
+			final String host) {
 
 		final FileMetaData fmd = this.metaData.get(path.toUri().getPath());
 		if (fmd == null) {
 			throw new IllegalStateException("Cannot find meta data for " + path);
 		}
 
-		fmd.addCachedBlock(blockIndex, host, compressed);
+		final BlockMetaData bmd = fmd.addCachedBlock(blockIndex, host, compressed);
+
+		// Update host view
+		HostCacheData hcd = this.hostCacheData.get(host);
+		if (hcd == null) {
+			hcd = new HostCacheData();
+			this.hostCacheData.put(host, hcd);
+		}
+		hcd.add(fmd, bmd, compressed);
 	}
 
-	synchronized void reportUncompressedCachedBlock(final Path path, final int blockIndex, final String host) {
+	synchronized void confirmEviction(final Path path, final int blockIndex, final boolean compressed, final String host) {
 
-		reportCachedBlock(path, blockIndex, host, false);
+		final FileMetaData fmd = this.metaData.get(path.toUri().getPath());
+		if (fmd == null) {
+			throw new IllegalStateException("Cannot find meta data for " + path);
+		}
+
+		final BlockMetaData bmd = fmd.removeCachedBlock(blockIndex, host, compressed);
+		// Update host view
+		final HostCacheData hcd = this.hostCacheData.get(host);
+		if (hcd == null) {
+			throw new IllegalStateException("No cache data for host " + host);
+		}
+		hcd.remove(fmd, bmd, compressed);
 	}
 
-	synchronized void reportCompressedCachedBlock(final Path path, final int blockIndex, final String host) {
+	synchronized EvictionEntry getFileToEvictLIFE(final String host) {
 
-		reportCachedBlock(path, blockIndex, host, true);
-	}
-	
-	synchronized EvictionList getFilesToEvictLIFE(final String host) {
-		
-		System.out.println("EVICT");
-		
-		return new EvictionList();
+		final HostCacheData hcd = this.hostCacheData.get(host);
+		if (hcd == null) {
+			throw new IllegalStateException("Evict: No host cache data for host " + host);
+		}
+
+		EvictionEntry ee = hcd.getLargestUncompressedIncompleteFile();
+		if (ee == null) {
+			ee = hcd.getLargestCompressedIncompleteFile();
+		}
+		if (ee == null) {
+			ee = hcd.getLargestUncompressedCompleteFile();
+		}
+		if (ee == null) {
+			ee = hcd.getLargestCompressedCompleteFile();
+		}
+		if (ee == null) {
+			throw new IllegalStateException("No file to evict from host " + host);
+		}
+
+		return ee;
 	}
 }

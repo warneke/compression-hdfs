@@ -6,13 +6,16 @@ import java.lang.management.MemoryPoolMXBean;
 import java.lang.management.MemoryType;
 import java.lang.management.MemoryUsage;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.fs.Path;
 
 import edu.berkeley.icsi.cdfs.conf.ConfigConstants;
 import edu.berkeley.icsi.cdfs.protocols.DataNodeNameNodeProtocol;
+import edu.berkeley.icsi.cdfs.utils.PathWrapper;
 
 public final class BufferPool {
 
@@ -130,19 +133,36 @@ public final class BufferPool {
 		while (buffer == null) {
 
 			// Do cache eviction
-			final EvictionList el;
+			final EvictionEntry ee;
 			synchronized (this.nameNode) {
-				el = this.nameNode.getFilesToEvict(this.host);
+				ee = this.nameNode.getFileToEvict(this.host);
 			}
 
-			final Iterator<ExtendedBlockKey> it = el.iterator();
-			while (it.hasNext()) {
+			if (ee == null) {
+				continue;
+			}
 
-				final ExtendedBlockKey blockKey = it.next();
-				if (blockKey.getCompressed()) {
-					CompressedBufferCache.get().evict(blockKey);
-				} else {
-					UncompressedBufferCache.get().evict(blockKey);
+			final PathWrapper pw = ee.getPathWrapper();
+			final Path path = pw.getPath();
+
+			final AbstractCache cache;
+			if (ee.isCompressed()) {
+				cache = CompressedBufferCache.get();
+			} else {
+				cache = UncompressedBufferCache.get();
+			}
+
+			final int numberOfBlocks = ee.getNumberOfBlocks();
+			for (int i = 0; i < numberOfBlocks; ++i) {
+				final List<Buffer> evictedBuffers = cache.evict(path, i);
+				if (evictedBuffers != null) {
+					final Iterator<Buffer> it = evictedBuffers.iterator();
+					while (it.hasNext()) {
+						this.buffers.add(it.next().getData());
+					}
+					synchronized (this.nameNode) {
+						this.nameNode.confirmEviction(pw, i, ee.isCompressed(), this.host);
+					}
 				}
 			}
 

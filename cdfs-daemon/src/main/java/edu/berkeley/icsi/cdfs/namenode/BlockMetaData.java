@@ -104,6 +104,15 @@ final class BlockMetaData implements KryoSerializable {
 		}
 	}
 
+	boolean isCached(final boolean compressed) {
+
+		if (compressed) {
+			return !this.cachedCompressed.isEmpty();
+		} else {
+			return !this.cachedUncompressed.isEmpty();
+		}
+	}
+
 	/**
 	 * {@inheritDoc}
 	 */

@@ -12,6 +12,65 @@ abstract class AbstractCache {
 
 	private static final Log LOG = LogFactory.getLog(AbstractCache.class);
 
+	private static final class BlockKey {
+
+		private final Path path;
+
+		private final int index;
+
+		private BlockKey(final Path path, final int index) {
+			this.path = path;
+			this.index = index;
+		}
+
+		/**
+		 * {@inheritDoc}
+		 */
+		@Override
+		public boolean equals(final Object obj) {
+
+			if (!(obj instanceof BlockKey)) {
+				return false;
+			}
+
+			final BlockKey bk = (BlockKey) obj;
+
+			if (!this.path.equals(bk.path)) {
+				return false;
+			}
+
+			if (this.index != bk.index) {
+				return false;
+			}
+
+			return true;
+		}
+
+		/**
+		 * {@inheritDoc}
+		 */
+		@Override
+		public int hashCode() {
+
+			return this.path.hashCode() + this.index;
+		}
+
+		/**
+		 * {@inheritDoc}
+		 */
+		@Override
+		public String toString() {
+
+			final StringBuilder sb = new StringBuilder(this.path.toUri().toString());
+			sb.append(' ');
+			sb.append('(');
+			sb.append(this.index);
+			sb.append(')');
+
+			return sb.toString();
+		}
+	}
+
 	private static final class CacheEntry {
 
 		private final List<Buffer> cachedBuffers;
@@ -79,8 +138,25 @@ abstract class AbstractCache {
 
 	protected abstract String getName();
 
-	public void evict(final BlockKey blockKey) {
+	public List<Buffer> evict(final Path path, final int blockIndex) {
 
-		System.out.println("IMPLEMENT ME: evict");
+		final BlockKey bk = new BlockKey(path, blockIndex);
+
+		final CacheEntry ce;
+		synchronized (this) {
+
+			ce = this.cache.get(bk);
+			if (ce == null) {
+				return null;
+			}
+
+			if (ce.lockCounter > 0) {
+				return null;
+			}
+
+			this.cache.remove(bk);
+
+			return ce.cachedBuffers;
+		}
 	}
 }

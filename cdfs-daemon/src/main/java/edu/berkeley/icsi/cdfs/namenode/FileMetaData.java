@@ -12,7 +12,7 @@ import com.esotericsoftware.kryo.KryoSerializable;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 
-final class FileMetaData implements KryoSerializable {
+final class FileMetaData implements KryoSerializable, Comparable<FileMetaData> {
 
 	private Path path;
 
@@ -65,6 +65,11 @@ final class FileMetaData implements KryoSerializable {
 		return blocks.toArray(new BlockMetaData[0]);
 	}
 
+	int getNumberOfBlocks() {
+
+		return this.blocks.size();
+	}
+
 	private static boolean overlap(final long startA, final long endA, final long startB, final long endB) {
 
 		if (startA == endA) {
@@ -102,14 +107,45 @@ final class FileMetaData implements KryoSerializable {
 		return this.modificationTime;
 	}
 
-	void addCachedBlock(final int blockIndex, final String host, final boolean compressed) {
+	BlockMetaData addCachedBlock(final int blockIndex, final String host, final boolean compressed) {
 
-		this.blocks.get(blockIndex).addCachedBlock(host, compressed);
+		final BlockMetaData bmd = this.blocks.get(blockIndex);
+
+		if (bmd == null) {
+			throw new IllegalStateException("Cannot find block meta data for block " + blockIndex + " of " + this.path);
+		}
+
+		bmd.addCachedBlock(host, compressed);
+
+		return bmd;
 	}
 
-	void removeCachedBlock(final int blockIndex, final String host, final boolean compressed) {
+	boolean isCachedCompletely(final boolean compressed) {
 
-		this.blocks.get(blockIndex).removeCachedBlock(host, compressed);
+		final Iterator<BlockMetaData> it = this.blocks.iterator();
+
+		while (it.hasNext()) {
+
+			final BlockMetaData bmd = it.next();
+			if (!bmd.isCached(compressed)) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	BlockMetaData removeCachedBlock(final int blockIndex, final String host, final boolean compressed) {
+
+		final BlockMetaData bmd = this.blocks.get(blockIndex);
+
+		if (bmd == null) {
+			throw new IllegalStateException("Cannot find block meta data for block " + blockIndex + " of " + this.path);
+		}
+
+		bmd.removeCachedBlock(host, compressed);
+
+		return bmd;
 	}
 
 	/**
@@ -145,5 +181,23 @@ final class FileMetaData implements KryoSerializable {
 	Iterator<BlockMetaData> getBlockIterator() {
 
 		return Collections.unmodifiableList(this.blocks).iterator();
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public int compareTo(final FileMetaData o) {
+
+		final long diff = this.length - o.length;
+		if (diff < (long) Integer.MIN_VALUE) {
+			return Integer.MIN_VALUE;
+		}
+
+		if (diff > (long) Integer.MAX_VALUE) {
+			return Integer.MAX_VALUE;
+		}
+
+		return (int) diff;
 	}
 }

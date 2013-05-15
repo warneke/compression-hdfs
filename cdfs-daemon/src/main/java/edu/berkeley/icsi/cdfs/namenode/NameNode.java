@@ -12,7 +12,7 @@ import org.apache.hadoop.ipc.RPC.Server;
 
 import edu.berkeley.icsi.cdfs.CDFS;
 import edu.berkeley.icsi.cdfs.CDFSBlockLocation;
-import edu.berkeley.icsi.cdfs.cache.EvictionList;
+import edu.berkeley.icsi.cdfs.cache.EvictionEntry;
 import edu.berkeley.icsi.cdfs.protocols.ClientNameNodeProtocol;
 import edu.berkeley.icsi.cdfs.protocols.DataNodeNameNodeProtocol;
 import edu.berkeley.icsi.cdfs.utils.PathWrapper;
@@ -128,28 +128,28 @@ public class NameNode implements ClientNameNodeProtocol, DataNodeNameNodeProtoco
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void reportUncompressedCachedBlock(final PathWrapper cdfsPath, final int blockIndex, final String host)
-			throws IOException {
+	public void reportCachedBlock(final PathWrapper cdfsPath, final int blockIndex, final boolean compressed,
+			final String host) throws IOException {
 
-		this.metaDataStore.reportUncompressedCachedBlock(cdfsPath.getPath(), blockIndex, host);
+		this.metaDataStore.reportCachedBlock(cdfsPath.getPath(), blockIndex, compressed, host);
 	}
 
 	/**
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void reportCompressedCachedBlock(final PathWrapper cdfsPath, final int blockIndex, final String host)
-			throws IOException {
+	public EvictionEntry getFileToEvict(final String host) throws IOException {
 
-		this.metaDataStore.reportCompressedCachedBlock(cdfsPath.getPath(), blockIndex, host);
+		return this.metaDataStore.getFileToEvictLIFE(host);
 	}
 
 	/**
 	 * {@inheritDoc}
 	 */
 	@Override
-	public EvictionList getFilesToEvict(final String host) throws IOException {
+	public void confirmEviction(final PathWrapper cdfsPath, final int blockIndex, final boolean compressed,
+			final String host) throws IOException {
 
-		return this.metaDataStore.getFilesToEvictLIFE(host);
+		this.metaDataStore.confirmEviction(cdfsPath.getPath(), blockIndex, compressed, host);
 	}
 }

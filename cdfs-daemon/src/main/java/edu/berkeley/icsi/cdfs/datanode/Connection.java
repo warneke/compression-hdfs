@@ -97,7 +97,7 @@ final class Connection extends Thread {
 					if (!uncompressedBuffers.isEmpty()) {
 						UncompressedBufferCache.get().addCachedBlock(header.getPath(), blockIndex, uncompressedBuffers);
 						synchronized (this.nameNode) {
-							this.nameNode.reportUncompressedCachedBlock(cdfsPath, blockIndex, this.host);
+							this.nameNode.reportCachedBlock(cdfsPath, blockIndex, false, this.host);
 						}
 					}
 
@@ -105,7 +105,7 @@ final class Connection extends Thread {
 					if (!compressedBuffers.isEmpty()) {
 						CompressedBufferCache.get().addCachedBlock(header.getPath(), blockIndex, compressedBuffers);
 						synchronized (this.nameNode) {
-							this.nameNode.reportCompressedCachedBlock(cdfsPath, blockIndex, this.host);
+							this.nameNode.reportCachedBlock(cdfsPath, blockIndex, true, this.host);
 						}
 					}
 
@@ -176,7 +176,7 @@ final class Connection extends Thread {
 							UncompressedBufferCache.get().addCachedBlock(this.header.getPath(), blockIndex,
 								uncompressedBuffers);
 							synchronized (this.nameNode) {
-								this.nameNode.reportUncompressedCachedBlock(cdfsPath, blockIndex, this.host);
+								this.nameNode.reportCachedBlock(cdfsPath, blockIndex, false, this.host);
 							}
 						}
 
@@ -204,7 +204,7 @@ final class Connection extends Thread {
 						UncompressedBufferCache.get().addCachedBlock(this.header.getPath(), blockIndex,
 							uncompressedBuffers);
 						synchronized (this.nameNode) {
-							this.nameNode.reportUncompressedCachedBlock(cdfsPath, blockIndex, this.host);
+							this.nameNode.reportCachedBlock(cdfsPath, blockIndex, false, this.host);
 						}
 					}
 
@@ -213,7 +213,7 @@ final class Connection extends Thread {
 						CompressedBufferCache.get()
 							.addCachedBlock(this.header.getPath(), blockIndex, compressedBuffers);
 						synchronized (this.nameNode) {
-							this.nameNode.reportCompressedCachedBlock(cdfsPath, blockIndex, this.host);
+							this.nameNode.reportCachedBlock(cdfsPath, blockIndex, true, this.host);
 						}
 					}
 
