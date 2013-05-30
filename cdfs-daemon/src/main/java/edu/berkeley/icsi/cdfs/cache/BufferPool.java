@@ -145,6 +145,10 @@ public final class BufferPool {
 			final PathWrapper pw = ee.getPathWrapper();
 			final Path path = pw.getPath();
 
+			if (LOG.isInfoEnabled()) {
+				LOG.info("Evicting " + path + " (" + (ee.isCompressed() ? "compressed" : "uncompressed") + ")");
+			}
+
 			final AbstractCache cache;
 			if (ee.isCompressed()) {
 				cache = CompressedBufferCache.get();

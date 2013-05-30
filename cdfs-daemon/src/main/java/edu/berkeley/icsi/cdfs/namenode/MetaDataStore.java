@@ -224,19 +224,29 @@ final class MetaDataStore {
 		}
 
 		EvictionEntry ee = hcd.getLargestUncompressedIncompleteFile();
-		if (ee == null) {
-			ee = hcd.getLargestCompressedIncompleteFile();
-		}
-		if (ee == null) {
-			ee = hcd.getLargestUncompressedCompleteFile();
-		}
-		if (ee == null) {
-			ee = hcd.getLargestCompressedCompleteFile();
-		}
-		if (ee == null) {
-			throw new IllegalStateException("No file to evict from host " + host);
+		if (ee != null) {
+			LOG.info("Chose to evict " + ee.getPathWrapper().getPath() + " (uncompressed, incomplete)");
+			return ee;
 		}
 
-		return ee;
+		ee = hcd.getLargestCompressedIncompleteFile();
+		if (ee != null) {
+			LOG.info("Chose to evict " + ee.getPathWrapper().getPath() + " (compressed, incomplete)");
+			return ee;
+		}
+
+		ee = hcd.getLargestUncompressedCompleteFile();
+		if (ee != null) {
+			LOG.info("Chose to evict " + ee.getPathWrapper().getPath() + " (uncompressed, complete)");
+			return ee;
+		}
+
+		ee = hcd.getLargestCompressedCompleteFile();
+		if (ee != null) {
+			LOG.info("Chose to evict " + ee.getPathWrapper().getPath() + " (compressed, complete)");
+			return ee;
+		}
+
+		throw new IllegalStateException("No file to evict from host " + host);
 	}
 }
