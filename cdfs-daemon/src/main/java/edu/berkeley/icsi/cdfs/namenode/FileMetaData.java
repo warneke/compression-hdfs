@@ -189,7 +189,7 @@ final class FileMetaData implements KryoSerializable, Comparable<FileMetaData> {
 	@Override
 	public int compareTo(final FileMetaData o) {
 
-		final long diff = this.length - o.length;
+		final long diff = o.length - this.length;
 		if (diff < (long) Integer.MIN_VALUE) {
 			return Integer.MIN_VALUE;
 		}
