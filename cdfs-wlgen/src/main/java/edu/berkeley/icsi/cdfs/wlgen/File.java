@@ -18,6 +18,16 @@ public final class File {
 
 	File(final long uncompressedFileSize, final int compressionFactor) {
 
+		if (uncompressedFileSize <= 0L) {
+			throw new IllegalArgumentException("Argument uncompressedFileSize must be larger than 0 but is "
+				+ uncompressedFileSize);
+		}
+
+		if (compressionFactor <= 0) {
+			throw new IllegalArgumentException("Argument compressionFactor must be larger than 0 but is "
+				+ compressionFactor);
+		}
+
 		this.name = "file_" + uncompressedFileSize;
 		this.uncompressedFileSize = uncompressedFileSize;
 		this.compressionFactor = compressionFactor;

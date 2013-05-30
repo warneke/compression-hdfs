@@ -21,6 +21,8 @@ public final class Statistics {
 
 	public static void showUsageHistogram(final Collection<File> files) {
 
+		System.out.println("Total number of files: " + files.size());
+
 		final Map<Integer, HistogramEntry> histogram = new TreeMap<Integer, HistogramEntry>();
 		final Iterator<File> it = files.iterator();
 		long totalAmountOfGeneratedData = 0L;
@@ -44,17 +46,18 @@ public final class Statistics {
 			totalAmountOfReadData += (file.getUncompressedFileSize() * file.getNumberOfInputUsages());
 		}
 
+		System.out.println("#reads|#files|dgen(GB)|dgen(%)|dread(GB)|dread(%)|");
 		final Iterator<Map.Entry<Integer, HistogramEntry>> it2 = histogram.entrySet().iterator();
 		while (it2.hasNext()) {
 
 			final Map.Entry<Integer, HistogramEntry> entry = it2.next();
 			final HistogramEntry he = entry.getValue();
-			final float generatedAmountInGB = (float) ((double) he.totalAmountOfData / TO_GB);
-			final float percentGeneratedData = (float) he.totalAmountOfData / (float) totalAmountOfGeneratedData
-				* 100.0f;
-			final float readAmountInGB = (float) ((double) he.totalAmountOfData * entry.getKey().intValue() / TO_GB);
-			final float percentReadData = (float) he.totalAmountOfData * entry.getKey().intValue()
-				/ (float) totalAmountOfReadData * 100.0f;
+			final double generatedAmountInGB = (double) he.totalAmountOfData / TO_GB;
+			final double percentGeneratedData = (double) he.totalAmountOfData / (double) totalAmountOfGeneratedData
+				* 100.0;
+			final double readAmountInGB = (double) he.totalAmountOfData * entry.getKey().intValue() / TO_GB;
+			final double percentReadData = (double) he.totalAmountOfData * (double) entry.getKey().intValue()
+				/ (double) totalAmountOfReadData * 100.0;
 			printLine(entry.getKey().intValue(), he.numberOfFiles, generatedAmountInGB, percentGeneratedData,
 				readAmountInGB, percentReadData);
 
@@ -67,23 +70,23 @@ public final class Statistics {
 	}
 
 	private static void printLine(final int numberOfInputUsages, final int numberOfIndividualFiles,
-			final float amountOfGeneratedDataInGB, final float percentGeneratedData, final float amountOfReadDataInGB,
-			final float percentReadData) {
+			final double amountOfGeneratedDataInGB, final double percentGeneratedData,
+			final double amountOfReadDataInGB, final double percentReadData) {
 
 		final StringBuffer sb = new StringBuffer();
 
-		sb.append(padString(Integer.toString(numberOfInputUsages), 5));
+		sb.append(padString(Integer.toString(numberOfInputUsages), 6));
 		sb.append('|');
-		sb.append(padString(Integer.toString(numberOfIndividualFiles), 5));
+		sb.append(padString(Integer.toString(numberOfIndividualFiles), 6));
 		sb.append('|');
-		sb.append(padString(String.format("%.2f", amountOfGeneratedDataInGB), 9));
+		sb.append(padString(String.format("%.2f", amountOfGeneratedDataInGB), 8));
 		sb.append('|');
-		sb.append(padString(String.format("%.1f", percentGeneratedData), 5));
+		sb.append(padString(String.format("%.1f", percentGeneratedData), 6));
 		sb.append('%');
 		sb.append('|');
 		sb.append(padString(String.format("%.2f", amountOfReadDataInGB), 9));
 		sb.append('|');
-		sb.append(padString(String.format("%.1f", percentReadData), 5));
+		sb.append(padString(String.format("%.1f", percentReadData), 7));
 		sb.append('%');
 		sb.append('|');
 

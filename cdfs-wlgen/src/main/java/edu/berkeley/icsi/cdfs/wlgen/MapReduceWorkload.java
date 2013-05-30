@@ -13,6 +13,8 @@ import edu.berkeley.icsi.cdfs.conf.ConfigConstants;
 
 final class MapReduceWorkload {
 
+	public static final long FILE_GRANULARITY = 16384L; // 16 KB
+
 	private final Map<String, MapReduceJob> mapReduceJobs;
 
 	private final Set<File> inputFiles;
@@ -48,7 +50,7 @@ final class MapReduceWorkload {
 
 				final String jobID = fields[0];
 
-				int numberOfMapTasks;
+				final int numberOfMapTasks;
 				try {
 					numberOfMapTasks = Integer.parseInt(fields[1]);
 				} catch (NumberFormatException nfe) {
@@ -60,7 +62,7 @@ final class MapReduceWorkload {
 					continue;
 				}
 
-				int numberOfReduceTasks;
+				final int numberOfReduceTasks;
 				try {
 					numberOfReduceTasks = Integer.parseInt(fields[2]);
 				} catch (NumberFormatException nfe) {
@@ -72,7 +74,7 @@ final class MapReduceWorkload {
 					continue;
 				}
 
-				long sizeOfInputData;
+				final long sizeOfInputData;
 				try {
 					sizeOfInputData = fromGB(Double.parseDouble(fields[3]));
 				} catch (NumberFormatException nfe) {
@@ -80,8 +82,8 @@ final class MapReduceWorkload {
 					continue;
 				}
 
-				if (sizeOfInputData < 0L) {
-					System.err.println("Skipping trace with negative input file size " + fields[3]);
+				if (sizeOfInputData <= FILE_GRANULARITY) {
+					System.err.println("Skipping trace with non-positive input file size " + fields[3]);
 					continue;
 				}
 
@@ -89,7 +91,7 @@ final class MapReduceWorkload {
 					continue;
 				}
 
-				long sizeOfIntermediateData;
+				final long sizeOfIntermediateData;
 				try {
 					sizeOfIntermediateData = fromGB(Double.parseDouble(fields[4]));
 				} catch (NumberFormatException nfe) {
@@ -97,12 +99,12 @@ final class MapReduceWorkload {
 					continue;
 				}
 
-				if (sizeOfIntermediateData < 0L) {
-					System.err.println("Skipping trace with negative intermediate file size " + fields[4]);
+				if (sizeOfIntermediateData <= FILE_GRANULARITY) {
+					System.err.println("Skipping trace with non-positive intermediate file size " + fields[4]);
 					continue;
 				}
 
-				long sizeOfOutputData;
+				final long sizeOfOutputData;
 				try {
 					sizeOfOutputData = fromGB(Double.parseDouble(fields[5]));
 				} catch (NumberFormatException nfe) {
@@ -110,23 +112,23 @@ final class MapReduceWorkload {
 					continue;
 				}
 
-				if (sizeOfOutputData < 0L) {
-					System.err.println("Skipping trace with negative output file size " + fields[5]);
+				if (sizeOfOutputData <= FILE_GRANULARITY) {
+					System.err.println("Skipping trace with non-positive output file size " + fields[5]);
 					continue;
 				}
 
-				// Adjust number of mappers if necessary
+				// Check if number of mappers makes sense
 				if (numberOfMapTasks > 1 && (sizeOfInputData < ConfigConstants.BLOCK_SIZE)) {
-					System.err.println("Adjusting number of mappers for job " + jobID + " from " + numberOfMapTasks
-						+ " to 1");
-					numberOfMapTasks = 1;
+					System.err.println("Skipping job " + jobID + " because it specifies " + numberOfMapTasks
+						+ " mappers and an input size of " + (sizeOfInputData / 1024L) + " KB");
+					continue;
 				}
 
 				// Adjust number of reducers if necessary
 				if (numberOfMapTasks < numberOfReduceTasks) {
-					System.err.println("Adjusting number of reducers for job " + jobID + " from " + numberOfReduceTasks
-						+ " to " + numberOfMapTasks);
-					numberOfReduceTasks = numberOfMapTasks;
+					System.err.println("Skipping job " + jobID + " because it specifies only " + numberOfMapTasks
+						+ " mappers but " + numberOfReduceTasks + " reducers");
+					continue;
 				}
 
 				// Find input file
