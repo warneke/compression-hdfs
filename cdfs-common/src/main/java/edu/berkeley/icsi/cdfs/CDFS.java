@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
-import java.net.URISyntaxException;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.BlockLocation;
@@ -22,10 +21,6 @@ import edu.berkeley.icsi.cdfs.protocols.ClientNameNodeProtocol;
 import edu.berkeley.icsi.cdfs.utils.PathWrapper;
 
 public class CDFS extends FileSystem {
-
-	public static final int HDFS_NAMENODE_PORT = 9000;
-
-	public static final int NAMENODE_RPC_PORT = 10000;
 
 	public static final int DATANODE_RPC_PORT = 10001;
 
@@ -131,7 +126,7 @@ public class CDFS extends FileSystem {
 		this.workingDir = getHomeDirectory();
 
 		this.nameNode = (ClientNameNodeProtocol) RPC.getProxy(ClientNameNodeProtocol.class, 1, new InetSocketAddress(
-			"localhost", CDFS.NAMENODE_RPC_PORT), new Configuration());
+			host, uri.getPort()), conf);
 	}
 
 	/**
@@ -185,22 +180,6 @@ public class CDFS extends FileSystem {
 	public void setWorkingDirectory(Path arg0) {
 		// TODO Auto-generated method stub
 		System.out.println("setWorkingDirectory");
-	}
-
-	public static Path toHDFSPath(final Path cdfsPath, final String suffix) {
-
-		final URI cdfsURI = cdfsPath.toUri();
-
-		URI uri;
-		try {
-			uri = new URI("hdfs", cdfsURI.getUserInfo(), cdfsURI.getHost(), HDFS_NAMENODE_PORT, cdfsURI.getPath()
-				+ suffix, cdfsURI.getQuery(), cdfsURI.getFragment());
-		} catch (URISyntaxException e) {
-			throw new RuntimeException(e);
-		}
-
-		return new Path(uri);
-
 	}
 
 	/**

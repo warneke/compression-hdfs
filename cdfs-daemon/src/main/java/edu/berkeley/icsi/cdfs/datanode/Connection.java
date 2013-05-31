@@ -13,7 +13,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
-import edu.berkeley.icsi.cdfs.CDFS;
 import edu.berkeley.icsi.cdfs.CDFSBlockLocation;
 import edu.berkeley.icsi.cdfs.ConnectionMode;
 import edu.berkeley.icsi.cdfs.Header;
@@ -22,6 +21,7 @@ import edu.berkeley.icsi.cdfs.cache.CompressedBufferCache;
 import edu.berkeley.icsi.cdfs.cache.UncompressedBufferCache;
 import edu.berkeley.icsi.cdfs.conf.ConfigConstants;
 import edu.berkeley.icsi.cdfs.protocols.DataNodeNameNodeProtocol;
+import edu.berkeley.icsi.cdfs.utils.PathConverter;
 import edu.berkeley.icsi.cdfs.utils.PathWrapper;
 
 final class Connection extends Thread {
@@ -38,8 +38,10 @@ final class Connection extends Thread {
 
 	private final String host;
 
+	private final PathConverter pathConverter;
+
 	Connection(final Socket socket, final Header header, final DataNodeNameNodeProtocol nameNode,
-			final Configuration conf, final String host) {
+			final Configuration conf, final String host, final PathConverter pathConverter) {
 		super("DataNodeConnection from " + socket.getRemoteSocketAddress());
 
 		this.socket = socket;
@@ -47,6 +49,7 @@ final class Connection extends Thread {
 		this.nameNode = nameNode;
 		this.conf = conf;
 		this.host = host;
+		this.pathConverter = pathConverter;
 		start();
 	}
 
@@ -72,7 +75,7 @@ final class Connection extends Thread {
 
 				// We are about to write to HDFS, prepare file system
 				if (hdfs == null) {
-					hdfs = CDFS.toHDFSPath(this.header.getPath(), "_0").getFileSystem(this.conf);
+					hdfs = this.pathConverter.convert(this.header.getPath(), "_0").getFileSystem(this.conf);
 				}
 
 				int blockIndex = 0;
@@ -81,7 +84,7 @@ final class Connection extends Thread {
 				final WriteOp writeOp = new WriteOp(this.socket, hdfs, this.conf);
 				operation = writeOp;
 				while (!readEOF) {
-					final Path hdfsPath = CDFS.toHDFSPath(this.header.getPath(), "_" + blockIndex);
+					final Path hdfsPath = this.pathConverter.convert(this.header.getPath(), "_" + blockIndex);
 
 					LOG.info("Writing block " + blockIndex + " to disk");
 					readEOF = writeOp.write(hdfsPath, ConfigConstants.BLOCK_SIZE);
@@ -185,7 +188,7 @@ final class Connection extends Thread {
 					}
 
 					// We don't have the block cached, need to get it from HDFS
-					final Path hdfsPath = CDFS.toHDFSPath(this.header.getPath(), "_" + blockIndex);
+					final Path hdfsPath = this.pathConverter.convert(this.header.getPath(), "_" + blockIndex);
 					if (hdfs == null) {
 						// Create a file system object to ensure proper clean up
 						hdfs = hdfsPath.getFileSystem(this.conf);

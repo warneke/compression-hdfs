@@ -5,6 +5,8 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 
 import org.apache.commons.configuration.ConfigurationException;
@@ -16,14 +18,18 @@ import org.apache.hadoop.ipc.RPC;
 import edu.berkeley.icsi.cdfs.CDFS;
 import edu.berkeley.icsi.cdfs.Header;
 import edu.berkeley.icsi.cdfs.cache.BufferPool;
+import edu.berkeley.icsi.cdfs.conf.ConfigConstants;
 import edu.berkeley.icsi.cdfs.protocols.DataNodeNameNodeProtocol;
 import edu.berkeley.icsi.cdfs.utils.ConfigUtils;
+import edu.berkeley.icsi.cdfs.utils.PathConverter;
 
 public class DataNode {
 
 	private static final Log LOG = LogFactory.getLog(DataNode.class);
 
 	private final ServerSocket serverSocket;
+
+	private final PathConverter pathConverter;
 
 	private final DataNodeNameNodeProtocol nameNode;
 
@@ -38,9 +44,30 @@ public class DataNode {
 		this.serverSocket = new ServerSocket(CDFS.DATANODE_DATA_PORT);
 		this.conf = conf;
 
-		this.nameNode = (DataNodeNameNodeProtocol) RPC.getProxy(
-			DataNodeNameNodeProtocol.class, 1, new InetSocketAddress(
-				"localhost", CDFS.NAMENODE_RPC_PORT), this.conf);
+		// Read HDFS default path from configuration
+		final String hdfsString = conf.get(ConfigConstants.HDFS_DEFAULT_NAME_KEY,
+			ConfigConstants.DEFEAULT_HDFS_DEFAULT_NAME);
+		final URI hdfsURI;
+		try {
+			hdfsURI = new URI(hdfsString);
+		} catch (URISyntaxException e) {
+			throw new RuntimeException(e);
+		}
+
+		// Read CDFS default path from configuration
+		final String cdfsString = conf.get(ConfigConstants.CDFS_DEFAULT_NAME_KEY,
+			ConfigConstants.DEFEAULT_CDFS_DEFAULT_NAME);
+		URI cdfsURI;
+		try {
+			cdfsURI = new URI(cdfsString);
+		} catch (URISyntaxException e) {
+			throw new RuntimeException(e);
+		}
+
+		this.pathConverter = new PathConverter(hdfsURI);
+
+		this.nameNode = (DataNodeNameNodeProtocol) RPC.getProxy(DataNodeNameNodeProtocol.class, 1,
+			new InetSocketAddress(cdfsURI.getHost(), cdfsURI.getPort()), this.conf);
 
 		this.host = determineHostname();
 		LOG.info("Determined hostname of datanode: " + this.host);
@@ -70,7 +97,7 @@ public class DataNode {
 
 			final Header header = Header.fromInputStream(socket.getInputStream());
 
-			new Connection(socket, header, this.nameNode, this.conf, this.host);
+			new Connection(socket, header, this.nameNode, this.conf, this.host, this.pathConverter);
 		}
 	}
 

@@ -32,7 +32,7 @@ case $STARTSTOP in
 		fi
 
 		echo Starting CDFS namenode on host $HOSTNAME
-		$JAVA_HOME/bin/java $JVM_ARGS -classpath $CLASSPATH edu.berkeley.icsi.cdfs.namenode.NameNode > "$out" 2>&1 < /dev/null &
+		$JAVA_HOME/bin/java $JVM_ARGS -classpath $CLASSPATH edu.berkeley.icsi.cdfs.namenode.NameNode -confDir $CDFS_CONF_DIR > "$out" 2>&1 < /dev/null &
 		echo $! > $pid
 	;;
 

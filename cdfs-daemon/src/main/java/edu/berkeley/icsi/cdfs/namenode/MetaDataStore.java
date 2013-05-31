@@ -23,12 +23,15 @@ import edu.berkeley.icsi.cdfs.CDFS;
 import edu.berkeley.icsi.cdfs.CDFSBlockLocation;
 import edu.berkeley.icsi.cdfs.cache.EvictionEntry;
 import edu.berkeley.icsi.cdfs.conf.ConfigConstants;
+import edu.berkeley.icsi.cdfs.utils.PathConverter;
 
 final class MetaDataStore {
 
 	private static final Log LOG = LogFactory.getLog(MetaDataStore.class);
 
 	private final FileSystem hdfs;
+
+	private final PathConverter pathConverter;
 
 	private final String storageLocation;
 
@@ -38,9 +41,10 @@ final class MetaDataStore {
 
 	private final Kryo kryo = new Kryo();
 
-	public MetaDataStore(final FileSystem hdfs) throws IOException {
+	public MetaDataStore(final FileSystem hdfs, final PathConverter pathConverter) throws IOException {
 
 		this.hdfs = hdfs;
+		this.pathConverter = pathConverter;
 
 		String userName = System.getProperty("user.name");
 		if (userName == null) {
@@ -154,7 +158,7 @@ final class MetaDataStore {
 		final CDFSBlockLocation[] blockLocations = new CDFSBlockLocation[blocks.length];
 		for (int i = 0; i < blocks.length; ++i) {
 
-			final Path hdfsPath = CDFS.toHDFSPath(path, "_" + blocks[i].getIndex());
+			final Path hdfsPath = this.pathConverter.convert(path, "_" + blocks[i].getIndex());
 			BlockLocation[] hdfsBlockLocations;
 			synchronized (this.hdfs) {
 				final FileStatus fileStatus = this.hdfs.getFileStatus(hdfsPath);

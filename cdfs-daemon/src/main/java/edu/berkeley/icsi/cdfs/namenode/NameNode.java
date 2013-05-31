@@ -1,7 +1,12 @@
 package edu.berkeley.icsi.cdfs.namenode;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 
+import org.apache.commons.configuration.ConfigurationException;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -10,14 +15,20 @@ import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.ipc.RPC.Server;
 
-import edu.berkeley.icsi.cdfs.CDFS;
 import edu.berkeley.icsi.cdfs.CDFSBlockLocation;
 import edu.berkeley.icsi.cdfs.cache.EvictionEntry;
+import edu.berkeley.icsi.cdfs.conf.ConfigConstants;
 import edu.berkeley.icsi.cdfs.protocols.ClientNameNodeProtocol;
 import edu.berkeley.icsi.cdfs.protocols.DataNodeNameNodeProtocol;
+import edu.berkeley.icsi.cdfs.utils.ConfigUtils;
+import edu.berkeley.icsi.cdfs.utils.PathConverter;
 import edu.berkeley.icsi.cdfs.utils.PathWrapper;
 
 public class NameNode implements ClientNameNodeProtocol, DataNodeNameNodeProtocol {
+
+	private static final Log LOG = LogFactory.getLog(NameNode.class);
+
+	private final PathConverter pathConverter;
 
 	private final Server rpcServer;
 
@@ -25,16 +36,36 @@ public class NameNode implements ClientNameNodeProtocol, DataNodeNameNodeProtoco
 
 	private final FileSystem hdfs;
 
-	NameNode() throws IOException {
+	private NameNode(final Configuration conf) throws IOException {
 
-		final Configuration conf = new Configuration();
+		// Read HDFS default path from configuration
+		final String hdfsString = conf.get(ConfigConstants.HDFS_DEFAULT_NAME_KEY,
+			ConfigConstants.DEFEAULT_HDFS_DEFAULT_NAME);
+		final URI hdfsURI;
+		try {
+			hdfsURI = new URI(hdfsString);
+		} catch (URISyntaxException e) {
+			throw new RuntimeException(e);
+		}
 
-		this.rpcServer = RPC.getServer(this, "localhost", CDFS.NAMENODE_RPC_PORT, conf);
+		// Read CDFS default path from configuration
+		final String cdfsString = conf.get(ConfigConstants.CDFS_DEFAULT_NAME_KEY,
+			ConfigConstants.DEFEAULT_CDFS_DEFAULT_NAME);
+		URI cdfsURI;
+		try {
+			cdfsURI = new URI(cdfsString);
+		} catch (URISyntaxException e) {
+			throw new RuntimeException(e);
+		}
+
+		this.pathConverter = new PathConverter(hdfsURI);
+
+		this.rpcServer = RPC.getServer(this, cdfsURI.getHost(), cdfsURI.getPort(), conf);
 		this.rpcServer.start();
 
-		this.hdfs = new Path("hdfs://localhost:" + CDFS.HDFS_NAMENODE_PORT).getFileSystem(conf);
+		this.hdfs = new Path(hdfsURI).getFileSystem(conf);
 
-		this.metaDataStore = new MetaDataStore(hdfs);
+		this.metaDataStore = new MetaDataStore(this.hdfs, this.pathConverter);
 	}
 
 	public void shutDown() {
@@ -43,11 +74,20 @@ public class NameNode implements ClientNameNodeProtocol, DataNodeNameNodeProtoco
 
 	public static void main(final String[] args) {
 
+		// Load the configuration
+		final Configuration conf;
+		try {
+			conf = ConfigUtils.loadConfiguration(args);
+		} catch (ConfigurationException e) {
+			LOG.error(e.getMessage());
+			return;
+		}
+
 		NameNode nameNode = null;
 
 		try {
 
-			nameNode = new NameNode();
+			nameNode = new NameNode(conf);
 			while (true) {
 				try {
 					Thread.sleep(5000L);
@@ -110,7 +150,7 @@ public class NameNode implements ClientNameNodeProtocol, DataNodeNameNodeProtoco
 
 		// We don't care about the directory structure, so let HDFS handle this
 		synchronized (this.hdfs) {
-			return this.hdfs.mkdirs(CDFS.toHDFSPath(path.getPath(), ""), permission);
+			return this.hdfs.mkdirs(this.pathConverter.convert(path.getPath(), ""), permission);
 		}
 	}
 
