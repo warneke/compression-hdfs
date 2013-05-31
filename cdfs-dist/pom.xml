@@ -21,6 +21,11 @@
       <artifactId>cdfs-benchmark</artifactId>
       <version>${version}</version>
     </dependency>
+    <dependency>
+      <groupId>edu.berkeley.icsi</groupId>
+      <artifactId>cdfs-wlgen</artifactId>
+      <version>${version}</version>
+    </dependency>
     <!--  SOURCES -->
     <!--
     	<dependency>
