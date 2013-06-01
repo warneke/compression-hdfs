@@ -5,6 +5,7 @@ import java.io.IOException;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.permission.FsPermission;
 
+import edu.berkeley.icsi.cdfs.ConnectionInfo;
 import edu.berkeley.icsi.cdfs.utils.PathWrapper;
 
 public interface ClientNameNodeProtocol extends CommonNameNodeProtocol {
@@ -14,4 +15,6 @@ public interface ClientNameNodeProtocol extends CommonNameNodeProtocol {
 	boolean mkdirs(PathWrapper path, FsPermission permission) throws IOException;
 
 	FileStatus getFileStatus(PathWrapper path) throws IOException;
+
+	ConnectionInfo determineClosestDataNode(String hostname) throws IOException;
 }

@@ -14,4 +14,6 @@ public interface DataNodeNameNodeProtocol extends CommonNameNodeProtocol {
 	EvictionEntry getFileToEvict(String host) throws IOException;
 
 	void confirmEviction(PathWrapper cdfsPath, int blockIndex, boolean compressed, String host) throws IOException;
+
+	void registerDataNode(String hostname, int port) throws IOException;
 }

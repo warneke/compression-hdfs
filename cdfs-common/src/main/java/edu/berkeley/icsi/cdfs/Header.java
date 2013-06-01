@@ -8,7 +8,7 @@ import org.apache.hadoop.fs.Path;
 
 import edu.berkeley.icsi.cdfs.utils.NumberUtils;
 
-final public class Header {
+public final class Header {
 
 	private final ConnectionMode connectionMode;
 

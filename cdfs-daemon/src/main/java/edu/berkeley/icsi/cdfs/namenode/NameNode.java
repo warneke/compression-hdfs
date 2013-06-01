@@ -3,6 +3,10 @@ package edu.berkeley.icsi.cdfs.namenode;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.logging.Log;
@@ -16,6 +20,7 @@ import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.ipc.RPC.Server;
 
 import edu.berkeley.icsi.cdfs.CDFSBlockLocation;
+import edu.berkeley.icsi.cdfs.ConnectionInfo;
 import edu.berkeley.icsi.cdfs.cache.EvictionEntry;
 import edu.berkeley.icsi.cdfs.conf.ConfigConstants;
 import edu.berkeley.icsi.cdfs.conf.ConfigUtils;
@@ -35,6 +40,8 @@ public class NameNode implements ClientNameNodeProtocol, DataNodeNameNodeProtoco
 	private final MetaDataStore metaDataStore;
 
 	private final FileSystem hdfs;
+
+	private final Map<String, ConnectionInfo> registeredDataNodes = new ConcurrentHashMap<String, ConnectionInfo>();
 
 	private NameNode(final Configuration conf) throws IOException {
 
@@ -191,5 +198,43 @@ public class NameNode implements ClientNameNodeProtocol, DataNodeNameNodeProtoco
 			final String host) throws IOException {
 
 		this.metaDataStore.confirmEviction(cdfsPath.getPath(), blockIndex, compressed, host);
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public void registerDataNode(final String hostname, final int port) throws IOException {
+
+		LOG.info("Registering data node " + hostname + " with port " + port);
+
+		this.registeredDataNodes.put(hostname, new ConnectionInfo(hostname, port));
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public ConnectionInfo determineClosestDataNode(final String hostname) throws IOException {
+
+		ConnectionInfo ci = null;
+		if (hostname != null) {
+			ci = this.registeredDataNodes.get(hostname);
+		}
+
+		if (ci == null) {
+
+			// Host does not have a local data node
+			final Collection<ConnectionInfo> dataNodes = this.registeredDataNodes.values();
+			final Iterator<ConnectionInfo> iterator = dataNodes.iterator();
+			if (!iterator.hasNext()) {
+				throw new IOException("No data node registered");
+			}
+			ci = iterator.next();
+		}
+
+		LOG.info(hostname + " requested data node, returning " + ci.getHostname());
+
+		return ci;
 	}
 }

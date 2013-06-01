@@ -1,13 +1,11 @@
 package edu.berkeley.icsi.cdfs.datanode;
 
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.UnknownHostException;
 
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.logging.Log;
@@ -21,6 +19,7 @@ import edu.berkeley.icsi.cdfs.cache.BufferPool;
 import edu.berkeley.icsi.cdfs.conf.ConfigConstants;
 import edu.berkeley.icsi.cdfs.conf.ConfigUtils;
 import edu.berkeley.icsi.cdfs.protocols.DataNodeNameNodeProtocol;
+import edu.berkeley.icsi.cdfs.utils.HostUtils;
 import edu.berkeley.icsi.cdfs.utils.PathConverter;
 
 public class DataNode {
@@ -69,24 +68,17 @@ public class DataNode {
 		this.nameNode = (DataNodeNameNodeProtocol) RPC.getProxy(DataNodeNameNodeProtocol.class, 1,
 			new InetSocketAddress(cdfsURI.getHost(), cdfsURI.getPort()), this.conf);
 
-		this.host = determineHostname();
+		this.host = HostUtils.determineHostname();
+		if (this.host == null) {
+			throw new IllegalStateException("Cannot determine hostname");
+		}
 		LOG.info("Determined hostname of datanode: " + this.host);
 
 		// Initialization of buffer pool at the beginning
 		BufferPool.initialize(this.nameNode, this.host);
-	}
 
-	private static String determineHostname() {
-
-		try {
-			final InetAddress addr = InetAddress.getLocalHost();
-			return addr.getHostName();
-
-		} catch (UnknownHostException e) {
-			LOG.error("Unable to determine hostname, using default...");
-		}
-
-		return "unknown";
+		// Register with name node
+		this.nameNode.registerDataNode(this.host, CDFS.DATANODE_DATA_PORT);
 	}
 
 	void run() throws IOException {

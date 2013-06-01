@@ -18,11 +18,10 @@ import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.util.Progressable;
 
 import edu.berkeley.icsi.cdfs.protocols.ClientNameNodeProtocol;
+import edu.berkeley.icsi.cdfs.utils.HostUtils;
 import edu.berkeley.icsi.cdfs.utils.PathWrapper;
 
 public class CDFS extends FileSystem {
-
-	public static final int DATANODE_RPC_PORT = 10001;
 
 	public static final int DATANODE_DATA_PORT = 10002;
 
@@ -33,6 +32,8 @@ public class CDFS extends FileSystem {
 	private Path workingDir;
 
 	private URI uri;
+
+	private InetSocketAddress dataNodeAddress;
 
 	@Override
 	public FSDataOutputStream append(Path arg0, int arg1, Progressable arg2)
@@ -57,7 +58,7 @@ public class CDFS extends FileSystem {
 		}
 
 		final Socket socket = new Socket();
-		socket.connect(new InetSocketAddress("localhost", DATANODE_DATA_PORT));
+		socket.connect(this.dataNodeAddress);
 
 		// Send header
 		final Header header = new Header(ConnectionMode.WRITE, f, 0L);
@@ -127,6 +128,10 @@ public class CDFS extends FileSystem {
 
 		this.nameNode = (ClientNameNodeProtocol) RPC.getProxy(ClientNameNodeProtocol.class, 1, new InetSocketAddress(
 			host, uri.getPort()), conf);
+
+		// Determine closest data node
+		final ConnectionInfo ci = this.nameNode.determineClosestDataNode(HostUtils.determineHostname());
+		this.dataNodeAddress = new InetSocketAddress(ci.getHostname(), ci.getPort());
 	}
 
 	/**
@@ -163,7 +168,7 @@ public class CDFS extends FileSystem {
 	public FSDataInputStream open(final Path arg0, int arg1) throws IOException {
 
 		final Socket socket = new Socket();
-		socket.connect(new InetSocketAddress("localhost", DATANODE_DATA_PORT));
+		socket.connect(this.dataNodeAddress);
 
 		return new CDFSDataInputStream(socket, arg0);
 	}
