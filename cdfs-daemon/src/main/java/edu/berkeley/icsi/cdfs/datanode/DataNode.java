@@ -19,8 +19,8 @@ import edu.berkeley.icsi.cdfs.CDFS;
 import edu.berkeley.icsi.cdfs.Header;
 import edu.berkeley.icsi.cdfs.cache.BufferPool;
 import edu.berkeley.icsi.cdfs.conf.ConfigConstants;
+import edu.berkeley.icsi.cdfs.conf.ConfigUtils;
 import edu.berkeley.icsi.cdfs.protocols.DataNodeNameNodeProtocol;
-import edu.berkeley.icsi.cdfs.utils.ConfigUtils;
 import edu.berkeley.icsi.cdfs.utils.PathConverter;
 
 public class DataNode {

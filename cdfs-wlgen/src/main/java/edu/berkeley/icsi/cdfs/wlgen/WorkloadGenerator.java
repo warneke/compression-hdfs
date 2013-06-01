@@ -7,7 +7,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import edu.berkeley.icsi.cdfs.conf.Configuration;
+import edu.berkeley.icsi.cdfs.CDFS;
+import edu.berkeley.icsi.cdfs.conf.ConfigConstants;
+import edu.berkeley.icsi.cdfs.conf.ConfigUtils;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -15,6 +17,8 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.PosixParser;
+import org.apache.commons.configuration.ConfigurationException;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
@@ -32,12 +36,10 @@ public final class WorkloadGenerator {
 			filesizeLimit, jobLimit);
 	}
 
-	private void generateInputData(final String basePath) throws ClassNotFoundException, InterruptedException,
-			IOException {
+	private void generateInputData(final String basePath, final Configuration conf) throws ClassNotFoundException,
+			InterruptedException, IOException {
 
 		final Path path = new Path(basePath + Path.SEPARATOR + "exp");
-
-		final Configuration conf = new Configuration();
 
 		final FileSystem fs = path.getFileSystem(conf);
 
@@ -52,21 +54,22 @@ public final class WorkloadGenerator {
 		final Iterator<File> it = inputFiles.iterator();
 
 		while (it.hasNext()) {
-			final Job job = DataGenerator.generateJob(basePath, it.next());
+			final Job job = DataGenerator.generateJob(basePath, it.next(), conf);
 			jobsToExecute.add(job);
 		}
 
 		RemoteJobRunner.submitAndWait(jobsToExecute);
 	}
 
-	private void runJobs(final String basePath) throws ClassNotFoundException, InterruptedException, IOException {
+	private void runJobs(final String basePath, final Configuration conf) throws ClassNotFoundException,
+			InterruptedException, IOException {
 
 		final Map<String, MapReduceJob> mapReduceJobs = this.mapReduceWorkload.getMapReduceJobs();
 		final List<Job> jobsToExecute = new ArrayList<Job>(mapReduceJobs.size());
 		final Iterator<MapReduceJob> it = mapReduceJobs.values().iterator();
 
 		while (it.hasNext()) {
-			final Job job = MRJobGenerator.toMRJob(basePath, it.next());
+			final Job job = MRJobGenerator.toMRJob(basePath, it.next(), conf);
 			jobsToExecute.add(job);
 		}
 
@@ -88,6 +91,7 @@ public final class WorkloadGenerator {
 
 		String inputDir = null;
 		String basePath = null;
+		String confDir = null;
 		boolean generateInput = false;
 		int mapLimit = Integer.MAX_VALUE;
 		int reduceLimit = Integer.MAX_VALUE;
@@ -103,7 +107,7 @@ public final class WorkloadGenerator {
 			return;
 		}
 
-		if (!cmd.hasOption("i") || !cmd.hasOption("b")) {
+		if (!cmd.hasOption("i") || !cmd.hasOption("b") || !cmd.hasOption("c")) {
 			final HelpFormatter formatter = new HelpFormatter();
 			formatter.printHelp("wlgen", options);
 			return;
@@ -111,6 +115,20 @@ public final class WorkloadGenerator {
 
 		inputDir = cmd.getOptionValue("i");
 		basePath = cmd.getOptionValue("b");
+		confDir = cmd.getOptionValue("c");
+
+		final Configuration conf;
+		try {
+			conf = ConfigUtils.loadConfiguration(new java.io.File(confDir));
+		} catch (ConfigurationException e) {
+			e.printStackTrace();
+			return;
+		}
+
+		// Set some basic configuration options
+		conf.set("fs.cdfs.impl", CDFS.class.getName());
+		conf.set("fs.default.name",
+			conf.get(ConfigConstants.CDFS_DEFAULT_NAME_KEY, ConfigConstants.DEFEAULT_CDFS_DEFAULT_NAME));
 
 		if (cmd.hasOption("g")) {
 			generateInput = true;
@@ -138,10 +156,10 @@ public final class WorkloadGenerator {
 
 			// Generate input data if requested
 			if (generateInput) {
-				wlg.generateInputData(basePath);
+				wlg.generateInputData(basePath, conf);
 			}
 
-			wlg.runJobs(basePath);
+			wlg.runJobs(basePath, conf);
 
 		} catch (Exception e) {
 			e.printStackTrace();

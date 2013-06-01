@@ -2,8 +2,7 @@ package edu.berkeley.icsi.cdfs.wlgen;
 
 import java.io.IOException;
 
-import edu.berkeley.icsi.cdfs.conf.Configuration;
-
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.Job;
 
@@ -34,29 +33,30 @@ final class MRJobGenerator {
 		return jarFile.getAbsolutePath();
 	}
 
-	static Job toMRJob(final String basePath, final MapReduceJob mapReduceJob) throws IOException {
+	static Job toMRJob(final String basePath, final MapReduceJob mapReduceJob, final Configuration conf)
+			throws IOException {
 
 		if (JAR_FILE == null) {
 			JAR_FILE = generateJarFile();
 		}
 
-		final Configuration conf = new Configuration();
-		conf.set("mapred.jar", JAR_FILE);
-		conf.set(FixedByteInputFormat.INPUT_PATH, basePath + java.io.File.separator
+		final Configuration jobConf = new Configuration(conf);
+		jobConf.set("mapred.jar", JAR_FILE);
+		jobConf.set(FixedByteInputFormat.INPUT_PATH, basePath + java.io.File.separator
 			+ mapReduceJob.getInputFile().getName());
-		conf.setInt(FixedByteInputFormat.NUMBER_OF_MAPPERS, mapReduceJob.getNumberOfMapTasks());
+		jobConf.setInt(FixedByteInputFormat.NUMBER_OF_MAPPERS, mapReduceJob.getNumberOfMapTasks());
 		double ioRatio = (double) mapReduceJob.getInputFile().getUncompressedFileSize()
 			/ (double) mapReduceJob.getSizeOfIntermediateData();
-		conf.setFloat(MapTask.INPUT_OUTPUT_RATIO, (float) ioRatio);
+		jobConf.setFloat(MapTask.INPUT_OUTPUT_RATIO, (float) ioRatio);
 		ioRatio = (double) mapReduceJob.getSizeOfIntermediateData()
 			/ (double) mapReduceJob.getOutputFile().getUncompressedFileSize();
-		conf.setFloat(ReduceTask.INPUT_OUTPUT_RATIO, (float) ioRatio);
-		conf.set(FixedByteOutputFormat.OUTPUT_PATH, basePath + java.io.File.separator
+		jobConf.setFloat(ReduceTask.INPUT_OUTPUT_RATIO, (float) ioRatio);
+		jobConf.set(FixedByteOutputFormat.OUTPUT_PATH, basePath + java.io.File.separator
 			+ mapReduceJob.getOutputFile().getName() + "_out");
-		conf.set(ReducePartitioner.DATA_DISTRIBUTION,
+		jobConf.set(ReducePartitioner.DATA_DISTRIBUTION,
 			ReducePartitioner.encodeDataDistribution(mapReduceJob.getDataDistribution()));
 
-		final Job job = new Job(conf, mapReduceJob.getJobID());
+		final Job job = new Job(jobConf, mapReduceJob.getJobID());
 		job.setMapperClass(MapTask.class);
 		job.setReducerClass(ReduceTask.class);
 		job.setPartitionerClass(ReducePartitioner.class);

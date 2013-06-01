@@ -1,4 +1,4 @@
-package edu.berkeley.icsi.cdfs.utils;
+package edu.berkeley.icsi.cdfs.conf;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -15,15 +15,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 
 public final class ConfigUtils {
-
-	public static final String ENABLE_UNCOMPRESSED_CACHING_KEY = "cache.uncompressed.enable";
-
-	public static final String ENABLE_COMPRESSED_CACHING_KEY = "cache.compressed.enable";
-
-	public static final boolean DEFAULT_ENABLE_UNCOMPRESSED_CACHING = false;
-
-	public static final boolean DEFAULT_ENABLE_COMPRESSED_CACHING = false;
-
+	
 	private static final Log LOG = LogFactory.getLog(ConfigUtils.class);
 
 	private static final Options OPTIONS = new Options();
@@ -34,29 +26,13 @@ public final class ConfigUtils {
 	private ConfigUtils() {
 	}
 
-	public static Configuration loadConfiguration(final String[] args) throws ConfigurationException {
+	public static Configuration loadConfiguration(final File confDir) throws ConfigurationException {
 
-		final CommandLineParser parser = new PosixParser();
-		final CommandLine cmd;
-		try {
-			cmd = parser.parse(OPTIONS, args);
-		} catch (ParseException e) {
-			throw new ConfigurationException(e);
-		}
-
-		if (!cmd.hasOption("c")) {
-			throw new ConfigurationException(
-				"Cannot determine the configuration directory");
-		}
-
-		final String confDir = cmd.getOptionValue("c");
-
-		final File cd = new File(confDir);
-		if (!cd.exists()) {
+		if (!confDir.exists()) {
 			throw new ConfigurationException("Provided configuration directory " + confDir + " does not exist");
 		}
 
-		final String[] files = cd.list(new FilenameFilter() {
+		final String[] files = confDir.list(new FilenameFilter() {
 
 			/**
 			 * {@inheritDoc}
@@ -87,5 +63,25 @@ public final class ConfigUtils {
 		}
 
 		return conf;
+	}
+
+	public static Configuration loadConfiguration(final String[] args) throws ConfigurationException {
+
+		final CommandLineParser parser = new PosixParser();
+		final CommandLine cmd;
+		try {
+			cmd = parser.parse(OPTIONS, args);
+		} catch (ParseException e) {
+			throw new ConfigurationException(e);
+		}
+
+		if (!cmd.hasOption("c")) {
+			throw new ConfigurationException(
+				"Cannot determine the configuration directory");
+		}
+
+		final String confDir = cmd.getOptionValue("c");
+
+		return loadConfiguration(new File(confDir));
 	}
 }

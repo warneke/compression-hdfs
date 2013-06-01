@@ -19,7 +19,6 @@ import edu.berkeley.icsi.cdfs.cache.BufferPool;
 import edu.berkeley.icsi.cdfs.compression.Decompressor;
 import edu.berkeley.icsi.cdfs.conf.ConfigConstants;
 import edu.berkeley.icsi.cdfs.sharedmem.SharedMemoryProducer;
-import edu.berkeley.icsi.cdfs.utils.ConfigUtils;
 import edu.berkeley.icsi.cdfs.utils.NumberUtils;
 
 final class ReadOp implements Closeable {
@@ -52,8 +51,8 @@ final class ReadOp implements Closeable {
 
 	public void readFromCacheCompressed(final List<Buffer> compressedBuffers) throws IOException {
 
-		boolean cacheUncompressed = conf.getBoolean(ConfigUtils.ENABLE_UNCOMPRESSED_CACHING_KEY,
-			ConfigUtils.DEFAULT_ENABLE_UNCOMPRESSED_CACHING);
+		boolean cacheUncompressed = conf.getBoolean(ConfigConstants.ENABLE_UNCOMPRESSED_CACHING_KEY,
+			ConfigConstants.DEFAULT_ENABLE_UNCOMPRESSED_CACHING);
 
 		this.uncompressedBuffers = new ArrayList<Buffer>();
 
@@ -103,10 +102,10 @@ final class ReadOp implements Closeable {
 
 	public void readFromHDFSCompressed(final FileSystem hdfs, final Path hdfsPath) throws IOException {
 
-		boolean cacheUncompressed = conf.getBoolean(ConfigUtils.ENABLE_UNCOMPRESSED_CACHING_KEY,
-			ConfigUtils.DEFAULT_ENABLE_UNCOMPRESSED_CACHING);
-		boolean cacheCompressed = conf.getBoolean(ConfigUtils.ENABLE_COMPRESSED_CACHING_KEY,
-			ConfigUtils.DEFAULT_ENABLE_COMPRESSED_CACHING);
+		boolean cacheUncompressed = conf.getBoolean(ConfigConstants.ENABLE_UNCOMPRESSED_CACHING_KEY,
+			ConfigConstants.DEFAULT_ENABLE_UNCOMPRESSED_CACHING);
+		boolean cacheCompressed = conf.getBoolean(ConfigConstants.ENABLE_COMPRESSED_CACHING_KEY,
+			ConfigConstants.DEFAULT_ENABLE_COMPRESSED_CACHING);
 
 		this.uncompressedBuffers = new ArrayList<Buffer>();
 		this.compressedBuffers = new ArrayList<Buffer>();

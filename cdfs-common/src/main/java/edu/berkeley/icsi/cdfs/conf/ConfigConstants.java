@@ -27,4 +27,12 @@ public class ConfigConstants {
 	public static final String CDFS_DEFAULT_NAME_KEY = "cdfs.default.name";
 
 	public static final String DEFEAULT_CDFS_DEFAULT_NAME = "cdfs://localhost:8000/";
+
+	public static final String ENABLE_UNCOMPRESSED_CACHING_KEY = "cache.uncompressed.enable";
+
+	public static final boolean DEFAULT_ENABLE_UNCOMPRESSED_CACHING = false;
+
+	public static final String ENABLE_COMPRESSED_CACHING_KEY = "cache.compressed.enable";
+
+	public static final boolean DEFAULT_ENABLE_COMPRESSED_CACHING = false;
 }

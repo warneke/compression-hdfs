@@ -18,9 +18,9 @@ import org.apache.hadoop.ipc.RPC.Server;
 import edu.berkeley.icsi.cdfs.CDFSBlockLocation;
 import edu.berkeley.icsi.cdfs.cache.EvictionEntry;
 import edu.berkeley.icsi.cdfs.conf.ConfigConstants;
+import edu.berkeley.icsi.cdfs.conf.ConfigUtils;
 import edu.berkeley.icsi.cdfs.protocols.ClientNameNodeProtocol;
 import edu.berkeley.icsi.cdfs.protocols.DataNodeNameNodeProtocol;
-import edu.berkeley.icsi.cdfs.utils.ConfigUtils;
 import edu.berkeley.icsi.cdfs.utils.PathConverter;
 import edu.berkeley.icsi.cdfs.utils.PathWrapper;
 

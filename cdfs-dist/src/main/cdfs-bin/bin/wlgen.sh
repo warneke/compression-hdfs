@@ -5,4 +5,4 @@ bin=`cd "$bin"; pwd`
 
 . "$bin"/cdfs-config.sh
 
-$JAVA_HOME/bin/java -classpath $CLASSPATH edu.berkeley.icsi.cdfs.wlgen.WorkloadGenerator $@
+$JAVA_HOME/bin/java -classpath $CLASSPATH edu.berkeley.icsi.cdfs.wlgen.WorkloadGenerator -c $CDFS_CONF_DIR $@

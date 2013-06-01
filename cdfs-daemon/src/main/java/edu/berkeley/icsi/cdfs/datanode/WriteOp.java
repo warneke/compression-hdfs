@@ -22,7 +22,6 @@ import edu.berkeley.icsi.cdfs.cache.BufferPool;
 import edu.berkeley.icsi.cdfs.compression.Compressor;
 import edu.berkeley.icsi.cdfs.conf.ConfigConstants;
 import edu.berkeley.icsi.cdfs.sharedmem.SharedMemoryConsumer;
-import edu.berkeley.icsi.cdfs.utils.ConfigUtils;
 import edu.berkeley.icsi.cdfs.utils.NumberUtils;
 
 final class WriteOp implements Closeable {
@@ -59,11 +58,11 @@ final class WriteOp implements Closeable {
 		this.uncompressedBuffers = new ArrayList<Buffer>();
 		this.compressedBuffers = new ArrayList<Buffer>();
 
-		boolean cacheUncompressed = this.conf.getBoolean(ConfigUtils.ENABLE_UNCOMPRESSED_CACHING_KEY,
-			ConfigUtils.DEFAULT_ENABLE_UNCOMPRESSED_CACHING);
+		boolean cacheUncompressed = this.conf.getBoolean(ConfigConstants.ENABLE_UNCOMPRESSED_CACHING_KEY,
+			ConfigConstants.DEFAULT_ENABLE_UNCOMPRESSED_CACHING);
 
-		boolean cacheCompressed = this.conf.getBoolean(ConfigUtils.ENABLE_COMPRESSED_CACHING_KEY,
-			ConfigUtils.DEFAULT_ENABLE_COMPRESSED_CACHING);
+		boolean cacheCompressed = this.conf.getBoolean(ConfigConstants.ENABLE_COMPRESSED_CACHING_KEY,
+			ConfigConstants.DEFAULT_ENABLE_COMPRESSED_CACHING);
 
 		byte[] uncompressedBuffer = null;
 		byte[] compressedBuffer = null;
