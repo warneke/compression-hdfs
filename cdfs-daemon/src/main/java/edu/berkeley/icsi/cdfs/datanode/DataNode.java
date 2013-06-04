@@ -11,6 +11,8 @@ import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.ipc.RPC;
 
 import edu.berkeley.icsi.cdfs.CDFS;
@@ -35,6 +37,8 @@ public class DataNode {
 	private final Configuration conf;
 
 	private final String host;
+
+	private final FileSystem hdfs;
 
 	public DataNode(final Configuration conf) throws IOException {
 
@@ -79,6 +83,9 @@ public class DataNode {
 
 		// Register with name node
 		this.nameNode.registerDataNode(this.host, CDFS.DATANODE_DATA_PORT);
+
+		// Create and store reference to HDFS file system
+		this.hdfs = new Path(hdfsURI).getFileSystem(conf);
 	}
 
 	void run() throws IOException {
@@ -89,7 +96,7 @@ public class DataNode {
 
 			final Header header = Header.fromInputStream(socket.getInputStream());
 
-			new Connection(socket, header, this.nameNode, this.conf, this.host, this.pathConverter);
+			new Connection(socket, header, this.nameNode, this.conf, this.host, this.hdfs, this.pathConverter);
 		}
 	}
 
@@ -121,6 +128,14 @@ public class DataNode {
 	}
 
 	void shutDown() {
+
+		if (this.hdfs != null) {
+			try {
+				this.hdfs.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 
 		try {
 			this.serverSocket.close();

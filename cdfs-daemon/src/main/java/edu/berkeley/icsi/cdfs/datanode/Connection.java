@@ -38,10 +38,12 @@ final class Connection extends Thread {
 
 	private final String host;
 
+	private final FileSystem hdfs;
+
 	private final PathConverter pathConverter;
 
 	Connection(final Socket socket, final Header header, final DataNodeNameNodeProtocol nameNode,
-			final Configuration conf, final String host, final PathConverter pathConverter) {
+			final Configuration conf, final String host, final FileSystem hdfs, final PathConverter pathConverter) {
 		super("DataNodeConnection from " + socket.getRemoteSocketAddress());
 
 		this.socket = socket;
@@ -49,6 +51,7 @@ final class Connection extends Thread {
 		this.nameNode = nameNode;
 		this.conf = conf;
 		this.host = host;
+		this.hdfs = hdfs;
 		this.pathConverter = pathConverter;
 		start();
 	}
@@ -58,9 +61,6 @@ final class Connection extends Thread {
 	 */
 	@Override
 	public void run() {
-
-		// Reference to HDFS
-		FileSystem hdfs = null;
 
 		// The operation this connection handles
 		Closeable operation = null;
@@ -73,15 +73,10 @@ final class Connection extends Thread {
 			// Mode
 			if (this.header.getConnectionMode() == ConnectionMode.WRITE) {
 
-				// We are about to write to HDFS, prepare file system
-				if (hdfs == null) {
-					hdfs = this.pathConverter.convert(this.header.getPath(), "_0").getFileSystem(this.conf);
-				}
-
 				int blockIndex = 0;
 				boolean readEOF = false;
 				final PathWrapper cdfsPath = new PathWrapper(this.header.getPath());
-				final WriteOp writeOp = new WriteOp(this.socket, hdfs, this.conf);
+				final WriteOp writeOp = new WriteOp(this.socket, this.hdfs, this.conf);
 				operation = writeOp;
 				while (!readEOF) {
 					final Path hdfsPath = this.pathConverter.convert(this.header.getPath(), "_" + blockIndex);
@@ -189,14 +184,10 @@ final class Connection extends Thread {
 
 					// We don't have the block cached, need to get it from HDFS
 					final Path hdfsPath = this.pathConverter.convert(this.header.getPath(), "_" + blockIndex);
-					if (hdfs == null) {
-						// Create a file system object to ensure proper clean up
-						hdfs = hdfsPath.getFileSystem(this.conf);
-					}
 
 					try {
 						LOG.info("Reading block " + blockIndex + " from disk");
-						readOp.readFromHDFSCompressed(hdfs, hdfsPath);
+						readOp.readFromHDFSCompressed(this.hdfs, hdfsPath);
 					} catch (FileNotFoundException fnfe) {
 						break;
 					}
@@ -240,10 +231,6 @@ final class Connection extends Thread {
 					this.socket.close();
 				}
 
-				// Close HDFS connection
-				if (hdfs != null) {
-					hdfs.close();
-				}
 			} catch (IOException ioe) {
 			}
 
