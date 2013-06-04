@@ -28,7 +28,7 @@ public final class File {
 				+ compressionFactor);
 		}
 
-		this.name = "file_" + uncompressedFileSize;
+		this.name = "file_" + uncompressedFileSize + "_" + compressionFactor;
 		this.uncompressedFileSize = uncompressedFileSize;
 		this.compressionFactor = compressionFactor;
 	}

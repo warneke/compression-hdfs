@@ -29,7 +29,7 @@ public final class DataGenerator {
 			JAR_FILE = generateJarFile();
 		}
 
-		final Configuration jobConf = new Configuration();
+		final Configuration jobConf = new Configuration(conf);
 		jobConf.set("mapred.jar", JAR_FILE);
 		jobConf.setLong(FILE_SIZE, inputFile.getUncompressedFileSize());
 		jobConf.set(OUTPUT_PATH, basePath + java.io.File.separator + inputFile.getName());

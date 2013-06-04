@@ -1,15 +1,22 @@
 package edu.berkeley.icsi.cdfs.wlgen;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.Job;
 
 public final class RemoteJobRunner {
 
-	private static final long SLEEP_TIME = 5000;
+	private static final String JOB_SUBMISSION_TIME_KEY = "job.submission.time";
+
+	private static final String JOB_STARTING_TIME_KEY = "job.starting.time";
+
+	private static final long SLEEP_TIME = 200;
 
 	private RemoteJobRunner() {
 	}
@@ -19,24 +26,48 @@ public final class RemoteJobRunner {
 
 		final List<Job> runningJobs = new LinkedList<Job>();
 
+		final Map<Job, String> progressMap = new HashMap<Job, String>();
+
 		for (final Job job : jobs) {
+			final long now = System.currentTimeMillis();
+			job.getConfiguration().setLong(JOB_SUBMISSION_TIME_KEY, now);
 			job.submit();
 			runningJobs.add(job);
 		}
 
 		while (!runningJobs.isEmpty()) {
 
-			System.out.println("Job progress:");
 			final Iterator<Job> it = runningJobs.iterator();
 			while (it.hasNext()) {
 
 				final Job job = it.next();
 				if (job.isComplete()) {
 					it.remove();
+					final Configuration conf = job.getConfiguration();
+					final long startingTime = conf.getLong(JOB_STARTING_TIME_KEY, -1L);
+					if (startingTime == -1L) {
+						System.out.println(job.getJobName() + " no completion time");
+					} else {
+						System.out.println(job.getJobName() + " completion time "
+							+ (System.currentTimeMillis() - startingTime));
+					}
+					progressMap.remove(job);
 					continue;
 				}
 
-				System.out.println(job.getJobName() + " " + getProgressBar(job.mapProgress(), job.reduceProgress()));
+				final float mapProgress = job.mapProgress();
+				if (mapProgress > 0.0f) {
+					final Configuration conf = job.getConfiguration();
+					if (conf.getLong(JOB_STARTING_TIME_KEY, -1L) == -1) {
+						conf.setLong(JOB_STARTING_TIME_KEY, System.currentTimeMillis());
+					}
+				}
+
+				final String progressBar = getProgressBar(mapProgress, job.reduceProgress());
+
+				if (!progressBar.equals(progressMap.put(job, progressBar))) {
+					System.out.println(job.getJobName() + " " + progressBar);
+				}
 			}
 
 			Thread.sleep(SLEEP_TIME);

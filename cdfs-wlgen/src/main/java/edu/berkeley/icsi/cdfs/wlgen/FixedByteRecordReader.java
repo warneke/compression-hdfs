@@ -65,7 +65,6 @@ public final class FixedByteRecordReader extends RecordReader<FixedByteRecord, N
 	 */
 	@Override
 	public FixedByteRecord getCurrentKey() throws IOException, InterruptedException {
-		System.out.print("Current key: " + this.key);
 		return this.key;
 	}
 
