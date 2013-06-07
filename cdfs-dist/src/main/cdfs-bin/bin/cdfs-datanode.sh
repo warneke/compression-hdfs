@@ -16,7 +16,9 @@ if [ "$CDFS_IDENT_STRING" = "" ]; then
 fi
 
 out=$CDFS_LOG_DIR/cdfs-$CDFS_IDENT_STRING-datanode-$HOSTNAME.out
+log=$CDFS_LOG_DIR/cdfs-$CDFS_IDENT_STRING-datanode-$HOSTNAME.log
 pid=$CDFS_PID_DIR/cdfs-$CDFS_IDENT_STRING-datanode.pid
+log_setting="-Dlog.file="$log" -Dlog4j.configuration=file://"$CDFS_CONF_DIR"/log4j.properties"
 
 JVM_ARGS="$JVM_ARGS -XX:+UseParNewGC -XX:NewRatio=8 -XX:PretenureSizeThreshold=64m -Xms"$DATANODE_HEAP_SIZE"m -Xmx"$DATANODE_HEAP_SIZE"m"
 
@@ -32,7 +34,7 @@ case $STARTSTOP in
 		fi
 
 		echo Starting CDFS datanode on host $HOSTNAME
-		$JAVA_HOME/bin/java $JVM_ARGS -classpath $CLASSPATH edu.berkeley.icsi.cdfs.datanode.DataNode -confDir $CDFS_CONF_DIR > "$out" 2>&1 < /dev/null &
+		$JAVA_HOME/bin/java $JVM_ARGS $log_setting -classpath $CLASSPATH edu.berkeley.icsi.cdfs.datanode.DataNode -confDir $CDFS_CONF_DIR > "$out" 2>&1 < /dev/null &
 		echo $! > $pid
 	;;
 
