@@ -66,7 +66,8 @@ public final class FixedByteInputFormat extends InputFormat<FixedByteRecord, Nul
 		}
 
 		if (blockLocations.length != numberOfMappers) {
-			throw new IllegalStateException(blockLocations.length + " blocks but " + numberOfMappers + " mappers");
+			throw new IllegalStateException(blockLocations.length + " blocks but " + numberOfMappers
+				+ " mappers + (file " + ip + " length " + fileStatus.getLen() + ")");
 		}
 
 		for (int i = 0; i < blockLocations.length; ++i) {

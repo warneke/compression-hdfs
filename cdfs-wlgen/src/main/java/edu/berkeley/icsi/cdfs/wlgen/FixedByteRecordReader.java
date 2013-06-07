@@ -34,11 +34,28 @@ public final class FixedByteRecordReader extends RecordReader<FixedByteRecord, N
 		final long roundedOffset = roundToNextMultipleOf(inputSplit.getOffset(), FixedByteRecord.LENGTH);
 		final long roundedLength = roundToNextMultipleOf(inputSplit.getLength(), FixedByteRecord.LENGTH);
 
-		if (inputSplit.getOffset() != roundedOffset) {
-			throw new IllegalArgumentException("Illegal offset");
+		final long offsetDiff = roundedOffset - inputSplit.getOffset();
+		if (offsetDiff != 0L) {
+			consumeOffset((int) offsetDiff);
 		}
 
 		this.numberOfBytesToRead = roundedLength - roundedOffset;
+	}
+
+	private final void consumeOffset(final int offset) throws IOException {
+
+		final byte[] buf = new byte[offset];
+
+		int bytesRead = 0;
+
+		while (bytesRead < offset) {
+
+			final int r = this.inputStream.read(buf, bytesRead, offset - bytesRead);
+			if (r < 0) {
+				throw new IllegalStateException("Unexpected end of stream");
+			}
+			bytesRead += r;
+		}
 	}
 
 	private static long roundToNextMultipleOf(final long val, final long multiple) {
