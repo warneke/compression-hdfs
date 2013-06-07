@@ -1,6 +1,7 @@
 package edu.berkeley.icsi.cdfs.cache;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -128,7 +129,13 @@ abstract class AbstractCache {
 
 			if (this.cache.containsKey(bk)) {
 				// Another has already been added for the same block in the meantime
-				throw new IllegalStateException(bk + " is already contained in cache " + getName());
+				LOG.info(bk + " is already contained in cache " + getName());
+				final Iterator<Buffer> it = buffers.iterator();
+				final BufferPool bp = BufferPool.get();
+				while (it.hasNext()) {
+					bp.releaseBuffer(it.next().getData());
+				}
+				return;
 			}
 
 			LOG.info("Adding " + path + " to cache " + getName() + " (" + buffers.size() + " buffers)");
