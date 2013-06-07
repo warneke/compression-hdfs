@@ -136,8 +136,14 @@ final class Connection extends Thread {
 
 				final ReadOp readOp = new ReadOp(this.socket, this.conf);
 				operation = readOp;
+				boolean runLoop = true;
 
-				while (true) {
+				while (runLoop) {
+
+					// Determine the expected length of the block
+					final long blockLength = (blockIndex == blockLocations[0].getIndex()) ? blockLocations[0]
+						.getLength() : -1L;
+					LOG.info("Determined length of block " + blockIndex + " to be " + blockLength + " bytes");
 
 					// See if we have the uncompressed version cached
 					List<Buffer> uncompressedBuffers = UncompressedBufferCache.get().lock(this.header.getPath(),
@@ -148,6 +154,10 @@ final class Connection extends Thread {
 							LOG.info("Reading block " + blockIndex + " from cache (uncompressed), "
 								+ uncompressedBuffers.size() + " buffers");
 							readOp.readFromCacheUncompressed(uncompressedBuffers);
+						} catch (EOFException e) {
+							LOG.info("Caught EOFException from readFromCacheUncompressed after " +
+								+readOp.getNumberOfBytesRead() + " bytes");
+							runLoop = false;
 						} finally {
 							UncompressedBufferCache.get().unlock(this.header.getPath(), blockIndex);
 						}
@@ -164,8 +174,22 @@ final class Connection extends Thread {
 							LOG.info("Reading block " + blockIndex + " from cache (compressed), "
 								+ compressedBuffers.size() + " buffers");
 							readOp.readFromCacheCompressed(compressedBuffers);
+						} catch (EOFException e) {
+							LOG.info("Caught EOFException from readFromCacheCompressed after "
+								+ readOp.getNumberOfBytesRead() + " bytes");
+							runLoop = false;
 						} finally {
 							CompressedBufferCache.get().unlock(this.header.getPath(), blockIndex);
+						}
+
+						if (!readOp.isBlockFullyRead(blockLength)) {
+							if (runLoop) {
+								throw new IllegalStateException("No EOFException but incomplete block read");
+							}
+
+							LOG.info("Aborted read of block " + blockIndex + " after " + readOp.getNumberOfBytesRead()
+								+ " bytes");
+							break;
 						}
 
 						// See if we had enough buffers to cache the uncompressed data
@@ -188,7 +212,21 @@ final class Connection extends Thread {
 					try {
 						LOG.info("Reading block " + blockIndex + " from disk");
 						readOp.readFromHDFSCompressed(this.hdfs, hdfsPath);
+					} catch (EOFException e) {
+						LOG.info("Caught EOFException from readFromHDFSCompressed after "
+							+ readOp.getNumberOfBytesRead() + " bytes");
+						runLoop = false;
 					} catch (FileNotFoundException fnfe) {
+						break;
+					}
+
+					if (!readOp.isBlockFullyRead(blockLength)) {
+						if (runLoop) {
+							throw new IllegalStateException("No EOFException but incomplete block read");
+						}
+
+						LOG.info("Aborted read of block " + blockIndex + " after " + readOp.getNumberOfBytesRead()
+							+ " bytes");
 						break;
 					}
 
@@ -214,8 +252,6 @@ final class Connection extends Thread {
 					++blockIndex;
 				}
 			}
-		} catch (EOFException eof) {
-			LOG.info("Caught EOF exception");
 		} catch (IOException ioe) {
 			ioe.printStackTrace();
 		} finally {

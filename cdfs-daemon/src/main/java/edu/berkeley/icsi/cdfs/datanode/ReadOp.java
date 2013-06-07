@@ -31,6 +31,8 @@ final class ReadOp implements Closeable {
 
 	private List<Buffer> compressedBuffers = null;
 
+	private long numberOfBytesRead = 0L;
+
 	ReadOp(final Socket socket, final Configuration conf)
 			throws IOException {
 		this.sharedMemoryProducer = new SharedMemoryProducer(socket);
@@ -39,6 +41,8 @@ final class ReadOp implements Closeable {
 
 	public void readFromCacheUncompressed(final List<Buffer> uncompressedBuffers) throws IOException {
 
+		this.numberOfBytesRead = 0L;
+
 		final Iterator<Buffer> it = uncompressedBuffers.iterator();
 		while (it.hasNext()) {
 			final Buffer buffer = it.next();
@@ -46,6 +50,7 @@ final class ReadOp implements Closeable {
 			final ByteBuffer byteBuffer = this.sharedMemoryProducer.lockSharedMemory();
 			byteBuffer.put(buffer.getData(), 0, buffer.getLength());
 			this.sharedMemoryProducer.unlockSharedMemory();
+			this.numberOfBytesRead += buffer.getLength();
 		}
 	}
 
@@ -54,6 +59,7 @@ final class ReadOp implements Closeable {
 		boolean cacheUncompressed = conf.getBoolean(ConfigConstants.ENABLE_UNCOMPRESSED_CACHING_KEY,
 			ConfigConstants.DEFAULT_ENABLE_UNCOMPRESSED_CACHING);
 
+		this.numberOfBytesRead = 0L;
 		this.uncompressedBuffers = new ArrayList<Buffer>();
 
 		final Decompressor decompressor = new Decompressor();
@@ -91,6 +97,7 @@ final class ReadOp implements Closeable {
 				final ByteBuffer byteBuffer = this.sharedMemoryProducer.lockSharedMemory();
 				byteBuffer.put(uncompressedBuffer, 0, numberOfUncompressedBytes);
 				this.sharedMemoryProducer.unlockSharedMemory();
+				this.numberOfBytesRead += numberOfUncompressedBytes;
 
 				if (cacheUncompressed) {
 					final Buffer ub = new Buffer(uncompressedBuffer, numberOfUncompressedBytes);
@@ -109,6 +116,7 @@ final class ReadOp implements Closeable {
 
 		this.uncompressedBuffers = new ArrayList<Buffer>();
 		this.compressedBuffers = new ArrayList<Buffer>();
+		this.numberOfBytesRead = 0L;
 
 		byte[] compressedBuffer = null;
 		byte[] uncompressedBuffer = null;
@@ -196,6 +204,7 @@ final class ReadOp implements Closeable {
 			final ByteBuffer sharedBuffer = this.sharedMemoryProducer.lockSharedMemory();
 			sharedBuffer.put(uncompressedBuffer, 0, numberOfUncompressedBytes);
 			this.sharedMemoryProducer.unlockSharedMemory();
+			this.numberOfBytesRead += numberOfUncompressedBytes;
 
 			if (cacheUncompressed) {
 				final Buffer buffer = new Buffer(uncompressedBuffer, numberOfUncompressedBytes);
@@ -252,5 +261,22 @@ final class ReadOp implements Closeable {
 	List<Buffer> getCompressedBuffers() {
 
 		return Collections.unmodifiableList(this.compressedBuffers);
+	}
+
+	boolean isBlockFullyRead(final long blockLength) {
+
+		if (this.numberOfBytesRead == blockLength) {
+			return true;
+		}
+
+		clearCompressedBuffers();
+		clearUncompressedBuffers();
+
+		return false;
+	}
+
+	long getNumberOfBytesRead() {
+
+		return this.numberOfBytesRead;
 	}
 }
