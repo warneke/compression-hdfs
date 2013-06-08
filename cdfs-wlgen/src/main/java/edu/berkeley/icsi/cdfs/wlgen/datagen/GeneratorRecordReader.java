@@ -12,6 +12,8 @@ import edu.berkeley.icsi.cdfs.wlgen.FixedByteRecord;
 
 public final class GeneratorRecordReader extends RecordReader<FixedByteRecord, NullWritable> {
 
+	private static final int SAFETY_MARGIN = 11;
+
 	private final Random rnd = new Random();
 
 	private final NullWritable value = NullWritable.get();
@@ -40,7 +42,7 @@ public final class GeneratorRecordReader extends RecordReader<FixedByteRecord, N
 
 	private static int getRandomLength(final int compressionFactor) {
 
-		return (int) Math.floor((double) (FixedByteRecord.LENGTH - FixedByteRecord.KEY_LENGTH - 1)
+		return (int) Math.floor((double) (FixedByteRecord.LENGTH - FixedByteRecord.KEY_LENGTH - SAFETY_MARGIN)
 			/ (double) compressionFactor);
 	}
 
