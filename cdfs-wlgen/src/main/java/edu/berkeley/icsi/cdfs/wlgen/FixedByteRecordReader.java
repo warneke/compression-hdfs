@@ -2,6 +2,8 @@ package edu.berkeley.icsi.cdfs.wlgen;
 
 import java.io.IOException;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -11,6 +13,8 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
 public final class FixedByteRecordReader extends RecordReader<FixedByteRecord, NullWritable> {
+
+	private static final Log LOG = LogFactory.getLog(FixedByteRecordReader.class);
 
 	private final FileSystem fileSystem;
 
@@ -24,22 +28,30 @@ public final class FixedByteRecordReader extends RecordReader<FixedByteRecord, N
 
 	private long numberOfBytesRead = 0;
 
-	public FixedByteRecordReader(final FixedByteInputSplit inputSplit, final Configuration conf) throws IOException,
-			InterruptedException {
+	public FixedByteRecordReader(final FixedByteInputSplit inputSplit, final Configuration conf, final boolean isLast)
+			throws IOException, InterruptedException {
 
 		this.fileSystem = inputSplit.getPath().getFileSystem(conf);
 		this.inputStream = this.fileSystem.open(inputSplit.getPath());
 		this.inputStream.seek(inputSplit.getOffset());
 
 		final long roundedOffset = roundToNextMultipleOf(inputSplit.getOffset(), FixedByteRecord.LENGTH);
-		final long roundedLength = roundToNextMultipleOf(inputSplit.getLength(), FixedByteRecord.LENGTH);
-
 		final long offsetDiff = roundedOffset - inputSplit.getOffset();
+
+		final long roundedLength;
+		if (isLast) {
+			roundedLength = inputSplit.getLength() - offsetDiff;
+		} else {
+			roundedLength = roundToNextMultipleOf(inputSplit.getLength(), FixedByteRecord.LENGTH);
+		}
+
 		if (offsetDiff != 0L) {
 			consumeOffset((int) offsetDiff);
 		}
 
-		this.numberOfBytesToRead = roundedLength - roundedOffset;
+		this.numberOfBytesToRead = roundedLength;
+
+		LOG.info("Starting to read " + inputSplit.getPath() + " at byte " + roundedOffset + " length " + roundedLength);
 	}
 
 	private final void consumeOffset(final int offset) throws IOException {
@@ -140,5 +152,4 @@ public final class FixedByteRecordReader extends RecordReader<FixedByteRecord, N
 
 		return true;
 	}
-
 }

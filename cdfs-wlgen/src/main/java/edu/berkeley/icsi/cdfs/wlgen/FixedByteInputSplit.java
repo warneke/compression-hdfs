@@ -18,11 +18,15 @@ public final class FixedByteInputSplit extends InputSplit implements Writable {
 
 	private String[] locations;
 
-	public FixedByteInputSplit(final Path path, final long offset, final long length, final String[] locations) {
+	private boolean isLast;
+
+	public FixedByteInputSplit(final Path path, final long offset, final long length, final String[] locations,
+			final boolean isLast) {
 		this.path = path;
 		this.offset = offset;
 		this.length = length;
 		this.locations = locations;
+		this.isLast = isLast;
 	}
 
 	public FixedByteInputSplit() {
@@ -43,6 +47,7 @@ public final class FixedByteInputSplit extends InputSplit implements Writable {
 		for (int i = 0; i < numberOfLocations; ++i) {
 			this.locations[i] = arg0.readUTF();
 		}
+		this.isLast = arg0.readBoolean();
 	}
 
 	/**
@@ -59,6 +64,7 @@ public final class FixedByteInputSplit extends InputSplit implements Writable {
 		for (int i = 0; i < this.locations.length; ++i) {
 			arg0.writeUTF(this.locations[i]);
 		}
+		arg0.writeBoolean(this.isLast);
 	}
 
 	public Path getPath() {
@@ -75,6 +81,10 @@ public final class FixedByteInputSplit extends InputSplit implements Writable {
 
 	public long getOffset() {
 		return this.offset;
+	}
+
+	public boolean isLast() {
+		return this.isLast;
 	}
 
 	/**

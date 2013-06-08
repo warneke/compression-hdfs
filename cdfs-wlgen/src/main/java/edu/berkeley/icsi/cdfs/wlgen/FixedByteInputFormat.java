@@ -30,7 +30,7 @@ public final class FixedByteInputFormat extends InputFormat<FixedByteRecord, Nul
 			final TaskAttemptContext arg1) throws IOException, InterruptedException {
 
 		final FixedByteInputSplit is = (FixedByteInputSplit) arg0;
-		return new FixedByteRecordReader(is, arg1.getConfiguration());
+		return new FixedByteRecordReader(is, arg1.getConfiguration(), is.isLast());
 	}
 
 	/**
@@ -72,7 +72,7 @@ public final class FixedByteInputFormat extends InputFormat<FixedByteRecord, Nul
 
 		for (int i = 0; i < blockLocations.length; ++i) {
 			inputSplits.add(new FixedByteInputSplit(inputPath, blockLocations[i].getOffset(), blockLocations[i]
-				.getLength(), blockLocations[i].getHosts()));
+				.getLength(), blockLocations[i].getHosts(), ((i + 1) == blockLocations.length)));
 		}
 
 		return inputSplits;
