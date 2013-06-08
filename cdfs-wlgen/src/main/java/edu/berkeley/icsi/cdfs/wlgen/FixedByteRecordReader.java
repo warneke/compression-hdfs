@@ -135,6 +135,11 @@ public final class FixedByteRecordReader extends RecordReader<FixedByteRecord, N
 			read += r;
 		}
 
+		// Verify record
+		if (buf[FixedByteRecord.LENGTH - 1] != '\n') {
+			throw new IllegalStateException("Illegal record " + this.key);
+		}
+
 		this.numberOfBytesRead += bufLength;
 	}
 
