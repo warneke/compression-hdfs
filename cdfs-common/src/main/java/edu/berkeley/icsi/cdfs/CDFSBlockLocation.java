@@ -11,11 +11,14 @@ public class CDFSBlockLocation extends BlockLocation {
 
 	private int index;
 
+	private int totalNumberOfBlocks;
+
 	public CDFSBlockLocation(final int index, final String[] names, final String[] hosts, final long offset,
-			final long length) {
+			final long length, final int totalNumberOfBlocks) {
 		super(names, hosts, offset, length);
 
 		this.index = index;
+		this.totalNumberOfBlocks = totalNumberOfBlocks;
 	}
 
 	public CDFSBlockLocation() {
@@ -23,6 +26,10 @@ public class CDFSBlockLocation extends BlockLocation {
 
 	public int getIndex() {
 		return this.index;
+	}
+
+	public int getTotalNumberOfBlocks() {
+		return this.totalNumberOfBlocks;
 	}
 
 	/**
@@ -63,6 +70,7 @@ public class CDFSBlockLocation extends BlockLocation {
 	public void write(final DataOutput out) throws IOException {
 
 		out.writeInt(this.index);
+		out.writeInt(this.totalNumberOfBlocks);
 		out.writeLong(this.getOffset());
 		out.writeLong(this.getLength());
 
@@ -96,6 +104,7 @@ public class CDFSBlockLocation extends BlockLocation {
 	public void readFields(DataInput in) throws IOException {
 
 		this.index = in.readInt();
+		this.totalNumberOfBlocks = in.readInt();
 		setOffset(in.readLong());
 		setLength(in.readLong());
 

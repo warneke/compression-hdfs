@@ -12,6 +12,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.util.StringUtils;
 
 import edu.berkeley.icsi.cdfs.CDFSBlockLocation;
 import edu.berkeley.icsi.cdfs.ConnectionMode;
@@ -134,13 +135,14 @@ final class Connection extends Thread {
 					throw new IllegalStateException("Unable to seek to position other than block offset");
 				}
 
+				final int totalNumberOfBlocks = blockLocations[0].getTotalNumberOfBlocks();
 				int blockIndex = blockLocations[0].getIndex();
 
 				final ReadOp readOp = new ReadOp(this.socket, this.conf);
 				operation = readOp;
 				boolean runLoop = true;
 
-				while (runLoop) {
+				while ((blockIndex < totalNumberOfBlocks) && runLoop) {
 
 					// Determine the expected length of the block
 					final long blockLength = (blockIndex == blockLocations[0].getIndex()) ? blockLocations[0]
@@ -219,6 +221,7 @@ final class Connection extends Thread {
 							+ readOp.getNumberOfBytesRead() + " bytes");
 						runLoop = false;
 					} catch (FileNotFoundException fnfe) {
+						LOG.error(StringUtils.stringifyException(fnfe));
 						break;
 					}
 

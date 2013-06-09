@@ -179,7 +179,7 @@ final class MetaDataStore {
 			}
 
 			blockLocations[i] = new CDFSBlockLocation(blocks[i].getIndex(), names, hosts, blocks[i].getOffset(),
-				blocks[i].getLength());
+				blocks[i].getLength(), fmd.getNumberOfBlocks());
 			LOG.info("Constructed " + blockLocations[i]);
 		}
 		return blockLocations;
