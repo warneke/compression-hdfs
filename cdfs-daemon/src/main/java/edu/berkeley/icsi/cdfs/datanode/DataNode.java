@@ -16,7 +16,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.ipc.RPC;
 
 import edu.berkeley.icsi.cdfs.CDFS;
-import edu.berkeley.icsi.cdfs.Header;
 import edu.berkeley.icsi.cdfs.cache.BufferPool;
 import edu.berkeley.icsi.cdfs.conf.ConfigConstants;
 import edu.berkeley.icsi.cdfs.conf.ConfigUtils;
@@ -94,9 +93,7 @@ public class DataNode {
 
 			final Socket socket = this.serverSocket.accept();
 
-			final Header header = Header.fromInputStream(socket.getInputStream());
-
-			new Connection(socket, header, this.nameNode, this.conf, this.host, this.hdfs, this.pathConverter);
+			new Connection(socket, this.nameNode, this.conf, this.host, this.hdfs, this.pathConverter);
 		}
 	}
 

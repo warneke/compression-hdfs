@@ -30,8 +30,6 @@ final class Connection extends Thread {
 
 	private final Socket socket;
 
-	private final Header header;
-
 	private final DataNodeNameNodeProtocol nameNode;
 
 	private final Configuration conf;
@@ -42,12 +40,11 @@ final class Connection extends Thread {
 
 	private final PathConverter pathConverter;
 
-	Connection(final Socket socket, final Header header, final DataNodeNameNodeProtocol nameNode,
+	Connection(final Socket socket, final DataNodeNameNodeProtocol nameNode,
 			final Configuration conf, final String host, final FileSystem hdfs, final PathConverter pathConverter) {
 		super("DataNodeConnection from " + socket.getRemoteSocketAddress());
 
 		this.socket = socket;
-		this.header = header;
 		this.nameNode = nameNode;
 		this.conf = conf;
 		this.host = host;
@@ -65,21 +62,23 @@ final class Connection extends Thread {
 		// The operation this connection handles
 		Closeable operation = null;
 
-		LOG.info("Starting connection for " + this.header);
-
 		// Read header first
 		try {
 
+			final Header header = Header.fromInputStream(this.socket.getInputStream());
+
+			LOG.info("Starting connection for " + header);
+
 			// Mode
-			if (this.header.getConnectionMode() == ConnectionMode.WRITE) {
+			if (header.getConnectionMode() == ConnectionMode.WRITE) {
 
 				int blockIndex = 0;
 				boolean readEOF = false;
-				final PathWrapper cdfsPath = new PathWrapper(this.header.getPath());
+				final PathWrapper cdfsPath = new PathWrapper(header.getPath());
 				final WriteOp writeOp = new WriteOp(this.socket, this.hdfs, this.conf);
 				operation = writeOp;
 				while (!readEOF) {
-					final Path hdfsPath = this.pathConverter.convert(this.header.getPath(), "_" + blockIndex);
+					final Path hdfsPath = this.pathConverter.convert(header.getPath(), "_" + blockIndex);
 
 					LOG.info("Writing block " + blockIndex + " to disk");
 					readEOF = writeOp.write(hdfsPath, ConfigConstants.BLOCK_SIZE);
@@ -115,12 +114,12 @@ final class Connection extends Thread {
 
 			} else {
 
-				final PathWrapper cdfsPath = new PathWrapper(this.header.getPath());
+				final PathWrapper cdfsPath = new PathWrapper(header.getPath());
 
 				CDFSBlockLocation[] blockLocations;
 				synchronized (this.nameNode) {
-					blockLocations = this.nameNode.getFileBlockLocations(new PathWrapper(this.header.getPath()),
-						this.header.getPos(), 0L);
+					blockLocations = this.nameNode.getFileBlockLocations(new PathWrapper(header.getPath()),
+						header.getPos(), 0L);
 				}
 
 				if (blockLocations == null) {
@@ -131,7 +130,7 @@ final class Connection extends Thread {
 					throw new IllegalStateException("Length of blockLocations is " + blockLocations.length);
 				}
 
-				if (this.header.getPos() != blockLocations[0].getOffset()) {
+				if (header.getPos() != blockLocations[0].getOffset()) {
 					throw new IllegalStateException("Unable to seek to position other than block offset");
 				}
 
@@ -149,8 +148,7 @@ final class Connection extends Thread {
 					LOG.info("Determined length of block " + blockIndex + " to be " + blockLength + " bytes");
 
 					// See if we have the uncompressed version cached
-					List<Buffer> uncompressedBuffers = UncompressedBufferCache.get().lock(this.header.getPath(),
-						blockIndex);
+					List<Buffer> uncompressedBuffers = UncompressedBufferCache.get().lock(header.getPath(), blockIndex);
 
 					if (uncompressedBuffers != null) {
 						try {
@@ -162,7 +160,7 @@ final class Connection extends Thread {
 								+readOp.getNumberOfBytesRead() + " bytes");
 							runLoop = false;
 						} finally {
-							UncompressedBufferCache.get().unlock(this.header.getPath(), blockIndex);
+							UncompressedBufferCache.get().unlock(header.getPath(), blockIndex);
 						}
 
 						++blockIndex;
@@ -182,7 +180,7 @@ final class Connection extends Thread {
 								+ readOp.getNumberOfBytesRead() + " bytes");
 							runLoop = false;
 						} finally {
-							CompressedBufferCache.get().unlock(this.header.getPath(), blockIndex);
+							CompressedBufferCache.get().unlock(header.getPath(), blockIndex);
 						}
 
 						if (!readOp.isBlockFullyRead(blockLength)) {
@@ -198,7 +196,7 @@ final class Connection extends Thread {
 						// See if we had enough buffers to cache the uncompressed data
 						uncompressedBuffers = readOp.getUncompressedBuffers();
 						if (!uncompressedBuffers.isEmpty()) {
-							if (UncompressedBufferCache.get().addCachedBlock(this.header.getPath(), blockIndex,
+							if (UncompressedBufferCache.get().addCachedBlock(header.getPath(), blockIndex,
 								uncompressedBuffers)) {
 								synchronized (this.nameNode) {
 									this.nameNode.reportCachedBlock(cdfsPath, blockIndex, false, this.host);
@@ -211,7 +209,7 @@ final class Connection extends Thread {
 					}
 
 					// We don't have the block cached, need to get it from HDFS
-					final Path hdfsPath = this.pathConverter.convert(this.header.getPath(), "_" + blockIndex);
+					final Path hdfsPath = this.pathConverter.convert(header.getPath(), "_" + blockIndex);
 
 					try {
 						LOG.info("Reading block " + blockIndex + " from disk");
@@ -237,7 +235,7 @@ final class Connection extends Thread {
 					// See if we had enough buffers to cache the written data
 					uncompressedBuffers = readOp.getUncompressedBuffers();
 					if (!uncompressedBuffers.isEmpty()) {
-						if (UncompressedBufferCache.get().addCachedBlock(this.header.getPath(), blockIndex,
+						if (UncompressedBufferCache.get().addCachedBlock(header.getPath(), blockIndex,
 							uncompressedBuffers)) {
 							synchronized (this.nameNode) {
 								this.nameNode.reportCachedBlock(cdfsPath, blockIndex, false, this.host);
@@ -247,8 +245,7 @@ final class Connection extends Thread {
 
 					compressedBuffers = readOp.getCompressedBuffers();
 					if (!compressedBuffers.isEmpty()) {
-						if (CompressedBufferCache.get().addCachedBlock(this.header.getPath(), blockIndex,
-							compressedBuffers)) {
+						if (CompressedBufferCache.get().addCachedBlock(header.getPath(), blockIndex, compressedBuffers)) {
 							synchronized (this.nameNode) {
 								this.nameNode.reportCachedBlock(cdfsPath, blockIndex, true, this.host);
 							}
@@ -258,6 +255,9 @@ final class Connection extends Thread {
 					++blockIndex;
 				}
 			}
+
+			LOG.info("Finishing connection for " + header);
+
 		} catch (IOException ioe) {
 			ioe.printStackTrace();
 		} finally {
@@ -275,8 +275,6 @@ final class Connection extends Thread {
 
 			} catch (IOException ioe) {
 			}
-
-			LOG.info("Finishing connection for " + this.header);
 		}
 	}
 }
