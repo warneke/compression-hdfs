@@ -93,17 +93,20 @@ final class Connection extends Thread {
 					// See if we had enough buffers to cache the written data
 					final List<Buffer> uncompressedBuffers = writeOp.getUncompressedBuffers();
 					if (!uncompressedBuffers.isEmpty()) {
-						UncompressedBufferCache.get().addCachedBlock(header.getPath(), blockIndex, uncompressedBuffers);
-						synchronized (this.nameNode) {
-							this.nameNode.reportCachedBlock(cdfsPath, blockIndex, false, this.host);
+						if (UncompressedBufferCache.get().addCachedBlock(header.getPath(), blockIndex,
+							uncompressedBuffers)) {
+							synchronized (this.nameNode) {
+								this.nameNode.reportCachedBlock(cdfsPath, blockIndex, false, this.host);
+							}
 						}
 					}
 
 					final List<Buffer> compressedBuffers = writeOp.getCompressedBuffers();
 					if (!compressedBuffers.isEmpty()) {
-						CompressedBufferCache.get().addCachedBlock(header.getPath(), blockIndex, compressedBuffers);
-						synchronized (this.nameNode) {
-							this.nameNode.reportCachedBlock(cdfsPath, blockIndex, true, this.host);
+						if (CompressedBufferCache.get().addCachedBlock(header.getPath(), blockIndex, compressedBuffers)) {
+							synchronized (this.nameNode) {
+								this.nameNode.reportCachedBlock(cdfsPath, blockIndex, true, this.host);
+							}
 						}
 					}
 
@@ -195,10 +198,11 @@ final class Connection extends Thread {
 						// See if we had enough buffers to cache the uncompressed data
 						uncompressedBuffers = readOp.getUncompressedBuffers();
 						if (!uncompressedBuffers.isEmpty()) {
-							UncompressedBufferCache.get().addCachedBlock(this.header.getPath(), blockIndex,
-								uncompressedBuffers);
-							synchronized (this.nameNode) {
-								this.nameNode.reportCachedBlock(cdfsPath, blockIndex, false, this.host);
+							if (UncompressedBufferCache.get().addCachedBlock(this.header.getPath(), blockIndex,
+								uncompressedBuffers)) {
+								synchronized (this.nameNode) {
+									this.nameNode.reportCachedBlock(cdfsPath, blockIndex, false, this.host);
+								}
 							}
 						}
 
@@ -233,19 +237,21 @@ final class Connection extends Thread {
 					// See if we had enough buffers to cache the written data
 					uncompressedBuffers = readOp.getUncompressedBuffers();
 					if (!uncompressedBuffers.isEmpty()) {
-						UncompressedBufferCache.get().addCachedBlock(this.header.getPath(), blockIndex,
-							uncompressedBuffers);
-						synchronized (this.nameNode) {
-							this.nameNode.reportCachedBlock(cdfsPath, blockIndex, false, this.host);
+						if (UncompressedBufferCache.get().addCachedBlock(this.header.getPath(), blockIndex,
+							uncompressedBuffers)) {
+							synchronized (this.nameNode) {
+								this.nameNode.reportCachedBlock(cdfsPath, blockIndex, false, this.host);
+							}
 						}
 					}
 
 					compressedBuffers = readOp.getCompressedBuffers();
 					if (!compressedBuffers.isEmpty()) {
-						CompressedBufferCache.get()
-							.addCachedBlock(this.header.getPath(), blockIndex, compressedBuffers);
-						synchronized (this.nameNode) {
-							this.nameNode.reportCachedBlock(cdfsPath, blockIndex, true, this.host);
+						if (CompressedBufferCache.get().addCachedBlock(this.header.getPath(), blockIndex,
+							compressedBuffers)) {
+							synchronized (this.nameNode) {
+								this.nameNode.reportCachedBlock(cdfsPath, blockIndex, true, this.host);
+							}
 						}
 					}
 

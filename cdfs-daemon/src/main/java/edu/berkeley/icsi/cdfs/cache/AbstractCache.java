@@ -121,7 +121,7 @@ abstract class AbstractCache {
 		}
 	}
 
-	public void addCachedBlock(final Path path, final int blockIndex, final List<Buffer> buffers) {
+	public boolean addCachedBlock(final Path path, final int blockIndex, final List<Buffer> buffers) {
 
 		final BlockKey bk = new BlockKey(path, blockIndex);
 
@@ -135,12 +135,14 @@ abstract class AbstractCache {
 				while (it.hasNext()) {
 					bp.releaseBuffer(it.next().getData());
 				}
-				return;
+				return false;
 			}
 
 			LOG.info("Adding " + path + " to cache " + getName() + " (" + buffers.size() + " buffers)");
 			this.cache.put(bk, new CacheEntry(buffers));
 		}
+
+		return true;
 	}
 
 	protected abstract String getName();
