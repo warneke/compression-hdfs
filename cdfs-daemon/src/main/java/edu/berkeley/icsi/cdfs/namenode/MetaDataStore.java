@@ -229,25 +229,25 @@ final class MetaDataStore {
 
 		EvictionEntry ee = hcd.getLargestUncompressedIncompleteFile();
 		if (ee != null) {
-			LOG.info("Chose to evict " + ee.getPathWrapper().getPath() + " (uncompressed, incomplete)");
+			LOG.info("Chose to evict " + ee.getPathWrapper().getPath() + " (uncompressed, incomplete) at " + host);
 			return ee;
 		}
 
 		ee = hcd.getLargestCompressedIncompleteFile();
 		if (ee != null) {
-			LOG.info("Chose to evict " + ee.getPathWrapper().getPath() + " (compressed, incomplete)");
+			LOG.info("Chose to evict " + ee.getPathWrapper().getPath() + " (compressed, incomplete) at " + host);
 			return ee;
 		}
 
 		ee = hcd.getLargestUncompressedCompleteFile();
 		if (ee != null) {
-			LOG.info("Chose to evict " + ee.getPathWrapper().getPath() + " (uncompressed, complete)");
+			LOG.info("Chose to evict " + ee.getPathWrapper().getPath() + " (uncompressed, complete) at " + host);
 			return ee;
 		}
 
 		ee = hcd.getLargestCompressedCompleteFile();
 		if (ee != null) {
-			LOG.info("Chose to evict " + ee.getPathWrapper().getPath() + " (compressed, complete)");
+			LOG.info("Chose to evict " + ee.getPathWrapper().getPath() + " (compressed, complete) at " + host);
 			return ee;
 		}
 

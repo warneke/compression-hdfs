@@ -16,11 +16,11 @@ final class FileMetaData implements KryoSerializable, Comparable<FileMetaData> {
 
 	private Path path;
 
-	private final List<BlockMetaData> blocks = new ArrayList<BlockMetaData>();
-
 	private long length;
 
 	private long modificationTime;
+
+	private final List<BlockMetaData> blocks = new ArrayList<BlockMetaData>();
 
 	FileMetaData(final Path path) {
 		this.path = path;
@@ -189,7 +189,9 @@ final class FileMetaData implements KryoSerializable, Comparable<FileMetaData> {
 	@Override
 	public int compareTo(final FileMetaData o) {
 
-		final long diff = o.length - this.length;
+		long diff = o.path.compareTo(this.path);
+		diff += (o.length - this.length);
+
 		if (diff < (long) Integer.MIN_VALUE) {
 			return Integer.MIN_VALUE;
 		}
@@ -199,5 +201,27 @@ final class FileMetaData implements KryoSerializable, Comparable<FileMetaData> {
 		}
 
 		return (int) diff;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public boolean equals(final Object obj) {
+
+		if (!(obj instanceof FileMetaData)) {
+			return false;
+		}
+
+		return compareTo((FileMetaData) obj) == 0;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public int hashCode() {
+
+		return (int) (this.path.hashCode() + this.length);
 	}
 }

@@ -136,4 +136,56 @@ final class BlockMetaData implements KryoSerializable {
 		this.length = input.readInt();
 		this.offset = input.readLong();
 	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public String toString() {
+
+		return Integer.toString(this.index);
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public boolean equals(final Object obj) {
+
+		if (!(obj instanceof BlockMetaData)) {
+			return false;
+		}
+
+		final BlockMetaData bmd = (BlockMetaData) obj;
+
+		if (this.index != bmd.index) {
+			return false;
+		}
+
+		if (this.length != bmd.length) {
+			return false;
+		}
+
+		if (this.offset != bmd.offset) {
+			return false;
+		}
+
+		if (!this.hdfsPath.equals(bmd.hdfsPath)) {
+			throw new RuntimeException("Equals fails because of path: " + this.hdfsPath + " vs " + bmd.hdfsPath);
+		}
+
+		return true;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public int hashCode() {
+
+		int hc = -(int) (this.offset % Integer.MAX_VALUE);
+		hc += (int) (this.length % Integer.MAX_VALUE);
+
+		return hc + (this.index * 31);
+	}
 }
