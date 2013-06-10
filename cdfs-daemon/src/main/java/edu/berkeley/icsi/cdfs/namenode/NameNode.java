@@ -26,6 +26,7 @@ import edu.berkeley.icsi.cdfs.conf.ConfigConstants;
 import edu.berkeley.icsi.cdfs.conf.ConfigUtils;
 import edu.berkeley.icsi.cdfs.protocols.ClientNameNodeProtocol;
 import edu.berkeley.icsi.cdfs.protocols.DataNodeNameNodeProtocol;
+import edu.berkeley.icsi.cdfs.statistics.UserStatistics;
 import edu.berkeley.icsi.cdfs.utils.PathConverter;
 import edu.berkeley.icsi.cdfs.utils.PathWrapper;
 
@@ -236,5 +237,14 @@ public class NameNode implements ClientNameNodeProtocol, DataNodeNameNodeProtoco
 		LOG.info(hostname + " requested data node, returning " + ci.getHostname());
 
 		return ci;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public void reportUserStatistics(final UserStatistics userStatistics) throws IOException {
+
+		LOG.info("Statistics received " + userStatistics);
 	}
 }

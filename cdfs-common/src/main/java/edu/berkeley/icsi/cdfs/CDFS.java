@@ -18,6 +18,7 @@ import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.util.Progressable;
 
 import edu.berkeley.icsi.cdfs.protocols.ClientNameNodeProtocol;
+import edu.berkeley.icsi.cdfs.statistics.StatisticsOutputStream;
 import edu.berkeley.icsi.cdfs.utils.HostUtils;
 import edu.berkeley.icsi.cdfs.utils.PathWrapper;
 
@@ -35,13 +36,13 @@ public class CDFS extends FileSystem {
 
 	private InetSocketAddress dataNodeAddress;
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public FSDataOutputStream append(Path arg0, int arg1, Progressable arg2)
-			throws IOException {
+	public FSDataOutputStream append(final Path arg0, final int arg1, final Progressable arg2) throws IOException {
 
-		System.out.println("append");
-		// TODO Auto-generated method stub
-		return null;
+		return new FSDataOutputStream(new StatisticsOutputStream(this.nameNode, arg0), null);
 	}
 
 	/**

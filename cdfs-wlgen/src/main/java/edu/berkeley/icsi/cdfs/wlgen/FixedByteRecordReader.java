@@ -26,10 +26,14 @@ public final class FixedByteRecordReader extends RecordReader<FixedByteRecord, N
 
 	private final long numberOfBytesToRead;
 
+	private final StatisticsCollector statisticsCollector;
+
 	private long numberOfBytesRead = 0;
 
-	public FixedByteRecordReader(final FixedByteInputSplit inputSplit, final Configuration conf, final boolean isLast)
-			throws IOException, InterruptedException {
+	public FixedByteRecordReader(final FixedByteInputSplit inputSplit, final Configuration conf, final int taskID,
+			final boolean isLast) throws IOException, InterruptedException {
+
+		this.statisticsCollector = new StatisticsCollector(conf, taskID, true);
 
 		this.fileSystem = inputSplit.getPath().getFileSystem(conf);
 		this.inputStream = this.fileSystem.open(inputSplit.getPath());
@@ -115,11 +119,14 @@ public final class FixedByteRecordReader extends RecordReader<FixedByteRecord, N
 		return (float) ratio;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void initialize(final InputSplit arg0, final TaskAttemptContext arg1) throws IOException,
 			InterruptedException {
-		// TODO Auto-generated method stub
-		System.out.println("initialize");
+
+		// Nothing to do here
 	}
 
 	private void readNextRecord() throws IOException {
@@ -150,6 +157,7 @@ public final class FixedByteRecordReader extends RecordReader<FixedByteRecord, N
 	public boolean nextKeyValue() throws IOException, InterruptedException {
 
 		if (this.numberOfBytesRead >= this.numberOfBytesToRead) {
+			this.statisticsCollector.close();
 			return false;
 		}
 
