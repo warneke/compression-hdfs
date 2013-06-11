@@ -28,6 +28,7 @@ final class MRJobGenerator {
 		jfc.addClass(MapTask.class);
 		jfc.addClass(ReduceTask.class);
 		jfc.addClass(ReducePartitioner.class);
+		jfc.addClass(StatisticsCollector.class);
 		jfc.addClass(IORatioAdapter.class);
 		jfc.createJarFile();
 		return jarFile.getAbsolutePath();
@@ -41,6 +42,7 @@ final class MRJobGenerator {
 		}
 
 		final Configuration jobConf = new Configuration(conf);
+		jobConf.set(StatisticsCollector.JOB_NAME_CONF_KEY, mapReduceJob.getJobID());
 		jobConf.set("mapred.jar", JAR_FILE);
 		jobConf.set(FixedByteInputFormat.INPUT_PATH, basePath + java.io.File.separator
 			+ mapReduceJob.getInputFile().getName());

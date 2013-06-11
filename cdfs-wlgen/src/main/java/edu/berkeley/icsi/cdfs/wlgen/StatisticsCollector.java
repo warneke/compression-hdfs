@@ -3,60 +3,48 @@ package edu.berkeley.icsi.cdfs.wlgen;
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
+import edu.berkeley.icsi.cdfs.CDFS;
 import edu.berkeley.icsi.cdfs.conf.ConfigConstants;
-import edu.berkeley.icsi.cdfs.utils.NumberUtils;
+import edu.berkeley.icsi.cdfs.statistics.UserStatistics;
 
 final class StatisticsCollector {
 
 	public static final String JOB_NAME_CONF_KEY = "job.statistics.name";
 
-	private final FSDataOutputStream outputStream;
+	private final String jobID;
 
-	StatisticsCollector(final Configuration conf, final int taskID, final boolean map) throws IOException {
+	private final boolean isMap;
 
-		final Path path = getStatisticsPath(conf);
+	private final int taskID;
 
-		final FileSystem fs = path.getFileSystem(conf);
-		this.outputStream = fs.append(path);
+	private final long startTime;
 
-		// Write prefix
-		final byte[] buf = new byte[5];
-		buf[0] = (byte) (map ? 'M' : 'R');
-		NumberUtils.integerToByteArray(taskID, buf, 1);
-		this.outputStream.write(buf);
-		writeTimestamp();
-	}
+	private final CDFS cdfs;
 
-	void close() throws IOException {
-		writeTimestamp();
-		this.outputStream.close();
-	}
+	StatisticsCollector(final Configuration conf, final boolean isMap, final int taskID) throws IOException {
 
-	private void writeTimestamp() throws IOException {
-
-		final byte[] buf = new byte[8];
-		NumberUtils.longToByteArray(System.currentTimeMillis(), buf, 0);
-		this.outputStream.write(buf);
-	}
-
-	private static Path getStatisticsPath(final Configuration conf) {
-
-		final String jobName = conf.get(JOB_NAME_CONF_KEY);
-		if (jobName == null) {
+		this.jobID = conf.get(JOB_NAME_CONF_KEY);
+		if (this.jobID == null) {
 			throw new IllegalStateException("Cannot determine job name");
 		}
 
-		final String hdfsBase = conf.get(ConfigConstants.CDFS_DEFAULT_NAME_KEY,
-			ConfigConstants.DEFEAULT_CDFS_DEFAULT_NAME);
+		this.isMap = isMap;
+		this.taskID = taskID;
+		this.startTime = System.currentTimeMillis();
 
-		final StringBuilder sb = new StringBuilder(hdfsBase);
-		sb.append(Path.SEPARATOR_CHAR);
-		sb.append(jobName);
+		final Path cdfsPath = new Path(conf.get(ConfigConstants.CDFS_DEFAULT_NAME_KEY,
+			ConfigConstants.DEFEAULT_CDFS_DEFAULT_NAME));
 
-		return new Path(sb.toString());
+		this.cdfs = (CDFS) cdfsPath.getFileSystem(conf);
+	}
+
+	void close() throws IOException {
+
+		final UserStatistics us = new UserStatistics(this.jobID, this.isMap, this.taskID, this.startTime,
+			System.currentTimeMillis());
+
+		this.cdfs.reportUserStatistics(us);
 	}
 }

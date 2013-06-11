@@ -18,7 +18,7 @@ import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.util.Progressable;
 
 import edu.berkeley.icsi.cdfs.protocols.ClientNameNodeProtocol;
-import edu.berkeley.icsi.cdfs.statistics.StatisticsOutputStream;
+import edu.berkeley.icsi.cdfs.statistics.UserStatistics;
 import edu.berkeley.icsi.cdfs.utils.HostUtils;
 import edu.berkeley.icsi.cdfs.utils.PathWrapper;
 
@@ -42,7 +42,12 @@ public class CDFS extends FileSystem {
 	@Override
 	public FSDataOutputStream append(final Path arg0, final int arg1, final Progressable arg2) throws IOException {
 
-		return new FSDataOutputStream(new StatisticsOutputStream(this.nameNode, arg0), null);
+		throw new UnsupportedOperationException();
+	}
+
+	public void reportUserStatistics(final UserStatistics userStatistics) throws IOException {
+
+		this.nameNode.reportUserStatistics(userStatistics);
 	}
 
 	/**

@@ -18,6 +18,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.ipc.RPC.Server;
+import org.apache.hadoop.util.StringUtils;
 
 import edu.berkeley.icsi.cdfs.CDFSBlockLocation;
 import edu.berkeley.icsi.cdfs.ConnectionInfo;
@@ -39,6 +40,8 @@ public class NameNode implements ClientNameNodeProtocol, DataNodeNameNodeProtoco
 	private final Server rpcServer;
 
 	private final MetaDataStore metaDataStore;
+
+	private final StatisticsCollector statisticsCollector;
 
 	private final FileSystem hdfs;
 
@@ -74,10 +77,12 @@ public class NameNode implements ClientNameNodeProtocol, DataNodeNameNodeProtoco
 		this.hdfs = new Path(hdfsURI).getFileSystem(conf);
 
 		this.metaDataStore = new MetaDataStore(this.hdfs, this.pathConverter);
+		this.statisticsCollector = new StatisticsCollector(conf);
 	}
 
 	public void shutDown() {
 		this.rpcServer.stop();
+		this.statisticsCollector.stop();
 	}
 
 	public static void main(final String[] args) {
@@ -91,24 +96,33 @@ public class NameNode implements ClientNameNodeProtocol, DataNodeNameNodeProtoco
 			return;
 		}
 
-		NameNode nameNode = null;
+		final NameNode nameNode;
 
 		try {
-
 			nameNode = new NameNode(conf);
-			while (true) {
-				try {
-					Thread.sleep(5000L);
-				} catch (InterruptedException ie) {
-					break;
-				}
+		} catch (IOException ioe) {
+			LOG.error(StringUtils.stringifyException(ioe));
+			return;
+		}
+
+		// Register shutdown hook
+		Runtime.getRuntime().addShutdownHook(new Thread() {
+
+			/**
+			 * {@inheritDoc}
+			 */
+			@Override
+			public void run() {
+				nameNode.shutDown();
 			}
 
-		} catch (IOException ioe) {
-			ioe.printStackTrace();
-		} finally {
-			if (nameNode != null) {
-				nameNode.shutDown();
+		});
+
+		// Loop
+		while (true) {
+			try {
+				Thread.sleep(5000L);
+			} catch (InterruptedException ie) {
 			}
 		}
 	}
@@ -245,6 +259,6 @@ public class NameNode implements ClientNameNodeProtocol, DataNodeNameNodeProtoco
 	@Override
 	public void reportUserStatistics(final UserStatistics userStatistics) throws IOException {
 
-		LOG.info("Statistics received " + userStatistics);
+		this.statisticsCollector.collectUserStatistics(userStatistics);
 	}
 }

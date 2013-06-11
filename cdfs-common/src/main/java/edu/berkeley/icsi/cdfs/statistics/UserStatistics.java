@@ -4,32 +4,48 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 
-import org.apache.hadoop.io.Writable;
+public final class UserStatistics implements AbstractStatistics {
 
-public final class UserStatistics implements Writable {
+	private String jobID;
 
-	private String path;
+	private boolean isMap;
 
-	private byte[] buf;
+	private int taskID;
 
-	public UserStatistics(final String path, final byte[] buf) {
-		this.path = path;
-		this.buf = buf;
+	private long startTime;
+
+	private long endTime;
+
+	public UserStatistics(final String jobID, final boolean isMap, final int taskID, final long startTime,
+			final long endTime) {
+		this.jobID = jobID;
+		this.isMap = isMap;
+		this.taskID = taskID;
+		this.startTime = startTime;
+		this.endTime = endTime;
 	}
 
 	public UserStatistics() {
-		this.path = null;
-		this.buf = null;
 	}
 
-	public String getPath() {
-
-		return this.path;
+	public String getJobID() {
+		return this.jobID;
 	}
 
-	public byte[] getBuffer() {
+	public boolean isMap() {
+		return this.isMap;
+	}
 
-		return this.buf;
+	public int getTaskID() {
+		return this.taskID;
+	}
+
+	public long getStartTime() {
+		return this.startTime;
+	}
+
+	public long getEndTime() {
+		return this.endTime;
 	}
 
 	/**
@@ -38,10 +54,11 @@ public final class UserStatistics implements Writable {
 	@Override
 	public void readFields(final DataInput arg0) throws IOException {
 
-		this.path = arg0.readUTF();
-		final int bufferSize = arg0.readInt();
-		this.buf = new byte[bufferSize];
-		arg0.readFully(this.buf);
+		this.jobID = arg0.readUTF();
+		this.isMap = arg0.readBoolean();
+		this.taskID = arg0.readInt();
+		this.startTime = arg0.readLong();
+		this.endTime = arg0.readLong();
 	}
 
 	/**
@@ -50,9 +67,10 @@ public final class UserStatistics implements Writable {
 	@Override
 	public void write(final DataOutput arg0) throws IOException {
 
-		arg0.writeUTF(this.path);
-		arg0.writeInt(this.buf.length);
-		arg0.write(this.buf);
+		arg0.writeUTF(this.jobID);
+		arg0.writeBoolean(this.isMap);
+		arg0.writeInt(this.taskID);
+		arg0.writeLong(this.startTime);
+		arg0.writeLong(this.endTime);
 	}
-
 }
