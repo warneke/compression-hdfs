@@ -30,7 +30,8 @@ public final class FixedByteInputFormat extends InputFormat<FixedByteRecord, Nul
 			final TaskAttemptContext arg1) throws IOException, InterruptedException {
 
 		final FixedByteInputSplit is = (FixedByteInputSplit) arg0;
-		return new FixedByteRecordReader(is, arg1.getConfiguration(), arg1.getTaskAttemptID().getId(), is.isLast());
+		return new FixedByteRecordReader(is, arg1.getConfiguration(), arg1.getTaskAttemptID().getTaskID().getId(),
+			is.isLast());
 	}
 
 	/**

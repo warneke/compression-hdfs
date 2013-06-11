@@ -4,7 +4,6 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
-import java.io.InputStream;
 
 public abstract class AbstractStatisticsParser {
 
@@ -35,14 +34,12 @@ public abstract class AbstractStatisticsParser {
 		throw new IllegalStateException("Unknown mapping for byte " + b);
 	}
 
-	public void parse(final InputStream inputStream) throws IOException {
-
-		final DataInputStream dis = new DataInputStream(inputStream);
+	public void parse(final DataInputStream inputStream) throws IOException {
 
 		try {
 			while (true) {
 
-				final byte b = dis.readByte();
+				final byte b = inputStream.readByte();
 				final Class<? extends AbstractStatistics> clazz = byteToType(b);
 
 				final AbstractStatistics as;
@@ -52,7 +49,7 @@ public abstract class AbstractStatisticsParser {
 					throw new IOException(e);
 				}
 
-				as.readFields(dis);
+				as.readFields(inputStream);
 
 				switch (b) {
 				case USER_STATISTICS_BYTE:
@@ -64,8 +61,6 @@ public abstract class AbstractStatisticsParser {
 
 			}
 		} catch (EOFException eof) {
-		} finally {
-			dis.close();
 		}
 	}
 

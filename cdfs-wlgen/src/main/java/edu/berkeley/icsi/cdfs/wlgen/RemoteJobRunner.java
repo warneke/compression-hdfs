@@ -14,8 +14,6 @@ public final class RemoteJobRunner {
 
 	private static final String JOB_SUBMISSION_TIME_KEY = "job.submission.time";
 
-	private static final String JOB_STARTING_TIME_KEY = "job.starting.time";
-
 	private static final long SLEEP_TIME = 200;
 
 	private RemoteJobRunner() {
@@ -23,6 +21,8 @@ public final class RemoteJobRunner {
 
 	public static void submitAndWait(final List<Job> jobs) throws IOException, InterruptedException,
 			ClassNotFoundException {
+
+		System.out.println("Launching " + jobs.size() + " jobs");
 
 		final List<Job> runningJobs = new LinkedList<Job>();
 
@@ -44,26 +44,15 @@ public final class RemoteJobRunner {
 				if (job.isComplete()) {
 					it.remove();
 					final Configuration conf = job.getConfiguration();
-					final long startingTime = conf.getLong(JOB_STARTING_TIME_KEY, -1L);
-					if (startingTime == -1L) {
-						System.out.println(job.getJobName() + " no completion time");
-					} else {
-						System.out.println(job.getJobName() + " completion time "
-							+ (System.currentTimeMillis() - startingTime));
-					}
+					final long now = System.currentTimeMillis();
+					final long timeFromSubmission = now - conf.getLong(JOB_SUBMISSION_TIME_KEY, -1L);
+					System.out.println(job.getJobName() + " finished after " + timeFromSubmission);
+
 					progressMap.remove(job);
 					continue;
 				}
 
-				final float mapProgress = job.mapProgress();
-				if (mapProgress > 0.0f) {
-					final Configuration conf = job.getConfiguration();
-					if (conf.getLong(JOB_STARTING_TIME_KEY, -1L) == -1) {
-						conf.setLong(JOB_STARTING_TIME_KEY, System.currentTimeMillis());
-					}
-				}
-
-				final String progressBar = getProgressBar(mapProgress, job.reduceProgress());
+				final String progressBar = getProgressBar(job.mapProgress(), job.reduceProgress());
 
 				if (!progressBar.equals(progressMap.put(job, progressBar))) {
 					System.out.println(job.getJobName() + " " + progressBar);

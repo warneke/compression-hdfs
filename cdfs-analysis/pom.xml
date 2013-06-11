@@ -5,12 +5,15 @@
 
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>edu.berkeley.icsi</groupId>
-	<artifactId>cdfs</artifactId>
-	<version>0.1</version>
+	<parent>
+		<artifactId>cdfs</artifactId>
+		<groupId>edu.berkeley.icsi</groupId>
+		<version>0.1</version>
+	</parent>
 
-	<name>cdfs</name>
-	<packaging>pom</packaging>
+	<artifactId>cdfs-analysis</artifactId>
+
+	<name>cdfs-analysis</name>
 	<url>http://icsi.berkeley.edu</url>
 	<inceptionYear>2012</inceptionYear>
 
@@ -73,12 +76,16 @@
 		</plugins>
 	</build>
 
-	<modules>
-		<module>cdfs-analysis</module>
-		<module>cdfs-common</module>
-		<module>cdfs-daemon</module>
-		<module>cdfs-benchmark</module>
-		<module>cdfs-dist</module>
-		<module>cdfs-wlgen</module>
-	</modules>
+ <dependencies>
+       <dependency>
+           <groupId>edu.berkeley.icsi</groupId>
+           <artifactId>cdfs-common</artifactId>
+           <version>0.1</version>
+       </dependency>
+        <!--<dependency>
+           <groupId>org.apache.hadoop</groupId>
+           <artifactId>hadoop-hdfs-httpfs</artifactId>
+           <version>2.0.1-alpha</version>
+        </dependency>-->
+    </dependencies>
 </project>
