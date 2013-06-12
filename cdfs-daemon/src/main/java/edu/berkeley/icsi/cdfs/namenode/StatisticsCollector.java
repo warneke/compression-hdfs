@@ -4,6 +4,8 @@ import java.io.BufferedOutputStream;
 import java.io.DataOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Iterator;
+import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -12,7 +14,8 @@ import org.apache.hadoop.util.StringUtils;
 
 import edu.berkeley.icsi.cdfs.conf.ConfigConstants;
 import edu.berkeley.icsi.cdfs.statistics.AbstractStatisticsParser;
-import edu.berkeley.icsi.cdfs.statistics.UserStatistics;
+import edu.berkeley.icsi.cdfs.statistics.ReadStatistics;
+import edu.berkeley.icsi.cdfs.statistics.MapUserStatistics;
 
 final class StatisticsCollector {
 
@@ -55,10 +58,20 @@ final class StatisticsCollector {
 		}
 	}
 
-	void collectUserStatistics(final UserStatistics userStatistics) throws IOException {
+	void collectUserStatistics(final MapUserStatistics userStatistics) throws IOException {
 
 		synchronized (this.outputStream) {
 			AbstractStatisticsParser.toOutputStream(userStatistics, this.outputStream);
+		}
+	}
+
+	void collectReadStatistics(final List<ReadStatistics> readStatistics) throws IOException {
+
+		synchronized (this.outputStream) {
+			final Iterator<ReadStatistics> it = readStatistics.iterator();
+			while (it.hasNext()) {
+				AbstractStatisticsParser.toOutputStream(it.next(), this.outputStream);
+			}
 		}
 	}
 }

@@ -33,7 +33,7 @@ public final class FixedByteRecordReader extends RecordReader<FixedByteRecord, N
 	public FixedByteRecordReader(final FixedByteInputSplit inputSplit, final Configuration conf, final int taskID,
 			final boolean isLast) throws IOException, InterruptedException {
 
-		this.statisticsCollector = new StatisticsCollector(conf, true, taskID);
+		this.statisticsCollector = new StatisticsCollector(conf, taskID, inputSplit.getPath(), inputSplit.getIndex());
 
 		this.fileSystem = inputSplit.getPath().getFileSystem(conf);
 		this.inputStream = this.fileSystem.open(inputSplit.getPath());

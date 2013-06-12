@@ -7,7 +7,9 @@ import java.io.IOException;
 
 public abstract class AbstractStatisticsParser {
 
-	private static final byte USER_STATISTICS_BYTE = 0;
+	private static final byte MAP_USER_STATISTICS_BYTE = 0;
+
+	private static final byte READ_STATISTICS_BYTE = 1;
 
 	public static void toOutputStream(final AbstractStatistics statistics, final DataOutputStream outputStream)
 			throws IOException {
@@ -18,8 +20,10 @@ public abstract class AbstractStatisticsParser {
 
 	private static byte typeToByte(final Class<? extends AbstractStatistics> clazz) {
 
-		if (UserStatistics.class.equals(clazz)) {
-			return USER_STATISTICS_BYTE;
+		if (MapUserStatistics.class.equals(clazz)) {
+			return MAP_USER_STATISTICS_BYTE;
+		} else if (ReadStatistics.class.equals(clazz)) {
+			return READ_STATISTICS_BYTE;
 		}
 
 		throw new IllegalStateException("Unknown mapping for class " + clazz);
@@ -27,11 +31,14 @@ public abstract class AbstractStatisticsParser {
 
 	private static Class<? extends AbstractStatistics> byteToType(final byte b) {
 
-		if (b == USER_STATISTICS_BYTE) {
-			return UserStatistics.class;
+		switch (b) {
+		case MAP_USER_STATISTICS_BYTE:
+			return MapUserStatistics.class;
+		case READ_STATISTICS_BYTE:
+			return ReadStatistics.class;
+		default:
+			throw new IllegalStateException("Unknown mapping for byte " + b);
 		}
-
-		throw new IllegalStateException("Unknown mapping for byte " + b);
 	}
 
 	public void parse(final DataInputStream inputStream) throws IOException {
@@ -41,7 +48,8 @@ public abstract class AbstractStatisticsParser {
 
 				final byte b = inputStream.readByte();
 				final Class<? extends AbstractStatistics> clazz = byteToType(b);
-
+				
+				
 				final AbstractStatistics as;
 				try {
 					as = clazz.newInstance();
@@ -52,8 +60,11 @@ public abstract class AbstractStatisticsParser {
 				as.readFields(inputStream);
 
 				switch (b) {
-				case USER_STATISTICS_BYTE:
-					processUserStatistics((UserStatistics) as);
+				case MAP_USER_STATISTICS_BYTE:
+					processMapUserStatistics((MapUserStatistics) as);
+					break;
+				case READ_STATISTICS_BYTE:
+					processReadStatistics((ReadStatistics) as);
 					break;
 				default:
 					throw new IllegalStateException("No callback method for " + as);
@@ -64,5 +75,7 @@ public abstract class AbstractStatisticsParser {
 		}
 	}
 
-	public abstract void processUserStatistics(final UserStatistics userStatistics);
+	public abstract void processMapUserStatistics(final MapUserStatistics userStatistics);
+
+	public abstract void processReadStatistics(final ReadStatistics readStatistics);
 }

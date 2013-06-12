@@ -4,23 +4,28 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.hadoop.fs.Path;
+
 final class MapReduceJob implements Comparable<MapReduceJob> {
 
-	private static final int BAR_WIDTH = 100;
+	private static final int BAR_WIDTH = 200;
 
 	private final String jobID;
 
-	private List<MapTask> mapTasks = new ArrayList<MapTask>();
+	private final Path inputFile;
+
+	private final List<MapTask> mapTasks = new ArrayList<MapTask>();
 
 	private long startTime = Long.MAX_VALUE;
 
 	private long endTime = Long.MIN_VALUE;
 
-	MapReduceJob(final String jobID) {
+	MapReduceJob(final String jobID, final Path inputFile) {
 		this.jobID = jobID;
+		this.inputFile = inputFile;
 	}
 
-	void addMapTask(final int taskID, final long startTime, final long endTime) {
+	void addMapTask(final int taskID, final long startTime, final long endTime, final int blockIndex) {
 
 		if (startTime < this.startTime) {
 			this.startTime = startTime;
@@ -30,7 +35,16 @@ final class MapReduceJob implements Comparable<MapReduceJob> {
 			this.endTime = endTime;
 		}
 
-		this.mapTasks.add(new MapTask(taskID, startTime, endTime));
+		this.mapTasks.add(new MapTask(taskID, startTime, endTime, blockIndex));
+	}
+
+	Iterator<MapTask> iterator() {
+
+		return this.mapTasks.iterator();
+	}
+
+	Path getInputFile() {
+		return this.inputFile;
 	}
 
 	void addReduceTask(final int taskID, final long startTime,
@@ -68,7 +82,13 @@ final class MapReduceJob implements Comparable<MapReduceJob> {
 
 		final int startIndex = (int) Math.rint((double) (task.getStartTime() - startTime) * gradient);
 		final int endIndex = (int) Math.rint((double) (task.getEndTime() - startTime) * gradient);
-		final char fillChar = task.isMap() ? 'M' : 'R';
+		final char fillChar;
+		if (task.isMap()) {
+			final MapTask mt = (MapTask) task;
+			fillChar = mt.isCached() ? 'M' : 'm';
+		} else {
+			fillChar = 'R';
+		}
 
 		sb.append('\n');
 		sb.append('[');

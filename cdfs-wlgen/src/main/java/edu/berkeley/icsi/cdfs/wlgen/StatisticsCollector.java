@@ -7,7 +7,7 @@ import org.apache.hadoop.fs.Path;
 
 import edu.berkeley.icsi.cdfs.CDFS;
 import edu.berkeley.icsi.cdfs.conf.ConfigConstants;
-import edu.berkeley.icsi.cdfs.statistics.UserStatistics;
+import edu.berkeley.icsi.cdfs.statistics.MapUserStatistics;
 
 final class StatisticsCollector {
 
@@ -15,23 +15,28 @@ final class StatisticsCollector {
 
 	private final String jobID;
 
-	private final boolean isMap;
-
 	private final int taskID;
+
+	private final Path path;
+
+	private final int blockIndex;
 
 	private final long startTime;
 
 	private final CDFS cdfs;
 
-	StatisticsCollector(final Configuration conf, final boolean isMap, final int taskID) throws IOException {
+	StatisticsCollector(final Configuration conf, final int taskID, final Path path, final int blockIndex)
+			throws IOException {
 
 		this.jobID = conf.get(JOB_NAME_CONF_KEY);
 		if (this.jobID == null) {
 			throw new IllegalStateException("Cannot determine job name");
 		}
 
-		this.isMap = isMap;
 		this.taskID = taskID;
+
+		this.path = path;
+		this.blockIndex = blockIndex;
 		this.startTime = System.currentTimeMillis();
 
 		final Path cdfsPath = new Path(conf.get(ConfigConstants.CDFS_DEFAULT_NAME_KEY,
@@ -42,8 +47,8 @@ final class StatisticsCollector {
 
 	void close() throws IOException {
 
-		final UserStatistics us = new UserStatistics(this.jobID, this.isMap, this.taskID, this.startTime,
-			System.currentTimeMillis());
+		final MapUserStatistics us = new MapUserStatistics(this.jobID, this.taskID, this.startTime,
+			System.currentTimeMillis(), this.path, this.blockIndex);
 
 		this.cdfs.reportUserStatistics(us);
 	}

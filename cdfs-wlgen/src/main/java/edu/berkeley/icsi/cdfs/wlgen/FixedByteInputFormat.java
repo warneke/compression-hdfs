@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -15,6 +14,8 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+
+import edu.berkeley.icsi.cdfs.CDFSBlockLocation;
 
 public final class FixedByteInputFormat extends InputFormat<FixedByteRecord, NullWritable> {
 
@@ -61,7 +62,8 @@ public final class FixedByteInputFormat extends InputFormat<FixedByteRecord, Nul
 			throw new IllegalStateException("Cannot determine file status for " + ip);
 		}
 
-		final BlockLocation[] blockLocations = fs.getFileBlockLocations(fileStatus, 0, fileStatus.getLen());
+		final CDFSBlockLocation[] blockLocations = (CDFSBlockLocation[]) fs.getFileBlockLocations(fileStatus, 0,
+			fileStatus.getLen());
 		if (blockLocations == null) {
 			throw new IllegalStateException("Cannot determine block locations for " + ip);
 		}
@@ -72,8 +74,9 @@ public final class FixedByteInputFormat extends InputFormat<FixedByteRecord, Nul
 		}
 
 		for (int i = 0; i < blockLocations.length; ++i) {
-			inputSplits.add(new FixedByteInputSplit(inputPath, blockLocations[i].getOffset(), blockLocations[i]
-				.getLength(), blockLocations[i].getHosts(), ((i + 1) == blockLocations.length)));
+			inputSplits.add(new FixedByteInputSplit(inputPath, blockLocations[i].getIndex(), blockLocations[i]
+				.getOffset(), blockLocations[i].getLength(), blockLocations[i].getHosts(),
+				((i + 1) == blockLocations.length)));
 		}
 
 		return inputSplits;

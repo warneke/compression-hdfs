@@ -22,8 +22,10 @@ import edu.berkeley.icsi.cdfs.cache.CompressedBufferCache;
 import edu.berkeley.icsi.cdfs.cache.UncompressedBufferCache;
 import edu.berkeley.icsi.cdfs.conf.ConfigConstants;
 import edu.berkeley.icsi.cdfs.protocols.DataNodeNameNodeProtocol;
+import edu.berkeley.icsi.cdfs.statistics.ReadStatistics;
 import edu.berkeley.icsi.cdfs.utils.PathConverter;
 import edu.berkeley.icsi.cdfs.utils.PathWrapper;
+import edu.berkeley.icsi.cdfs.utils.WritableArrayList;
 
 final class Connection extends Thread {
 
@@ -62,6 +64,9 @@ final class Connection extends Thread {
 
 		// The operation this connection handles
 		Closeable operation = null;
+
+		// List to hold the statistics
+		final WritableArrayList<ReadStatistics> readStatistics = new WritableArrayList<ReadStatistics>();
 
 		// Read header first
 		try {
@@ -154,6 +159,7 @@ final class Connection extends Thread {
 
 					if (uncompressedBuffers != null) {
 						try {
+							readStatistics.add(ReadStatistics.createCacheUncompressed(header.getPath(), blockIndex));
 							LOG.info("Reading block " + blockIndex + " from cache (uncompressed), "
 								+ uncompressedBuffers.size() + " buffers");
 							readOp.readFromCacheUncompressed(uncompressedBuffers);
@@ -174,6 +180,7 @@ final class Connection extends Thread {
 						blockIndex);
 					if (compressedBuffers != null) {
 						try {
+							readStatistics.add(ReadStatistics.createCacheCompressed(header.getPath(), blockIndex));
 							LOG.info("Reading block " + blockIndex + " from cache (compressed), "
 								+ compressedBuffers.size() + " buffers");
 							readOp.readFromCacheCompressed(compressedBuffers);
@@ -214,6 +221,7 @@ final class Connection extends Thread {
 					final Path hdfsPath = this.pathConverter.convert(header.getPath(), "_" + blockIndex);
 
 					try {
+						readStatistics.add(ReadStatistics.createDisk(header.getPath(), blockIndex));
 						LOG.info("Reading block " + blockIndex + " from disk");
 						readOp.readFromHDFSCompressed(this.hdfs, hdfsPath);
 					} catch (EOFException e) {
@@ -274,6 +282,11 @@ final class Connection extends Thread {
 				// Close the socket
 				if (this.socket != null) {
 					this.socket.close();
+				}
+
+				// Transmit statistics
+				synchronized (this.nameNode) {
+					this.nameNode.reportReadStatistics(readStatistics, this.host);
 				}
 
 			} catch (IOException ioe) {
