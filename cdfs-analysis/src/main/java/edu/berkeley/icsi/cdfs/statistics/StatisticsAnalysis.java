@@ -172,10 +172,24 @@ public final class StatisticsAnalysis extends AbstractStatisticsParser {
 	 * {@inheritDoc}
 	 */
 	@Override
+	public void processReduceUserStatistics(final ReduceUserStatistics userStatistics) {
+
+		MapReduceJob mrj = this.mapReduceJobs.get(userStatistics.getJobID());
+		if (mrj == null) {
+			throw new IllegalStateException("Cannot find MapReduce job with ID " + userStatistics.getJobID());
+		}
+
+		mrj.addReduceTask(userStatistics.getTaskID(), userStatistics.getStartTime(), userStatistics.getEndTime());
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
 	public void processReadStatistics(final ReadStatistics readStatistics) {
 
 		final BlockKey key = new BlockKey(readStatistics.getPath(), readStatistics.getIndex());
-		
+
 		List<ReadStatistics> list = this.readStatistics.get(key);
 		if (list == null) {
 			list = new ArrayList<ReadStatistics>();
@@ -183,4 +197,5 @@ public final class StatisticsAnalysis extends AbstractStatisticsParser {
 		}
 		list.add(readStatistics);
 	}
+
 }

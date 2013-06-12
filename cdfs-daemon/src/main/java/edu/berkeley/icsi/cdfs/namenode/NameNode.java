@@ -27,8 +27,8 @@ import edu.berkeley.icsi.cdfs.conf.ConfigConstants;
 import edu.berkeley.icsi.cdfs.conf.ConfigUtils;
 import edu.berkeley.icsi.cdfs.protocols.ClientNameNodeProtocol;
 import edu.berkeley.icsi.cdfs.protocols.DataNodeNameNodeProtocol;
+import edu.berkeley.icsi.cdfs.statistics.AbstractUserStatistics;
 import edu.berkeley.icsi.cdfs.statistics.ReadStatistics;
-import edu.berkeley.icsi.cdfs.statistics.MapUserStatistics;
 import edu.berkeley.icsi.cdfs.utils.PathConverter;
 import edu.berkeley.icsi.cdfs.utils.PathWrapper;
 import edu.berkeley.icsi.cdfs.utils.WritableArrayList;
@@ -259,7 +259,7 @@ public class NameNode implements ClientNameNodeProtocol, DataNodeNameNodeProtoco
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void reportUserStatistics(final MapUserStatistics userStatistics) throws IOException {
+	public void reportUserStatistics(final AbstractUserStatistics userStatistics) throws IOException {
 
 		this.statisticsCollector.collectUserStatistics(userStatistics);
 	}

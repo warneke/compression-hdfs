@@ -42,7 +42,8 @@ public final class FixedByteOutputFormat extends OutputFormat<FixedByteRecord, N
 
 		final int taskID = arg0.getTaskAttemptID().getTaskID().getId();
 
-		return new FixedByteRecordWriter(new Path(outputPath + "_" + taskID), conf);
+		return new FixedByteRecordWriter(new Path(outputPath + "_" + taskID), conf, arg0.getTaskAttemptID().getTaskID()
+			.getId());
 	}
 
 }

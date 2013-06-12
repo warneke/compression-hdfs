@@ -9,7 +9,9 @@ public abstract class AbstractStatisticsParser {
 
 	private static final byte MAP_USER_STATISTICS_BYTE = 0;
 
-	private static final byte READ_STATISTICS_BYTE = 1;
+	private static final byte REDUCE_USER_STATISTICS_BYTE = 1;
+
+	private static final byte READ_STATISTICS_BYTE = 2;
 
 	public static void toOutputStream(final AbstractStatistics statistics, final DataOutputStream outputStream)
 			throws IOException {
@@ -22,6 +24,8 @@ public abstract class AbstractStatisticsParser {
 
 		if (MapUserStatistics.class.equals(clazz)) {
 			return MAP_USER_STATISTICS_BYTE;
+		} else if (ReduceUserStatistics.class.equals(clazz)) {
+			return REDUCE_USER_STATISTICS_BYTE;
 		} else if (ReadStatistics.class.equals(clazz)) {
 			return READ_STATISTICS_BYTE;
 		}
@@ -34,6 +38,8 @@ public abstract class AbstractStatisticsParser {
 		switch (b) {
 		case MAP_USER_STATISTICS_BYTE:
 			return MapUserStatistics.class;
+		case REDUCE_USER_STATISTICS_BYTE:
+			return ReduceUserStatistics.class;
 		case READ_STATISTICS_BYTE:
 			return ReadStatistics.class;
 		default:
@@ -48,8 +54,7 @@ public abstract class AbstractStatisticsParser {
 
 				final byte b = inputStream.readByte();
 				final Class<? extends AbstractStatistics> clazz = byteToType(b);
-				
-				
+
 				final AbstractStatistics as;
 				try {
 					as = clazz.newInstance();
@@ -62,6 +67,9 @@ public abstract class AbstractStatisticsParser {
 				switch (b) {
 				case MAP_USER_STATISTICS_BYTE:
 					processMapUserStatistics((MapUserStatistics) as);
+					break;
+				case REDUCE_USER_STATISTICS_BYTE:
+					processReduceUserStatistics((ReduceUserStatistics) as);
 					break;
 				case READ_STATISTICS_BYTE:
 					processReadStatistics((ReadStatistics) as);
@@ -76,6 +84,8 @@ public abstract class AbstractStatisticsParser {
 	}
 
 	public abstract void processMapUserStatistics(final MapUserStatistics userStatistics);
+
+	public abstract void processReduceUserStatistics(final ReduceUserStatistics userStatistics);
 
 	public abstract void processReadStatistics(final ReadStatistics readStatistics);
 }

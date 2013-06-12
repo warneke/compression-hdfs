@@ -1,8 +1,8 @@
 package edu.berkeley.icsi.cdfs.statistics;
 
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
+import java.util.Map;
 
 import org.apache.hadoop.fs.Path;
 
@@ -14,7 +14,9 @@ final class MapReduceJob implements Comparable<MapReduceJob> {
 
 	private final Path inputFile;
 
-	private final List<MapTask> mapTasks = new ArrayList<MapTask>();
+	private final Map<Integer, MapTask> mapTasks = new HashMap<Integer, MapTask>();
+
+	private final Map<Integer, ReduceTask> reduceTasks = new HashMap<Integer, ReduceTask>();
 
 	private long startTime = Long.MAX_VALUE;
 
@@ -35,21 +37,33 @@ final class MapReduceJob implements Comparable<MapReduceJob> {
 			this.endTime = endTime;
 		}
 
-		this.mapTasks.add(new MapTask(taskID, startTime, endTime, blockIndex));
+		if (this.mapTasks.put(Integer.valueOf(taskID), new MapTask(taskID, startTime, endTime, blockIndex)) != null) {
+			System.err.println("Map collision for job " + this.jobID + ", task ID " + taskID);
+		}
+	}
+
+	void addReduceTask(final int taskID, final long startTime, final long endTime) {
+
+		if (startTime < this.startTime) {
+			this.startTime = startTime;
+		}
+
+		if (endTime > this.endTime) {
+			this.endTime = endTime;
+		}
+
+		if (this.reduceTasks.put(Integer.valueOf(taskID), new ReduceTask(taskID, startTime, endTime)) != null) {
+			System.err.println("Reduce collision for job " + this.jobID + ", task ID " + taskID);
+		}
 	}
 
 	Iterator<MapTask> iterator() {
 
-		return this.mapTasks.iterator();
+		return this.mapTasks.values().iterator();
 	}
 
 	Path getInputFile() {
 		return this.inputFile;
-	}
-
-	void addReduceTask(final int taskID, final long startTime,
-			final long endTime) {
-
 	}
 
 	/**
@@ -64,9 +78,18 @@ final class MapReduceJob implements Comparable<MapReduceJob> {
 		final long duration = this.endTime - this.startTime;
 		sb.append(duration);
 
-		final Iterator<MapTask> it = this.mapTasks.iterator();
-		while (it.hasNext()) {
-			renderBar(sb, this.startTime, gradient, it.next());
+		int t = 0;
+		while (true) {
+
+			final Integer taskID = Integer.valueOf(t++);
+
+			final MapTask mapTask = this.mapTasks.get(taskID);
+			if (mapTask == null) {
+				break;
+			}
+
+			final ReduceTask reduceTask = this.reduceTasks.get(taskID);
+			renderBar(sb, this.startTime, gradient, mapTask, reduceTask);
 		}
 
 		return sb.toString();
@@ -78,27 +101,40 @@ final class MapReduceJob implements Comparable<MapReduceJob> {
 	}
 
 	private static void renderBar(final StringBuilder sb, final long startTime, final double gradient,
-			final AbstractTask task) {
+			final MapTask mapTask, final ReduceTask reduceTask) {
 
-		final int startIndex = (int) Math.rint((double) (task.getStartTime() - startTime) * gradient);
-		final int endIndex = (int) Math.rint((double) (task.getEndTime() - startTime) * gradient);
-		final char fillChar;
-		if (task.isMap()) {
-			final MapTask mt = (MapTask) task;
-			fillChar = mt.isCached() ? 'M' : 'm';
+		final int mapStartIndex = (int) Math.rint((double) (mapTask.getStartTime() - startTime) * gradient);
+		final int mapEndIndex = (int) Math.rint((double) (mapTask.getEndTime() - startTime) * gradient);
+		final char mapChar = mapTask.isCached() ? 'M' : 'm';
+
+		final int reduceStartIndex;
+		if (reduceTask != null) {
+			reduceStartIndex = (int) Math.rint((double) (reduceTask.getStartTime() - startTime) * gradient);
 		} else {
-			fillChar = 'R';
+			reduceStartIndex = -1;
+		}
+
+		final int reduceEndIndex;
+		if (reduceTask != null) {
+			reduceEndIndex = (int) Math.rint((double) (reduceTask.getEndTime() - startTime) * gradient);
+		} else {
+			reduceEndIndex = -1;
 		}
 
 		sb.append('\n');
 		sb.append('[');
 
 		for (int i = 0; i < BAR_WIDTH; ++i) {
-			if (i >= startIndex && i <= endIndex) {
-				sb.append(fillChar);
-			} else {
-				sb.append('_');
+
+			char fillChar = '_';
+
+			if (i >= mapStartIndex && i <= mapEndIndex) {
+				fillChar = mapChar;
+			} else if (i >= reduceStartIndex && i <= reduceEndIndex) {
+				fillChar = 'r';
 			}
+
+			sb.append(fillChar);
 		}
 
 		sb.append(']');

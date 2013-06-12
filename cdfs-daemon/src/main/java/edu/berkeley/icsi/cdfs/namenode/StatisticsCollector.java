@@ -14,8 +14,8 @@ import org.apache.hadoop.util.StringUtils;
 
 import edu.berkeley.icsi.cdfs.conf.ConfigConstants;
 import edu.berkeley.icsi.cdfs.statistics.AbstractStatisticsParser;
+import edu.berkeley.icsi.cdfs.statistics.AbstractUserStatistics;
 import edu.berkeley.icsi.cdfs.statistics.ReadStatistics;
-import edu.berkeley.icsi.cdfs.statistics.MapUserStatistics;
 
 final class StatisticsCollector {
 
@@ -58,7 +58,7 @@ final class StatisticsCollector {
 		}
 	}
 
-	void collectUserStatistics(final MapUserStatistics userStatistics) throws IOException {
+	void collectUserStatistics(final AbstractUserStatistics userStatistics) throws IOException {
 
 		synchronized (this.outputStream) {
 			AbstractStatisticsParser.toOutputStream(userStatistics, this.outputStream);

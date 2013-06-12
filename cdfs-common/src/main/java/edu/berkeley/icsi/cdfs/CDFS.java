@@ -18,7 +18,7 @@ import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.util.Progressable;
 
 import edu.berkeley.icsi.cdfs.protocols.ClientNameNodeProtocol;
-import edu.berkeley.icsi.cdfs.statistics.MapUserStatistics;
+import edu.berkeley.icsi.cdfs.statistics.AbstractUserStatistics;
 import edu.berkeley.icsi.cdfs.utils.HostUtils;
 import edu.berkeley.icsi.cdfs.utils.PathWrapper;
 
@@ -45,7 +45,7 @@ public class CDFS extends FileSystem {
 		throw new UnsupportedOperationException();
 	}
 
-	public void reportUserStatistics(final MapUserStatistics userStatistics) throws IOException {
+	public void reportUserStatistics(final AbstractUserStatistics userStatistics) throws IOException {
 
 		this.nameNode.reportUserStatistics(userStatistics);
 	}
