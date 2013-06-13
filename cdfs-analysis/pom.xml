@@ -79,7 +79,7 @@
  <dependencies>
        <dependency>
            <groupId>edu.berkeley.icsi</groupId>
-           <artifactId>cdfs-common</artifactId>
+           <artifactId>cdfs-traces</artifactId>
            <version>0.1</version>
        </dependency>
         <!--<dependency>
