@@ -58,7 +58,8 @@ final class MRJobGenerator {
 		jobConf.set(ReducePartitioner.DATA_DISTRIBUTION,
 			ReducePartitioner.encodeDataDistribution(traceJob.getDataDistribution()));
 
-		final MapReduceJob job = new MapReduceJob(jobConf, traceJob.getJobID(), traceJob.getNumberOfMapTasks());
+		final MapReduceJob job = new MapReduceJob(jobConf, traceJob.getJobID(), traceJob.getNumberOfMapTasks(),
+			traceJob);
 		job.setMapperClass(MapTask.class);
 		job.setReducerClass(ReduceTask.class);
 		job.setPartitionerClass(ReducePartitioner.class);

@@ -33,13 +33,17 @@ public final class RemoteJobRunner {
 
 		while (true) {
 
-			if (!queuedJobs.isEmpty()) {
+			if (queuedJobs.isEmpty()) {
 				break;
 			}
 
 			// Submit jobs until mapLimit is reached
-			MapReduceJob job = queuedJobs.peek();
-			while (runningMaps + job.getNumMapTasks() < mapLimit) {
+			while (true) {
+
+				final MapReduceJob job = queuedJobs.peek();
+				if (runningMaps + job.getNumMapTasks() > mapLimit) {
+					break;
+				}
 
 				// Remove job
 				queuedJobs.poll();
@@ -49,12 +53,15 @@ public final class RemoteJobRunner {
 				job.getConfiguration().setLong(JOB_SUBMISSION_TIME_KEY, now);
 
 				// Submit job
+				System.out.println("Submitting  " + job + ", (" + queuedJobs.size() + " job still in queue)");
 				job.submit();
 				runningJobs.add(job);
 
 				// Move on to next job
-				job = queuedJobs.peek();
+				runningMaps += job.getNumMapTasks();
 			}
+
+			Thread.sleep(SLEEP_TIME);
 
 			// Wait until a job has finished
 			while (true) {
@@ -67,19 +74,20 @@ public final class RemoteJobRunner {
 					final MapReduceJob runningJob = it.next();
 					if (runningJob.isComplete()) {
 						it.remove();
-						final Configuration conf = job.getConfiguration();
+						final Configuration conf = runningJob.getConfiguration();
 						final long now = System.currentTimeMillis();
 						final long timeFromSubmission = now - conf.getLong(JOB_SUBMISSION_TIME_KEY, -1L);
-						System.out.println(job.getJobName() + " finished after " + timeFromSubmission);
-						progressMap.remove(job);
+						System.out.println(runningJob.getJobName() + " finished after " + timeFromSubmission);
+						progressMap.remove(runningJob);
 						atLeastOneJobFinished = true;
+						runningMaps -= runningJob.getNumMapTasks();
 						continue;
 					}
 
-					final String progressBar = getProgressBar(job.mapProgress(), job.reduceProgress());
+					final String progressBar = getProgressBar(runningJob.mapProgress(), runningJob.reduceProgress());
 
-					if (!progressBar.equals(progressMap.put(job, progressBar))) {
-						System.out.println(job.getJobName() + " " + progressBar);
+					if (!progressBar.equals(progressMap.put(runningJob, progressBar))) {
+						System.out.println(runningJob.getJobName() + " " + progressBar);
 					}
 				}
 
