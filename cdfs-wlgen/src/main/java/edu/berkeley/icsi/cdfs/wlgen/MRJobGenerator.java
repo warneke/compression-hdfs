@@ -4,8 +4,8 @@ import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.NullWritable;
-import org.apache.hadoop.mapreduce.Job;
 
+import edu.berkeley.icsi.cdfs.traces.TraceJob;
 import edu.berkeley.icsi.cdfs.wlgen.datagen.DataGenerator;
 
 final class MRJobGenerator {
@@ -34,7 +34,7 @@ final class MRJobGenerator {
 		return jarFile.getAbsolutePath();
 	}
 
-	static Job toMRJob(final String basePath, final MapReduceJob mapReduceJob, final Configuration conf)
+	static MapReduceJob toMRJob(final String basePath, final TraceJob traceJob, final Configuration conf)
 			throws IOException {
 
 		if (JAR_FILE == null) {
@@ -42,27 +42,27 @@ final class MRJobGenerator {
 		}
 
 		final Configuration jobConf = new Configuration(conf);
-		jobConf.set(StatisticsCollector.JOB_NAME_CONF_KEY, mapReduceJob.getJobID());
+		jobConf.set(StatisticsCollector.JOB_NAME_CONF_KEY, traceJob.getJobID());
 		jobConf.set("mapred.jar", JAR_FILE);
 		jobConf.set(FixedByteInputFormat.INPUT_PATH, basePath + java.io.File.separator
-			+ mapReduceJob.getInputFile().getName());
-		jobConf.setInt(FixedByteInputFormat.NUMBER_OF_MAPPERS, mapReduceJob.getNumberOfMapTasks());
-		double ioRatio = (double) mapReduceJob.getInputFile().getUncompressedFileSize()
-			/ (double) mapReduceJob.getSizeOfIntermediateData();
+			+ traceJob.getInputFile().getName());
+		jobConf.setInt(FixedByteInputFormat.NUMBER_OF_MAPPERS, traceJob.getNumberOfMapTasks());
+		double ioRatio = (double) traceJob.getInputFile().getUncompressedFileSize()
+			/ (double) traceJob.getSizeOfIntermediateData();
 		jobConf.setFloat(MapTask.INPUT_OUTPUT_RATIO, (float) ioRatio);
-		ioRatio = (double) mapReduceJob.getSizeOfIntermediateData()
-			/ (double) mapReduceJob.getOutputFile().getUncompressedFileSize();
+		ioRatio = (double) traceJob.getSizeOfIntermediateData()
+			/ (double) traceJob.getOutputFile().getUncompressedFileSize();
 		jobConf.setFloat(ReduceTask.INPUT_OUTPUT_RATIO, (float) ioRatio);
 		jobConf.set(FixedByteOutputFormat.OUTPUT_PATH, basePath + java.io.File.separator
-			+ mapReduceJob.getOutputFile().getName() + "_out");
+			+ traceJob.getOutputFile().getName() + "_out");
 		jobConf.set(ReducePartitioner.DATA_DISTRIBUTION,
-			ReducePartitioner.encodeDataDistribution(mapReduceJob.getDataDistribution()));
+			ReducePartitioner.encodeDataDistribution(traceJob.getDataDistribution()));
 
-		final Job job = new Job(jobConf, mapReduceJob.getJobID());
+		final MapReduceJob job = new MapReduceJob(jobConf, traceJob.getJobID(), traceJob.getNumberOfMapTasks());
 		job.setMapperClass(MapTask.class);
 		job.setReducerClass(ReduceTask.class);
 		job.setPartitionerClass(ReducePartitioner.class);
-		job.setNumReduceTasks(mapReduceJob.getNumberOfReduceTasks());
+		job.setNumReduceTasks(traceJob.getNumberOfReduceTasks());
 		job.setInputFormatClass(FixedByteInputFormat.class);
 		job.setOutputFormatClass(FixedByteOutputFormat.class);
 		job.setMapOutputKeyClass(FixedByteRecord.class);

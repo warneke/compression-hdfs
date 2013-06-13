@@ -3,11 +3,11 @@ package edu.berkeley.icsi.cdfs.wlgen.datagen;
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.mapreduce.Job;
 
-import edu.berkeley.icsi.cdfs.wlgen.File;
+import edu.berkeley.icsi.cdfs.traces.File;
 import edu.berkeley.icsi.cdfs.wlgen.FixedByteRecord;
 import edu.berkeley.icsi.cdfs.wlgen.JarFileCreator;
+import edu.berkeley.icsi.cdfs.wlgen.MapReduceJob;
 
 public final class DataGenerator {
 
@@ -22,7 +22,7 @@ public final class DataGenerator {
 
 	private static String JAR_FILE = null;
 
-	public static Job generateJob(final String basePath, final File inputFile, final Configuration conf)
+	public static MapReduceJob generateJob(final String basePath, final File inputFile, final Configuration conf)
 			throws IOException {
 
 		if (JAR_FILE == null) {
@@ -34,7 +34,7 @@ public final class DataGenerator {
 		jobConf.setLong(FILE_SIZE, inputFile.getUncompressedFileSize());
 		jobConf.set(OUTPUT_PATH, basePath + java.io.File.separator + inputFile.getName());
 		jobConf.setInt(COMPRESSION_FACTOR, inputFile.getCompressionFactor());
-		final Job job = new Job(jobConf, "Data generator for file " + inputFile.getName());
+		final MapReduceJob job = new MapReduceJob(jobConf, "Data generator for file " + inputFile.getName(), 1);
 		job.setInputFormatClass(GeneratorInputFormat.class);
 		job.setOutputFormatClass(GeneratorOutputFormat.class);
 		job.setNumReduceTasks(0);

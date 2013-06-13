@@ -21,23 +21,25 @@ import org.apache.commons.configuration.ConfigurationException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.mapreduce.Job;
 
+import edu.berkeley.icsi.cdfs.traces.File;
+import edu.berkeley.icsi.cdfs.traces.TraceJob;
+import edu.berkeley.icsi.cdfs.traces.TraceWorkload;
 import edu.berkeley.icsi.cdfs.wlgen.datagen.DataGenerator;
 
 public final class WorkloadGenerator {
 
-	private final MapReduceWorkload mapReduceWorkload;
+	private final TraceWorkload mapReduceWorkload;
 
 	private WorkloadGenerator(final String inputDir, final int mapLimit, final int reduceLimit,
 			final long filesizeLimit, final int jobLimit) throws IOException {
 
-		this.mapReduceWorkload = MapReduceWorkload.reconstructFromTraces(inputDir, mapLimit, reduceLimit,
-			filesizeLimit, jobLimit);
+		this.mapReduceWorkload = TraceWorkload.reconstructFromFiles(inputDir, mapLimit, reduceLimit, filesizeLimit,
+			jobLimit);
 	}
 
-	private void generateInputData(final String basePath, final Configuration conf) throws ClassNotFoundException,
-			InterruptedException, IOException {
+	private void generateInputData(final String basePath, final Configuration conf, final int mapLimit)
+			throws ClassNotFoundException, InterruptedException, IOException {
 
 		final Path path = new Path(basePath + Path.SEPARATOR + "exp");
 
@@ -50,30 +52,30 @@ public final class WorkloadGenerator {
 		}
 
 		final Set<File> inputFiles = this.mapReduceWorkload.getInputFiles();
-		final List<Job> jobsToExecute = new ArrayList<Job>(inputFiles.size());
+		final List<MapReduceJob> jobsToExecute = new ArrayList<MapReduceJob>(inputFiles.size());
 		final Iterator<File> it = inputFiles.iterator();
 
 		while (it.hasNext()) {
-			final Job job = DataGenerator.generateJob(basePath, it.next(), conf);
+			final MapReduceJob job = DataGenerator.generateJob(basePath, it.next(), conf);
 			jobsToExecute.add(job);
 		}
 
-		RemoteJobRunner.submitAndWait(jobsToExecute);
+		RemoteJobRunner.submitAndWait(jobsToExecute, mapLimit);
 	}
 
-	private void runJobs(final String basePath, final Configuration conf) throws ClassNotFoundException,
-			InterruptedException, IOException {
+	private void runJobs(final String basePath, final Configuration conf, final int mapLimit)
+			throws ClassNotFoundException, InterruptedException, IOException {
 
-		final Map<String, MapReduceJob> mapReduceJobs = this.mapReduceWorkload.getMapReduceJobs();
-		final List<Job> jobsToExecute = new ArrayList<Job>(mapReduceJobs.size());
-		final Iterator<MapReduceJob> it = mapReduceJobs.values().iterator();
+		final Map<String, TraceJob> mapReduceJobs = this.mapReduceWorkload.getMapReduceJobs();
+		final List<MapReduceJob> jobsToExecute = new ArrayList<MapReduceJob>(mapReduceJobs.size());
+		final Iterator<TraceJob> it = mapReduceJobs.values().iterator();
 
 		while (it.hasNext()) {
-			final Job job = MRJobGenerator.toMRJob(basePath, it.next(), conf);
+			final MapReduceJob job = MRJobGenerator.toMRJob(basePath, it.next(), conf);
 			jobsToExecute.add(job);
 		}
 
-		RemoteJobRunner.submitAndWait(jobsToExecute);
+		RemoteJobRunner.submitAndWait(jobsToExecute, mapLimit);
 	}
 
 	public static void main(final String[] args) {
@@ -156,9 +158,9 @@ public final class WorkloadGenerator {
 
 			// Generate input data if requested
 			if (generateInput) {
-				wlg.generateInputData(basePath, conf);
+				wlg.generateInputData(basePath, conf, mapLimit);
 			} else {
-				wlg.runJobs(basePath, conf);
+				wlg.runJobs(basePath, conf, mapLimit);
 			}
 
 		} catch (Exception e) {

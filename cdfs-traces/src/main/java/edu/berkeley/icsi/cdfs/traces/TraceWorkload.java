@@ -25,7 +25,7 @@ public final class TraceWorkload {
 		this.inputFiles = Collections.unmodifiableSet(inputFiles);
 	}
 
-	public static TraceWorkload reconstructFromTraces(final String inputDir, final int mapLimit, final int reduceLimit,
+	public static TraceWorkload reconstructFromFiles(final String inputDir, final int mapLimit, final int reduceLimit,
 			final long filesizeLimit, final int jobLimit) throws IOException {
 
 		final LinkedHashMap<String, TraceJob> traceJobs = new LinkedHashMap<String, TraceJob>();
@@ -248,12 +248,12 @@ public final class TraceWorkload {
 		return new TraceWorkload(traceJobs, inputFiles);
 	}
 
-	Set<File> getInputFiles() {
+	public Set<File> getInputFiles() {
 
 		return this.inputFiles;
 	}
 
-	Map<String, TraceJob> getMapReduceJobs() {
+	public Map<String, TraceJob> getMapReduceJobs() {
 
 		return this.traceJobs;
 	}

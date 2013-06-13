@@ -34,36 +34,36 @@ public class TraceJob {
 		this.dataDistribution = dataDistribution;
 	}
 
-	double[] getDataDistribution() {
+	public double[] getDataDistribution() {
 		return this.dataDistribution;
 	}
 
-	String getJobID() {
+	public String getJobID() {
 
 		return this.jobID;
 	}
 
-	int getNumberOfMapTasks() {
+	public int getNumberOfMapTasks() {
 
 		return this.numberOfMapTasks;
 	}
 
-	int getNumberOfReduceTasks() {
+	public int getNumberOfReduceTasks() {
 
 		return this.numberOfReduceTasks;
 	}
 
-	File getInputFile() {
+	public File getInputFile() {
 
 		return this.inputFile;
 	}
 
-	long getSizeOfIntermediateData() {
+	public long getSizeOfIntermediateData() {
 
 		return this.sizeOfIntermediateData;
 	}
 
-	File getOutputFile() {
+	public File getOutputFile() {
 
 		return this.outputFile;
 	}

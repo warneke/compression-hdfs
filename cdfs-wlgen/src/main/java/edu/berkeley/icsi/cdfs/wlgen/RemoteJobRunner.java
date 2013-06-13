@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.Job;
@@ -14,52 +15,80 @@ public final class RemoteJobRunner {
 
 	private static final String JOB_SUBMISSION_TIME_KEY = "job.submission.time";
 
-	private static final long SLEEP_TIME = 200;
+	private static final long SLEEP_TIME = 100;
 
 	private RemoteJobRunner() {
 	}
 
-	public static void submitAndWait(final List<Job> jobs) throws IOException, InterruptedException,
+	public static void submitAndWait(final List<MapReduceJob> jobs, final int mapLimit) throws IOException,
+			InterruptedException,
 			ClassNotFoundException {
 
 		System.out.println("Launching " + jobs.size() + " jobs");
 
-		final List<Job> runningJobs = new LinkedList<Job>();
-
+		final Queue<MapReduceJob> queuedJobs = new LinkedList<MapReduceJob>(jobs);
+		final List<MapReduceJob> runningJobs = new LinkedList<MapReduceJob>();
 		final Map<Job, String> progressMap = new HashMap<Job, String>();
+		int runningMaps = 0;
 
-		for (final Job job : jobs) {
-			final long now = System.currentTimeMillis();
-			job.getConfiguration().setLong(JOB_SUBMISSION_TIME_KEY, now);
-			job.submit();
-			runningJobs.add(job);
-		}
+		while (true) {
 
-		while (!runningJobs.isEmpty()) {
-
-			final Iterator<Job> it = runningJobs.iterator();
-			while (it.hasNext()) {
-
-				final Job job = it.next();
-				if (job.isComplete()) {
-					it.remove();
-					final Configuration conf = job.getConfiguration();
-					final long now = System.currentTimeMillis();
-					final long timeFromSubmission = now - conf.getLong(JOB_SUBMISSION_TIME_KEY, -1L);
-					System.out.println(job.getJobName() + " finished after " + timeFromSubmission);
-
-					progressMap.remove(job);
-					continue;
-				}
-
-				final String progressBar = getProgressBar(job.mapProgress(), job.reduceProgress());
-
-				if (!progressBar.equals(progressMap.put(job, progressBar))) {
-					System.out.println(job.getJobName() + " " + progressBar);
-				}
+			if (!queuedJobs.isEmpty()) {
+				break;
 			}
 
-			Thread.sleep(SLEEP_TIME);
+			// Submit jobs until mapLimit is reached
+			MapReduceJob job = queuedJobs.peek();
+			while (runningMaps + job.getNumMapTasks() < mapLimit) {
+
+				// Remove job
+				queuedJobs.poll();
+
+				// Mark submission time
+				final long now = System.currentTimeMillis();
+				job.getConfiguration().setLong(JOB_SUBMISSION_TIME_KEY, now);
+
+				// Submit job
+				job.submit();
+				runningJobs.add(job);
+
+				// Move on to next job
+				job = queuedJobs.peek();
+			}
+
+			// Wait until a job has finished
+			while (true) {
+
+				boolean atLeastOneJobFinished = false;
+				final Iterator<MapReduceJob> it = runningJobs.iterator();
+
+				while (it.hasNext()) {
+
+					final MapReduceJob runningJob = it.next();
+					if (runningJob.isComplete()) {
+						it.remove();
+						final Configuration conf = job.getConfiguration();
+						final long now = System.currentTimeMillis();
+						final long timeFromSubmission = now - conf.getLong(JOB_SUBMISSION_TIME_KEY, -1L);
+						System.out.println(job.getJobName() + " finished after " + timeFromSubmission);
+						progressMap.remove(job);
+						atLeastOneJobFinished = true;
+						continue;
+					}
+
+					final String progressBar = getProgressBar(job.mapProgress(), job.reduceProgress());
+
+					if (!progressBar.equals(progressMap.put(job, progressBar))) {
+						System.out.println(job.getJobName() + " " + progressBar);
+					}
+				}
+
+				if (atLeastOneJobFinished) {
+					break;
+				}
+
+				Thread.sleep(SLEEP_TIME);
+			}
 		}
 	}
 
