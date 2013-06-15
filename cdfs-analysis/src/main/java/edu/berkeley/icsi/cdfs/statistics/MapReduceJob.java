@@ -57,6 +57,11 @@ final class MapReduceJob implements Comparable<MapReduceJob> {
 		}
 	}
 
+	String getJobID() {
+
+		return this.jobID;
+	}
+
 	Iterator<MapTask> iterator() {
 
 		return this.mapTasks.values().iterator();
@@ -64,6 +69,18 @@ final class MapReduceJob implements Comparable<MapReduceJob> {
 
 	Path getInputFile() {
 		return this.inputFile;
+	}
+
+	long getDuration() {
+		return (this.endTime - this.startTime);
+	}
+
+	int getNumberOfMapTasks() {
+		return this.mapTasks.size();
+	}
+
+	int getNumberOfReduceTasks() {
+		return this.reduceTasks.size();
 	}
 
 	/**

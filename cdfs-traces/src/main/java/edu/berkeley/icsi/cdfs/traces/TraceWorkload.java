@@ -83,7 +83,7 @@ public final class TraceWorkload {
 				}
 
 				if (sizeOfInputData <= FILE_GRANULARITY) {
-					System.err.println("Skipping trace with non-positive input file size " + fields[3]);
+					System.err.println("Skipping trace with input file size " + fields[3]);
 					continue;
 				}
 
@@ -99,7 +99,7 @@ public final class TraceWorkload {
 					continue;
 				}
 
-				if (sizeOfIntermediateData <= FILE_GRANULARITY) {
+				if (sizeOfIntermediateData <= 0L) {
 					System.err.println("Skipping trace with non-positive intermediate file size " + fields[4]);
 					continue;
 				}
@@ -112,7 +112,7 @@ public final class TraceWorkload {
 					continue;
 				}
 
-				if (sizeOfOutputData <= FILE_GRANULARITY) {
+				if (sizeOfOutputData <= 0L) {
 					System.err.println("Skipping trace with non-positive output file size " + fields[5]);
 					continue;
 				}
