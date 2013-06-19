@@ -14,8 +14,6 @@ public class TraceJob {
 
 	private final File outputFile;
 
-	private double[] dataDistribution;
-
 	TraceJob(final String jobID, final int numberOfMapTasks, final int numberOfReduceTasks,
 			final File inputFile, final long sizeOfIntermediateData, final File outputFile) {
 
@@ -28,14 +26,6 @@ public class TraceJob {
 
 		this.inputFile.usedAsInputBy(this);
 		this.outputFile.usedAsOutputBy(this);
-	}
-
-	void setDataDistribution(double[] dataDistribution) {
-		this.dataDistribution = dataDistribution;
-	}
-
-	public double[] getDataDistribution() {
-		return this.dataDistribution;
 	}
 
 	public String getJobID() {

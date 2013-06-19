@@ -27,7 +27,6 @@ final class MRJobGenerator {
 		jfc.addClass(FixedByteRecord.class);
 		jfc.addClass(MapTask.class);
 		jfc.addClass(ReduceTask.class);
-		jfc.addClass(ReducePartitioner.class);
 		jfc.addClass(StatisticsCollector.class);
 		jfc.addClass(IORatioAdapter.class);
 		jfc.createJarFile();
@@ -55,20 +54,16 @@ final class MRJobGenerator {
 		jobConf.setFloat(ReduceTask.INPUT_OUTPUT_RATIO, (float) ioRatio);
 		jobConf.set(FixedByteOutputFormat.OUTPUT_PATH, basePath + java.io.File.separator
 			+ traceJob.getOutputFile().getName() + "_out");
-		jobConf.set(ReducePartitioner.DATA_DISTRIBUTION,
-			ReducePartitioner.encodeDataDistribution(traceJob.getDataDistribution()));
 
 		final MapReduceJob job = new MapReduceJob(jobConf, traceJob.getJobID(), traceJob.getNumberOfMapTasks(),
 			traceJob);
 		job.setMapperClass(MapTask.class);
 		job.setReducerClass(ReduceTask.class);
-		job.setPartitionerClass(ReducePartitioner.class);
 		job.setNumReduceTasks(traceJob.getNumberOfReduceTasks());
 		job.setInputFormatClass(FixedByteInputFormat.class);
 		job.setOutputFormatClass(FixedByteOutputFormat.class);
 		job.setMapOutputKeyClass(FixedByteRecord.class);
 		job.setMapOutputValueClass(NullWritable.class);
-		job.setPartitionerClass(ReducePartitioner.class);
 
 		return job;
 	}

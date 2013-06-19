@@ -4,12 +4,11 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
-
-import edu.berkeley.icsi.cdfs.conf.ConfigConstants;
 
 public final class TraceWorkload {
 
@@ -32,11 +31,53 @@ public final class TraceWorkload {
 		BufferedReader br = null;
 		String line;
 
-		final Set<File> inputFiles = new HashSet<File>();
+		final Map<String, File> inputFiles = new HashMap<String, File>();
+
+		// Read the files
+		try {
+
+			br = new BufferedReader(new FileReader(inputDir + java.io.File.separator + "files.txt"));
+
+			while ((line = br.readLine()) != null) {
+
+				final String[] fields = line.split("\t");
+
+				if (fields.length != 3) {
+					System.err.println("Cannot parse file trace '" + line + "', skipping it...");
+					continue;
+				}
+
+				final String fileName = fields[0];
+
+				final long uncompressedFileSize;
+				try {
+					uncompressedFileSize = Long.parseLong(fields[1]);
+				} catch (NumberFormatException nfe) {
+					System.err.println("Cannot parse file trace '" + line + "', skipping it...");
+					continue;
+				}
+
+				final int compressionFactor;
+				try {
+					compressionFactor = Integer.parseInt(fields[2]);
+				} catch (NumberFormatException nfe) {
+					System.err.println("Cannot parse file trace '" + line + "', skipping it...");
+					continue;
+				}
+
+				inputFiles.put(fileName, new File(uncompressedFileSize, compressionFactor));
+			}
+
+		} finally {
+			if (br != null) {
+				br.close();
+				br = null;
+			}
+		}
 
 		try {
 
-			br = new BufferedReader(new FileReader(inputDir + java.io.File.separator + "JobStats.txt"));
+			br = new BufferedReader(new FileReader(inputDir + java.io.File.separator + "jobs.txt"));
 
 			int count = 0;
 			while ((line = br.readLine()) != null) {
@@ -74,20 +115,20 @@ public final class TraceWorkload {
 					continue;
 				}
 
-				final long sizeOfInputData;
-				try {
-					sizeOfInputData = fromGB(Double.parseDouble(fields[3]));
-				} catch (NumberFormatException nfe) {
-					System.err.println("Cannot parse trace '" + line + "', skipping it...");
+				final String inputFileName = fields[3];
+
+				final File inputFile = inputFiles.get(inputFileName);
+				if (inputFile == null) {
+					System.err.println("Cannot find input file '" + inputFileName + "', skipping it...");
 					continue;
 				}
 
-				if (sizeOfInputData <= FILE_GRANULARITY) {
+				if (inputFile.getUncompressedFileSize() <= FILE_GRANULARITY) {
 					System.err.println("Skipping trace with input file size " + fields[3]);
 					continue;
 				}
 
-				if (sizeOfInputData > filesizeLimit) {
+				if (inputFile.getUncompressedFileSize() > filesizeLimit) {
 					continue;
 				}
 
@@ -117,26 +158,8 @@ public final class TraceWorkload {
 					continue;
 				}
 
-				// Check if number of mappers makes sense
-				if (numberOfMapTasks > 1 && (sizeOfInputData < ConfigConstants.BLOCK_SIZE)) {
-					System.err.println("Skipping job " + jobID + " because it specifies " + numberOfMapTasks
-						+ " mappers and an input size of " + (sizeOfInputData / 1024L) + " KB");
-					continue;
-				}
-
-				// Adjust number of reducers if necessary
-				if (numberOfMapTasks < numberOfReduceTasks) {
-					System.err.println("Skipping job " + jobID + " because it specifies only " + numberOfMapTasks
-						+ " mappers but " + numberOfReduceTasks + " reducers");
-					continue;
-				}
-
-				// Find input file
-				final File inputFile = FileTracker.apply(sizeOfInputData, numberOfMapTasks, true);
-				inputFiles.add(inputFile);
-
 				// Find output file
-				final File outputFile = FileTracker.apply(sizeOfOutputData, numberOfMapTasks, false);
+				final File outputFile = new File(sizeOfOutputData, inputFile.getCompressionFactor());
 
 				final TraceJob tj = new TraceJob(jobID, numberOfMapTasks, numberOfReduceTasks, inputFile,
 					sizeOfIntermediateData, outputFile);
@@ -155,94 +178,7 @@ public final class TraceWorkload {
 			}
 		}
 
-		try {
-
-			br = new BufferedReader(new FileReader(inputDir + java.io.File.separator + "ReduceInputs.txt"));
-			while ((line = br.readLine()) != null) {
-
-				final String[] fields = line.split("\t");
-
-				if (fields.length != 9) {
-					System.err.println("Cannot parse trace '" + line + "', skipping it...");
-					continue;
-				}
-
-				final TraceJob tj = traceJobs.get(fields[0]);
-				if (tj == null) {
-					continue;
-				}
-
-				long minimum;
-				try {
-					minimum = fromMB(Double.parseDouble(fields[2]));
-				} catch (NumberFormatException nfe) {
-					System.err.println("Cannot parse trace '" + line + "', skipping it...");
-					continue;
-				}
-
-				long percentile10;
-				try {
-					percentile10 = fromMB(Double.parseDouble(fields[3]));
-				} catch (NumberFormatException nfe) {
-					System.err.println("Cannot parse trace '" + line + "', skipping it...");
-					continue;
-				}
-
-				long percentile25;
-				try {
-					percentile25 = fromMB(Double.parseDouble(fields[4]));
-				} catch (NumberFormatException nfe) {
-					System.err.println("Cannot parse trace '" + line + "', skipping it...");
-					continue;
-				}
-
-				long median;
-				try {
-					median = fromMB(Double.parseDouble(fields[5]));
-				} catch (NumberFormatException nfe) {
-					System.err.println("Cannot parse trace '" + line + "', skipping it...");
-					continue;
-				}
-
-				long percentile75;
-				try {
-					percentile75 = fromMB(Double.parseDouble(fields[6]));
-				} catch (NumberFormatException nfe) {
-					System.err.println("Cannot parse trace '" + line + "', skipping it...");
-					continue;
-				}
-
-				long percentile90;
-				try {
-					percentile90 = fromMB(Double.parseDouble(fields[7]));
-				} catch (NumberFormatException nfe) {
-					System.err.println("Cannot parse trace '" + line + "', skipping it...");
-					continue;
-				}
-
-				long maximum;
-				try {
-					maximum = fromMB(Double.parseDouble(fields[8]));
-				} catch (NumberFormatException nfe) {
-					System.err.println("Cannot parse trace '" + line + "', skipping it...");
-					continue;
-				}
-
-				final double[] dataDistribution = Partition.createPartition(tj.getNumberOfReduceTasks(),
-					tj.getSizeOfIntermediateData(), minimum, percentile10, percentile25, median, percentile75,
-					percentile90, maximum);
-
-				tj.setDataDistribution(dataDistribution);
-			}
-
-		} finally {
-			if (br != null) {
-				br.close();
-				br = null;
-			}
-		}
-
-		return new TraceWorkload(traceJobs, inputFiles);
+		return new TraceWorkload(traceJobs, new HashSet<File>(inputFiles.values()));
 	}
 
 	public Set<File> getInputFiles() {
@@ -259,10 +195,4 @@ public final class TraceWorkload {
 
 		return Math.round(size * 1024.0 * 1024.0 * 1024.0);
 	}
-
-	private static long fromMB(final double size) {
-
-		return Math.round(size * 1024.0 * 1024.0);
-	}
-
 }
