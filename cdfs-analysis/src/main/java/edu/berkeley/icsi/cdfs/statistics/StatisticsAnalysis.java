@@ -1,7 +1,9 @@
 package edu.berkeley.icsi.cdfs.statistics;
 
+import java.io.BufferedWriter;
 import java.io.DataInputStream;
 import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -13,6 +15,8 @@ import java.util.TreeMap;
 import org.apache.hadoop.fs.Path;
 
 public final class StatisticsAnalysis extends AbstractStatisticsParser {
+
+	private static final String RUNTIME_SUFFIX = ".runtime";
 
 	private final Map<String, MapReduceJob> mapReduceJobs = new TreeMap<String, MapReduceJob>();
 
@@ -100,6 +104,43 @@ public final class StatisticsAnalysis extends AbstractStatisticsParser {
 
 		// Print out the statistics
 		sa.showStatistics();
+
+		// Write runtimes to file
+		try {
+			sa.writeRuntimes(args[0] + RUNTIME_SUFFIX);
+		} catch (IOException ioe) {
+
+		}
+	}
+
+	private void writeRuntimes(final String filename) throws IOException {
+
+		BufferedWriter bw = null;
+		try {
+			bw = new BufferedWriter(new FileWriter(filename));
+
+			final Iterator<MapReduceJob> it = this.mapReduceJobs.values().iterator();
+			while (it.hasNext()) {
+
+				final MapReduceJob mrj = it.next();
+				final StringBuilder sb = new StringBuilder(mrj.getJobID());
+				sb.append('\t');
+				sb.append(mrj.getNumberOfMapTasks());
+				sb.append('\t');
+				sb.append(mrj.getNumberOfReduceTasks());
+				sb.append('\t');
+				sb.append(mrj.getDuration());
+				sb.append('\n');
+
+				bw.write(sb.toString());
+			}
+
+		} finally {
+			if (bw != null) {
+				bw.close();
+			}
+		}
+
 	}
 
 	private void mapReadStatistics() {
@@ -174,12 +215,13 @@ public final class StatisticsAnalysis extends AbstractStatisticsParser {
 	@Override
 	public void processReduceUserStatistics(final ReduceUserStatistics userStatistics) {
 
-		MapReduceJob mrj = this.mapReduceJobs.get(userStatistics.getJobID());
-		if (mrj == null) {
-			throw new IllegalStateException("Cannot find MapReduce job with ID " + userStatistics.getJobID());
-		}
-
-		mrj.addReduceTask(userStatistics.getTaskID(), userStatistics.getStartTime(), userStatistics.getEndTime());
+		/*
+		 * MapReduceJob mrj = this.mapReduceJobs.get(userStatistics.getJobID());
+		 * if (mrj == null) {
+		 * throw new IllegalStateException("Cannot find MapReduce job with ID " + userStatistics.getJobID());
+		 * }
+		 * mrj.addReduceTask(userStatistics.getTaskID(), userStatistics.getStartTime(), userStatistics.getEndTime());
+		 */
 	}
 
 	/**

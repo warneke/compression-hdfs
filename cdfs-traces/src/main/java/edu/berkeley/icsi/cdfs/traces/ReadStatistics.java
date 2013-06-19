@@ -5,7 +5,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
 
-final class Statistics {
+final class ReadStatistics {
 
 	private static final double TO_GB = 1024.0 * 1024.0 * 1024.0;
 
@@ -16,7 +16,7 @@ final class Statistics {
 		private long totalAmountOfData = 0L;
 	}
 
-	private Statistics() {
+	private ReadStatistics() {
 	}
 
 	static void showUsageHistogram(final Collection<File> files) {

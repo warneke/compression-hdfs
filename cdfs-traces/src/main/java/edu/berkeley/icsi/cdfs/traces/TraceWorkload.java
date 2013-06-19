@@ -155,9 +155,6 @@ public final class TraceWorkload {
 			}
 		}
 
-		// Show usage histogram of the files
-		Statistics.showUsageHistogram(inputFiles);
-
 		try {
 
 			br = new BufferedReader(new FileReader(inputDir + java.io.File.separator + "ReduceInputs.txt"));
