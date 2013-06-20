@@ -15,6 +15,8 @@ import com.esotericsoftware.kryo.io.Output;
 
 final class BlockMetaData implements KryoSerializable {
 
+	private static final int MAX_BLOCK_LOCATION = 10;
+
 	private int index;
 
 	private Path hdfsPath;
@@ -63,15 +65,21 @@ final class BlockMetaData implements KryoSerializable {
 		final List<String> hosts = new ArrayList<String>();
 
 		// Add hosts with uncompressed cached blocks
-		hosts.addAll(this.cachedUncompressed);
+		for (final Iterator<String> it = this.cachedUncompressed.iterator(); it.hasNext();) {
+			hosts.add(it.next());
+			if (hosts.size() == MAX_BLOCK_LOCATION) {
+				return hosts.toArray(new String[0]);
+			}
+		}
 
 		// Add additional hosts with compressed cached blocks
-		final Iterator<String> it = this.cachedCompressed.iterator();
-		while (it.hasNext()) {
-
+		for (final Iterator<String> it = this.cachedCompressed.iterator(); it.hasNext();) {
 			final String candidate = it.next();
 			if (!this.cachedUncompressed.contains(candidate)) {
 				hosts.add(candidate);
+				if (hosts.size() == MAX_BLOCK_LOCATION) {
+					return hosts.toArray(new String[0]);
+				}
 			}
 		}
 
@@ -80,6 +88,9 @@ final class BlockMetaData implements KryoSerializable {
 			final String candidate = hdfsHosts[i];
 			if (!this.cachedUncompressed.contains(candidate) && !this.cachedCompressed.contains(candidate)) {
 				hosts.add(candidate);
+				if (hosts.size() == MAX_BLOCK_LOCATION) {
+					return hosts.toArray(new String[0]);
+				}
 			}
 		}
 
