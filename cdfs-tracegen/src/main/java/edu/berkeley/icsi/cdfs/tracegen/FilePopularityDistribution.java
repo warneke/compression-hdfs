@@ -4,7 +4,7 @@ import org.apache.commons.math3.distribution.ZipfDistribution;
 
 final class FilePopularityDistribution {
 
-	private static final double EXPONENT = 0.93979;
+	private static final double EXPONENT = 5.0/6.0;
 
 	private final ZipfDistribution zipf;
 

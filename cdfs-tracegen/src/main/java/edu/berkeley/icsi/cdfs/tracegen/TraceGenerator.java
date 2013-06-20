@@ -3,8 +3,6 @@ package edu.berkeley.icsi.cdfs.tracegen;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -32,8 +30,6 @@ public final class TraceGenerator {
 
 		final ArrayList<File> inputFiles = new ArrayList<File>(NUMBER_OF_FILES);
 
-		long totalNumberOfStoredBytes = 0L;
-
 		BufferedWriter bw = new BufferedWriter(new FileWriter("/home/warneke/wlgen2/files.txt"));
 
 		for (int i = 0; i < NUMBER_OF_FILES; ++i) {
@@ -41,7 +37,6 @@ public final class TraceGenerator {
 			// final int compressionFactor = compressionRand.nextInt(MAX_COMPRESSION_RATIO) + 1;
 			final File file = new File(uncompressedFileSize, 2);
 			inputFiles.add(file);
-			totalNumberOfStoredBytes += uncompressedFileSize;
 
 			final StringBuilder sb = new StringBuilder(file.toString());
 			sb.append('\t');
@@ -113,7 +108,13 @@ public final class TraceGenerator {
 				}
 			}
 
-			final int numberOfReduceTasks = (int) Math.ceil((double) shuffle / (double) REDUCE_LIMIT);
+			final int numberOfReduceTasks;
+			if (shuffle < 100L) { // Data to transport is less than one record
+				numberOfReduceTasks = 0;
+			} else {
+				numberOfReduceTasks = Math.min((int) Math.ceil((double) shuffle / (double) REDUCE_LIMIT),
+					numberOfMapTasks);
+			}
 
 			long output = -1L;
 
@@ -162,38 +163,6 @@ public final class TraceGenerator {
 		}
 
 		bw.close();
-
-		// Analyze job sequence
-		Collections.sort(jobSequence, new Comparator<File>() {
-
-			@Override
-			public int compare(final File o1, final File o2) {
-
-				final long diff = o1.getCompressedFileSize() - o2.getCompressedFileSize();
-
-				if (diff > Integer.MAX_VALUE) {
-					return Integer.MAX_VALUE;
-				} else if (diff < Integer.MIN_VALUE) {
-					return Integer.MIN_VALUE;
-				}
-
-				return (int) diff;
-			}
-		});
-
-		final int ninetyPercent = (int) Math.floor((double) jobSequence.size() * 0.9);
-		System.out.println("Job sequence");
-		unaccessedFiles.clear();
-		long accessed = 0L;
-		for (int i = 0; i < ninetyPercent; ++i) {
-			final File file = jobSequence.get(i);
-			if (unaccessedFiles.add(file)) {
-				accessed += file.getUncompressedFileSize();
-			}
-		}
-
-		System.out.println("Total number of bytes stored: " + toGB(totalNumberOfStoredBytes));
-		System.out.println((double) accessed / (double) totalNumberOfStoredBytes);
 	}
 
 	private static final double toGB(final long byteValue) {

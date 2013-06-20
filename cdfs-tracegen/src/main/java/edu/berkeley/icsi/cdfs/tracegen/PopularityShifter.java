@@ -48,10 +48,12 @@ final class PopularityShifter {
 	static void adjust(final List<File> files, final FilePopularityDistribution fpd) {
 
 		final long numberOfBytesStored = computeNumberOfBytesStored(files);
+		System.out.println("Total number of bytes stored: " + numberOfBytesStored);
 
 		// Sort input files by size
 		Collections.sort(files, new AscendingComparator());
 
+		int shiftCounter = 0;
 		while (true) {
 
 			final List<File> seq = new ArrayList<File>();
@@ -77,12 +79,17 @@ final class PopularityShifter {
 				}
 			}
 
-			if (((double) numberOfBytesAccessed / (double) numberOfBytesStored) < 0.16) {
+			final double ratio = (double) numberOfBytesAccessed / (double) numberOfBytesStored;
+			if (ratio < 0.16) {
 				shift(files);
+				++shiftCounter;
 			} else {
+				System.out.println("Popularity ratio: " + ratio);
 				break;
 			}
 		}
+
+		System.out.println(shiftCounter + " shifts required, most popular file is now " + files.get(0));
 	}
 
 	private static void shift(final List<File> files) {
