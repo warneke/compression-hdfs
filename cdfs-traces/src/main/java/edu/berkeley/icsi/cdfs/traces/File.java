@@ -68,7 +68,7 @@ public final class File {
 		return this.usedAsOutput.iterator();
 	}
 
-	int getNumberOfInputUsages() {
+	public int getNumberOfInputUsages() {
 
 		return this.usedAsInput.size();
 	}

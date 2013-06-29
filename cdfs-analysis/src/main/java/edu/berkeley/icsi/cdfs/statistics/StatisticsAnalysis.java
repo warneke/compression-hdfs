@@ -215,13 +215,11 @@ public final class StatisticsAnalysis extends AbstractStatisticsParser {
 	@Override
 	public void processReduceUserStatistics(final ReduceUserStatistics userStatistics) {
 
-		/*
-		 * MapReduceJob mrj = this.mapReduceJobs.get(userStatistics.getJobID());
-		 * if (mrj == null) {
-		 * throw new IllegalStateException("Cannot find MapReduce job with ID " + userStatistics.getJobID());
-		 * }
-		 * mrj.addReduceTask(userStatistics.getTaskID(), userStatistics.getStartTime(), userStatistics.getEndTime());
-		 */
+		MapReduceJob mrj = this.mapReduceJobs.get(userStatistics.getJobID());
+		if (mrj == null) {
+			throw new IllegalStateException("Cannot find MapReduce job with ID " + userStatistics.getJobID());
+		}
+		mrj.addReduceTask(userStatistics.getTaskID(), userStatistics.getStartTime(), userStatistics.getEndTime());
 	}
 
 	/**

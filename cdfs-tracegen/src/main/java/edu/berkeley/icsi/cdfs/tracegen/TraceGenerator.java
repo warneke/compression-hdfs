@@ -14,7 +14,7 @@ public final class TraceGenerator {
 
 	private static final int MAX_COMPRESSION_RATIO = 10;
 
-	private static final int NUMBER_OF_FILES = 100;
+	private static final int NUMBER_OF_FILES = 200;
 
 	private static final int BLOCK_SIZE = 256 * 1024 * 1024;
 
@@ -165,7 +165,7 @@ public final class TraceGenerator {
 		bw.close();
 	}
 
-	private static final double toGB(final long byteValue) {
+	static final double toGB(final long byteValue) {
 
 		return (double) byteValue / (1024.0 * 1024.0 * 1024.0);
 	}

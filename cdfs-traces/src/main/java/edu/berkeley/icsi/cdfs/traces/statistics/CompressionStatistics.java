@@ -1,9 +1,11 @@
-package edu.berkeley.icsi.cdfs.traces;
+package edu.berkeley.icsi.cdfs.traces.statistics;
 
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
+
+import edu.berkeley.icsi.cdfs.traces.File;
 
 public final class CompressionStatistics {
 

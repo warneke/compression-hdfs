@@ -1,11 +1,13 @@
-package edu.berkeley.icsi.cdfs.traces;
+package edu.berkeley.icsi.cdfs.traces.statistics;
 
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
 
-final class ReadStatistics {
+import edu.berkeley.icsi.cdfs.traces.File;
+
+public final class ReadStatistics {
 
 	private static final double TO_GB = 1024.0 * 1024.0 * 1024.0;
 
@@ -19,7 +21,7 @@ final class ReadStatistics {
 	private ReadStatistics() {
 	}
 
-	static void showUsageHistogram(final Collection<File> files) {
+	public static void showUsageHistogram(final Collection<File> files) {
 
 		System.out.println("Total number of files: " + files.size());
 

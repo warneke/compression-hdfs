@@ -48,7 +48,7 @@ final class PopularityShifter {
 	static void adjust(final List<File> files, final FilePopularityDistribution fpd) {
 
 		final long numberOfBytesStored = computeNumberOfBytesStored(files);
-		System.out.println("Total number of bytes stored: " + numberOfBytesStored);
+		System.out.println("Total number of bytes stored: " + TraceGenerator.toGB(numberOfBytesStored));
 
 		// Sort input files by size
 		Collections.sort(files, new AscendingComparator());
