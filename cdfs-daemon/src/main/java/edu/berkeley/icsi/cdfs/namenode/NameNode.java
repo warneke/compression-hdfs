@@ -204,7 +204,7 @@ public class NameNode implements ClientNameNodeProtocol, DataNodeNameNodeProtoco
 	@Override
 	public EvictionEntry getFileToEvict(final String host) throws IOException {
 
-		return this.metaDataStore.getFileToEvictLIFE(host);
+		return this.metaDataStore.getFileToEvictLFUF(host);
 	}
 
 	/**

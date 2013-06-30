@@ -20,6 +20,8 @@ final class FileMetaData implements KryoSerializable, Comparable<FileMetaData> {
 
 	private long modificationTime;
 
+	private int accessCount = 0;
+
 	private final List<BlockMetaData> blocks = new ArrayList<BlockMetaData>();
 
 	FileMetaData(final Path path) {
@@ -146,6 +148,16 @@ final class FileMetaData implements KryoSerializable, Comparable<FileMetaData> {
 		bmd.removeCachedBlock(host, compressed);
 
 		return bmd;
+	}
+
+	void increaseAccessCount() {
+
+		++this.accessCount;
+	}
+
+	int getAccessCount() {
+
+		return this.accessCount;
 	}
 
 	/**
