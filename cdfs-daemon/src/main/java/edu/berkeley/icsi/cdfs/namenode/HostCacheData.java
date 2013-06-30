@@ -8,11 +8,17 @@ import java.util.TreeMap;
 
 import edu.berkeley.icsi.cdfs.cache.EvictionEntry;
 
-class HostCacheData {
+final class HostCacheData {
 
 	private final Map<FileMetaData, Set<BlockMetaData>> cachedCompressedBlocks = new TreeMap<FileMetaData, Set<BlockMetaData>>();
 
 	private final Map<FileMetaData, Set<BlockMetaData>> cachedUncompressedBlocks = new TreeMap<FileMetaData, Set<BlockMetaData>>();
+
+	private final FileAccessList fileAccessList;
+
+	HostCacheData(final FileAccessList fileAccessList) {
+		this.fileAccessList = fileAccessList;
+	}
 
 	EvictionEntry getLargestCompressedIncompleteFile() {
 		return getLargestFile(true, false);
@@ -56,21 +62,20 @@ class HostCacheData {
 		}
 
 		FileMetaData leastAccessedFile = null;
-		final Iterator<FileMetaData> it = cachedBlocks.keySet().iterator();
+		final Iterator<FileMetaData> it = this.fileAccessList.reverseIterator();
 		while (it.hasNext()) {
 
 			final FileMetaData fmd = it.next();
+			if (!cachedBlocks.containsKey(fmd)) {
+				continue;
+			}
+
 			if (complete != fmd.isCachedCompletely(compressed)) {
 				continue;
 			}
 
-			if (leastAccessedFile == null) {
-				leastAccessedFile = fmd;
-			} else {
-				if (fmd.getAccessCount() < leastAccessedFile.getAccessCount()) {
-					leastAccessedFile = fmd;
-				}
-			}
+			leastAccessedFile = fmd;
+			break;
 		}
 
 		if (leastAccessedFile == null) {

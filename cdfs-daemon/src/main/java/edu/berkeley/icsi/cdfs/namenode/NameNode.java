@@ -226,6 +226,8 @@ public class NameNode implements ClientNameNodeProtocol, DataNodeNameNodeProtoco
 		LOG.info("Registering data node " + hostname + " with port " + port);
 
 		this.registeredDataNodes.put(hostname, new ConnectionInfo(hostname, port));
+
+		TaskHistogram.registerHost(hostname);
 	}
 
 	/**
@@ -250,7 +252,11 @@ public class NameNode implements ClientNameNodeProtocol, DataNodeNameNodeProtoco
 			ci = iterator.next();
 		}
 
-		LOG.info(hostname + " requested data node, returning " + ci.getHostname());
+		if (!hostname.equals(ci.getHostname())) {
+			LOG.warn(hostname + " requested data node, returning " + ci.getHostname());
+		}
+
+		TaskHistogram.increaseHostCount(hostname);
 
 		return ci;
 	}

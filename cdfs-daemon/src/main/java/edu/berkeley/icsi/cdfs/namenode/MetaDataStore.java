@@ -40,6 +40,8 @@ final class MetaDataStore {
 
 	private final Map<String, HostCacheData> hostCacheData = new HashMap<String, HostCacheData>();
 
+	private final FileAccessList fileAccessList = new FileAccessList();
+
 	private final Kryo kryo = new Kryo();
 
 	public MetaDataStore(final FileSystem hdfs, final PathConverter pathConverter) throws IOException {
@@ -149,7 +151,7 @@ final class MetaDataStore {
 		}
 
 		// Increase access count
-		fmd.increaseAccessCount();
+		this.fileAccessList.increaseAccessCount(fmd);
 
 		LOG.info("Computing block locations for " + path + ", start " + start + ", len " + len);
 
@@ -202,7 +204,7 @@ final class MetaDataStore {
 		// Update host view
 		HostCacheData hcd = this.hostCacheData.get(host);
 		if (hcd == null) {
-			hcd = new HostCacheData();
+			hcd = new HostCacheData(this.fileAccessList);
 			this.hostCacheData.put(host, hcd);
 		}
 		hcd.add(fmd, bmd, compressed);
