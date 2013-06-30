@@ -164,8 +164,10 @@ final class Connection extends Thread {
 								+ uncompressedBuffers.size() + " buffers");
 							readOp.readFromCacheUncompressed(uncompressedBuffers);
 						} catch (EOFException e) {
-							LOG.info("Caught EOFException from readFromCacheUncompressed after " +
-								+readOp.getNumberOfBytesRead() + " bytes");
+							if (LOG.isDebugEnabled()) {
+								LOG.debug("Caught EOFException from readFromCacheUncompressed after " +
+									+readOp.getNumberOfBytesRead() + " bytes");
+							}
 							runLoop = false;
 						} finally {
 							UncompressedBufferCache.get().unlock(header.getPath(), blockIndex);
@@ -185,8 +187,10 @@ final class Connection extends Thread {
 								+ compressedBuffers.size() + " buffers");
 							readOp.readFromCacheCompressed(compressedBuffers);
 						} catch (EOFException e) {
-							LOG.info("Caught EOFException from readFromCacheCompressed after "
-								+ readOp.getNumberOfBytesRead() + " bytes");
+							if (LOG.isDebugEnabled()) {
+								LOG.debug("Caught EOFException from readFromCacheCompressed after "
+									+ readOp.getNumberOfBytesRead() + " bytes");
+							}
 							runLoop = false;
 						} finally {
 							CompressedBufferCache.get().unlock(header.getPath(), blockIndex);
@@ -225,8 +229,10 @@ final class Connection extends Thread {
 						LOG.info("Reading block " + blockIndex + " from disk");
 						readOp.readFromHDFSCompressed(this.hdfs, hdfsPath);
 					} catch (EOFException e) {
-						LOG.info("Caught EOFException from readFromHDFSCompressed after "
-							+ readOp.getNumberOfBytesRead() + " bytes");
+						if (LOG.isDebugEnabled()) {
+							LOG.debug("Caught EOFException from readFromHDFSCompressed after "
+								+ readOp.getNumberOfBytesRead() + " bytes");
+						}
 						runLoop = false;
 					} catch (FileNotFoundException fnfe) {
 						LOG.error(StringUtils.stringifyException(fnfe));

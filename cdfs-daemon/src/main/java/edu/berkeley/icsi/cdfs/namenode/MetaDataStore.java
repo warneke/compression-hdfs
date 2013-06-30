@@ -23,6 +23,7 @@ import edu.berkeley.icsi.cdfs.CDFS;
 import edu.berkeley.icsi.cdfs.CDFSBlockLocation;
 import edu.berkeley.icsi.cdfs.cache.EvictionEntry;
 import edu.berkeley.icsi.cdfs.conf.ConfigConstants;
+import edu.berkeley.icsi.cdfs.utils.HostUtils;
 import edu.berkeley.icsi.cdfs.utils.PathConverter;
 
 final class MetaDataStore {
@@ -225,6 +226,8 @@ final class MetaDataStore {
 
 	synchronized EvictionEntry getFileToEvictLIFE(final String host) {
 
+		final String strippedHost = HostUtils.stripFQDN(host);
+
 		final HostCacheData hcd = this.hostCacheData.get(host);
 		if (hcd == null) {
 			throw new IllegalStateException("Evict: No host cache data for host " + host);
@@ -232,32 +235,38 @@ final class MetaDataStore {
 
 		EvictionEntry ee = hcd.getLargestUncompressedIncompleteFile();
 		if (ee != null) {
-			LOG.info("LIFE: Chose to evict " + ee.getPathWrapper().getPath() + " (uncompressed, incomplete) at " + host);
+			LOG.info("LIFE: Chose to evict " + ee.getPathWrapper().getPath() + " (uncompressed, incomplete) at "
+				+ strippedHost);
 			return ee;
 		}
 
 		ee = hcd.getLargestCompressedIncompleteFile();
 		if (ee != null) {
-			LOG.info("LIFE: Chose to evict " + ee.getPathWrapper().getPath() + " (compressed, incomplete) at " + host);
+			LOG.info("LIFE: Chose to evict " + ee.getPathWrapper().getPath() + " (compressed, incomplete) at "
+				+ strippedHost);
 			return ee;
 		}
 
 		ee = hcd.getLargestUncompressedCompleteFile();
 		if (ee != null) {
-			LOG.info("LIFE: Chose to evict " + ee.getPathWrapper().getPath() + " (uncompressed, complete) at " + host);
+			LOG.info("LIFE: Chose to evict " + ee.getPathWrapper().getPath() + " (uncompressed, complete) at "
+				+ strippedHost);
 			return ee;
 		}
 
 		ee = hcd.getLargestCompressedCompleteFile();
 		if (ee != null) {
-			LOG.info("LIFE: Chose to evict " + ee.getPathWrapper().getPath() + " (compressed, complete) at " + host);
+			LOG.info("LIFE: Chose to evict " + ee.getPathWrapper().getPath() + " (compressed, complete) at "
+				+ strippedHost);
 			return ee;
 		}
 
-		throw new IllegalStateException("LIFE: No file to evict from host " + host);
+		throw new IllegalStateException("LIFE: No file to evict from host " + strippedHost);
 	}
 
 	synchronized EvictionEntry getFileToEvictLFUF(final String host) {
+
+		final String strippedHost = HostUtils.stripFQDN(host);
 
 		final HostCacheData hcd = this.hostCacheData.get(host);
 		if (hcd == null) {
@@ -267,28 +276,31 @@ final class MetaDataStore {
 		EvictionEntry ee = hcd.getLeastAccessedUncompressedIncompleteFile();
 		if (ee != null) {
 			LOG.info("LFU-F: Chose to evict " + ee.getPathWrapper().getPath() + " (uncompressed, incomplete) at "
-				+ host);
+				+ strippedHost);
 			return ee;
 		}
 
 		ee = hcd.getLeastAccessedCompressedIncompleteFile();
 		if (ee != null) {
-			LOG.info("LFU-F: Chose to evict " + ee.getPathWrapper().getPath() + " (compressed, incomplete) at " + host);
+			LOG.info("LFU-F: Chose to evict " + ee.getPathWrapper().getPath() + " (compressed, incomplete) at "
+				+ strippedHost);
 			return ee;
 		}
 
 		ee = hcd.getLeastAccessedUncompressedCompleteFile();
 		if (ee != null) {
-			LOG.info("LFU-F: Chose to evict " + ee.getPathWrapper().getPath() + " (uncompressed, complete) at " + host);
+			LOG.info("LFU-F: Chose to evict " + ee.getPathWrapper().getPath() + " (uncompressed, complete) at "
+				+ strippedHost);
 			return ee;
 		}
 
 		ee = hcd.getLeastAccessedCompressedCompleteFile();
 		if (ee != null) {
-			LOG.info("LFU-F: Chose to evict " + ee.getPathWrapper().getPath() + " (compressed, complete) at " + host);
+			LOG.info("LFU-F: Chose to evict " + ee.getPathWrapper().getPath() + " (compressed, complete) at "
+				+ strippedHost);
 			return ee;
 		}
 
-		throw new IllegalStateException("LFU-F: No file to evict from host " + host);
+		throw new IllegalStateException("LFU-F: No file to evict from host " + strippedHost);
 	}
 }

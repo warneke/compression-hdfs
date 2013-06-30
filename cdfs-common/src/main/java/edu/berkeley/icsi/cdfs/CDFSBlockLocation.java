@@ -7,6 +7,8 @@ import java.io.IOException;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.io.Text;
 
+import edu.berkeley.icsi.cdfs.utils.HostUtils;
+
 public class CDFSBlockLocation extends BlockLocation {
 
 	private int index;
@@ -49,7 +51,7 @@ public class CDFSBlockLocation extends BlockLocation {
 		try {
 			final String[] hosts = getHosts();
 			for (int i = 0; i < hosts.length; ++i) {
-				sb.append(hosts[i]);
+				sb.append(HostUtils.stripFQDN(hosts[i]));
 				if (i < (hosts.length - 1)) {
 					sb.append(", ");
 				}
