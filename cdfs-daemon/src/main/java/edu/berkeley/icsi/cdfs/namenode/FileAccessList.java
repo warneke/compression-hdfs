@@ -1,9 +1,11 @@
 package edu.berkeley.icsi.cdfs.namenode;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -14,19 +16,23 @@ final class FileAccessList {
 
 	private static final int REPORT_INTERVAL = 1000;
 
+	private static final int HOT_SET_SIZE = 10;
+
 	private static final class FileAccessListEntry {
 
 		private final FileMetaData file;
 
-		private double accessCount;
+		private int index;
+
+		private double accessCount = 0.0;
 
 		private FileAccessListEntry prev = null;
 
 		private FileAccessListEntry next = null;
 
-		private FileAccessListEntry(final FileMetaData file, final double accessCount) {
+		private FileAccessListEntry(final FileMetaData file, final int index) {
 			this.file = file;
-			this.accessCount = accessCount;
+			this.index = index;
 		}
 	}
 
@@ -85,11 +91,15 @@ final class FileAccessList {
 
 	private final Map<FileMetaData, FileAccessListEntry> lookup = new HashMap<FileMetaData, FileAccessListEntry>();
 
+	private final Set<FileMetaData> hotSet = new HashSet<FileMetaData>(HOT_SET_SIZE);
+
 	private FileAccessListEntry head = null;
 
 	private FileAccessListEntry tail = null;
 
 	private int counter = 0;
+
+	private int nextElementIndex = 1;
 
 	Iterator<FileMetaData> iterator() {
 
@@ -110,7 +120,10 @@ final class FileAccessList {
 
 			sb.append(current.file.getPath());
 			sb.append(":\t");
+			sb.append(current.index);
+			sb.append('\t');
 			sb.append(current.accessCount);
+
 			if (current.next != null) {
 				sb.append('\n');
 			}
@@ -130,7 +143,7 @@ final class FileAccessList {
 
 		FileAccessListEntry entry = this.lookup.get(fmd);
 		if (entry == null) {
-			entry = new FileAccessListEntry(fmd, getIncreaseCountValue(fmd));
+			entry = new FileAccessListEntry(fmd, this.nextElementIndex++);
 			this.lookup.put(fmd, entry);
 
 			// Add entry to tail of list
@@ -145,13 +158,12 @@ final class FileAccessList {
 				entry.prev = oldTail;
 				oldTail.next = entry;
 			}
-
-			// No need to adjust anything
-			return;
 		}
 
 		// Increase access count
 		entry.accessCount += getIncreaseCountValue(fmd);
+
+		boolean rebuildHotSet = false;
 
 		while (true) {
 
@@ -168,6 +180,15 @@ final class FileAccessList {
 			// Swap prev and entry
 			final FileAccessListEntry next = entry.next;
 			final FileAccessListEntry prevPrev = prev.prev;
+
+			final int oldIndex = entry.index;
+			entry.index = prev.index;
+			prev.index = oldIndex;
+
+			// We need to rebuild the hot set
+			if (entry.index <= HOT_SET_SIZE) {
+				rebuildHotSet = true;
+			}
 
 			entry.prev = prevPrev;
 			entry.next = prev;
@@ -191,10 +212,36 @@ final class FileAccessList {
 			}
 		}
 
+		if (rebuildHotSet) {
+			rebuildHotSet();
+		}
+
 		if (++this.counter == REPORT_INTERVAL) {
 			this.counter = 0;
 
 			printAccessCounts();
+		}
+	}
+
+	boolean isInHotSet(final FileMetaData fmd) {
+
+		return this.hotSet.contains(fmd);
+	}
+
+	private void rebuildHotSet() {
+
+		this.hotSet.clear();
+
+		FileAccessListEntry current = this.head;
+
+		for (int i = 0; i < HOT_SET_SIZE; ++i) {
+
+			if (current == null) {
+				break;
+			}
+
+			this.hotSet.add(current.file);
+			current = current.next;
 		}
 	}
 }
