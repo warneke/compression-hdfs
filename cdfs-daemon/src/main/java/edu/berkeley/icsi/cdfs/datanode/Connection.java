@@ -143,9 +143,12 @@ final class Connection extends Thread {
 				final int totalNumberOfBlocks = blockLocations[0].getTotalNumberOfBlocks();
 				int blockIndex = blockLocations[0].getIndex();
 
-				final ReadOp readOp = new ReadOp(this.socket, this.conf);
+				final ReadOp readOp = new ReadOp(this.socket);
 				operation = readOp;
 				boolean runLoop = true;
+
+				final boolean cacheUncompressed = blockLocations[0].cacheUncompressed();
+				final boolean cacheCompressed = blockLocations[0].cacheCompressed();
 
 				while ((blockIndex < totalNumberOfBlocks) && runLoop) {
 
@@ -160,8 +163,8 @@ final class Connection extends Thread {
 					if (uncompressedBuffers != null) {
 						try {
 							readStatistics.add(ReadStatistics.createCacheUncompressed(header.getPath(), blockIndex));
-							LOG.info("Reading block " + blockIndex + " from cache (uncompressed), "
-								+ uncompressedBuffers.size() + " buffers");
+							LOG.info("Reading block " + blockIndex + " of " + header.getPath()
+								+ " from cache (uncompressed), " + uncompressedBuffers.size() + " buffers");
 							readOp.readFromCacheUncompressed(uncompressedBuffers);
 						} catch (EOFException e) {
 							if (LOG.isDebugEnabled()) {
@@ -183,9 +186,9 @@ final class Connection extends Thread {
 					if (compressedBuffers != null) {
 						try {
 							readStatistics.add(ReadStatistics.createCacheCompressed(header.getPath(), blockIndex));
-							LOG.info("Reading block " + blockIndex + " from cache (compressed), "
-								+ compressedBuffers.size() + " buffers");
-							readOp.readFromCacheCompressed(compressedBuffers);
+							LOG.info("Reading block " + blockIndex + " of " + header.getPath()
+								+ " from cache (compressed), " + compressedBuffers.size() + " buffers");
+							readOp.readFromCacheCompressed(compressedBuffers, cacheUncompressed);
 						} catch (EOFException e) {
 							if (LOG.isDebugEnabled()) {
 								LOG.debug("Caught EOFException from readFromCacheCompressed after "
@@ -226,8 +229,8 @@ final class Connection extends Thread {
 
 					try {
 						readStatistics.add(ReadStatistics.createDisk(header.getPath(), blockIndex));
-						LOG.info("Reading block " + blockIndex + " from disk");
-						readOp.readFromHDFSCompressed(this.hdfs, hdfsPath);
+						LOG.info("Reading block " + blockIndex + " of " + header.getPath() + " from disk");
+						readOp.readFromHDFSCompressed(this.hdfs, hdfsPath, cacheUncompressed, cacheCompressed);
 					} catch (EOFException e) {
 						if (LOG.isDebugEnabled()) {
 							LOG.debug("Caught EOFException from readFromHDFSCompressed after "

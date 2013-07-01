@@ -153,12 +153,12 @@ final class MetaDataStore {
 		// Increase access count
 		this.fileAccessList.increaseAccessCount(fmd);
 
-		LOG.info("Computing block locations for " + path + ", start " + start + ", len " + len);
-
 		final BlockMetaData[] blocks = fmd.getBlockMetaData(start, len);
 		if (blocks == null) {
 			return null;
 		}
+
+		final boolean isInHotSet = this.fileAccessList.isInHotSet(fmd);
 
 		// Construct host priorities
 		final CDFSBlockLocation[] blockLocations = new CDFSBlockLocation[blocks.length];
@@ -185,8 +185,11 @@ final class MetaDataStore {
 			}
 
 			blockLocations[i] = new CDFSBlockLocation(blocks[i].getIndex(), names, hosts, blocks[i].getOffset(),
-				blocks[i].getLength(), fmd.getNumberOfBlocks());
-			LOG.info("Constructed " + blockLocations[i]);
+				blocks[i].getLength(), fmd.getNumberOfBlocks(), isInHotSet, false);
+
+			if (LOG.isInfoEnabled()) {
+				LOG.info("Constructed " + fmd.getPath() + " " + blockLocations[i]);
+			}
 		}
 		return blockLocations;
 	}

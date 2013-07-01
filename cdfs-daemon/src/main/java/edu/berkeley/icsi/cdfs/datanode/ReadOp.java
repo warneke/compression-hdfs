@@ -9,7 +9,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -25,18 +24,15 @@ final class ReadOp implements Closeable {
 
 	private final SharedMemoryProducer sharedMemoryProducer;
 
-	private final Configuration conf;
-
 	private List<Buffer> uncompressedBuffers = null;
 
 	private List<Buffer> compressedBuffers = null;
 
 	private long numberOfBytesRead = 0L;
 
-	ReadOp(final Socket socket, final Configuration conf)
+	ReadOp(final Socket socket)
 			throws IOException {
 		this.sharedMemoryProducer = new SharedMemoryProducer(socket);
-		this.conf = conf;
 	}
 
 	public void readFromCacheUncompressed(final List<Buffer> uncompressedBuffers) throws IOException {
@@ -54,10 +50,8 @@ final class ReadOp implements Closeable {
 		}
 	}
 
-	public void readFromCacheCompressed(final List<Buffer> compressedBuffers) throws IOException {
-
-		boolean cacheUncompressed = conf.getBoolean(ConfigConstants.ENABLE_UNCOMPRESSED_CACHING_KEY,
-			ConfigConstants.DEFAULT_ENABLE_UNCOMPRESSED_CACHING);
+	public void readFromCacheCompressed(final List<Buffer> compressedBuffers, boolean cacheUncompressed)
+			throws IOException {
 
 		this.numberOfBytesRead = 0L;
 		this.uncompressedBuffers = new ArrayList<Buffer>();
@@ -107,12 +101,8 @@ final class ReadOp implements Closeable {
 		}
 	}
 
-	public void readFromHDFSCompressed(final FileSystem hdfs, final Path hdfsPath) throws IOException {
-
-		boolean cacheUncompressed = conf.getBoolean(ConfigConstants.ENABLE_UNCOMPRESSED_CACHING_KEY,
-			ConfigConstants.DEFAULT_ENABLE_UNCOMPRESSED_CACHING);
-		boolean cacheCompressed = conf.getBoolean(ConfigConstants.ENABLE_COMPRESSED_CACHING_KEY,
-			ConfigConstants.DEFAULT_ENABLE_COMPRESSED_CACHING);
+	public void readFromHDFSCompressed(final FileSystem hdfs, final Path hdfsPath, boolean cacheUncompressed,
+			boolean cacheCompressed) throws IOException {
 
 		this.uncompressedBuffers = new ArrayList<Buffer>();
 		this.compressedBuffers = new ArrayList<Buffer>();

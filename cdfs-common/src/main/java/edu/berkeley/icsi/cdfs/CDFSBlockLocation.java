@@ -15,12 +15,19 @@ public class CDFSBlockLocation extends BlockLocation {
 
 	private int totalNumberOfBlocks;
 
+	private boolean cacheUncompressed;
+
+	private boolean cacheCompressed;
+
 	public CDFSBlockLocation(final int index, final String[] names, final String[] hosts, final long offset,
-			final long length, final int totalNumberOfBlocks) {
+			final long length, final int totalNumberOfBlocks, final boolean cacheUncompressed,
+			final boolean cacheCompressed) {
 		super(names, hosts, offset, length);
 
 		this.index = index;
 		this.totalNumberOfBlocks = totalNumberOfBlocks;
+		this.cacheUncompressed = cacheUncompressed;
+		this.cacheCompressed = cacheCompressed;
 	}
 
 	public CDFSBlockLocation() {
@@ -32,6 +39,14 @@ public class CDFSBlockLocation extends BlockLocation {
 
 	public int getTotalNumberOfBlocks() {
 		return this.totalNumberOfBlocks;
+	}
+
+	public boolean cacheUncompressed() {
+		return this.cacheUncompressed;
+	}
+
+	public boolean cacheCompressed() {
+		return this.cacheCompressed;
 	}
 
 	/**
@@ -73,6 +88,8 @@ public class CDFSBlockLocation extends BlockLocation {
 
 		out.writeInt(this.index);
 		out.writeInt(this.totalNumberOfBlocks);
+		out.writeBoolean(this.cacheUncompressed);
+		out.writeBoolean(this.cacheCompressed);
 		out.writeLong(this.getOffset());
 		out.writeLong(this.getLength());
 
@@ -107,6 +124,8 @@ public class CDFSBlockLocation extends BlockLocation {
 
 		this.index = in.readInt();
 		this.totalNumberOfBlocks = in.readInt();
+		this.cacheUncompressed = in.readBoolean();
+		this.cacheCompressed = in.readBoolean();
 		setOffset(in.readLong());
 		setLength(in.readLong());
 
