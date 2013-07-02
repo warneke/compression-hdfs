@@ -6,6 +6,9 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Collections;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.logging.Log;
@@ -23,9 +26,11 @@ import edu.berkeley.icsi.cdfs.protocols.DataNodeNameNodeProtocol;
 import edu.berkeley.icsi.cdfs.utils.HostUtils;
 import edu.berkeley.icsi.cdfs.utils.PathConverter;
 
-public class DataNode {
+public class DataNode implements ConnectionDispatcher {
 
 	private static final Log LOG = LogFactory.getLog(DataNode.class);
+
+	private final Set<Connection> activeConnectons;
 
 	private final ServerSocket serverSocket;
 
@@ -39,9 +44,13 @@ public class DataNode {
 
 	private final FileSystem hdfs;
 
+	private final BlockPrefetcher blockPrefetcher;
+
 	public DataNode(final Configuration conf) throws IOException {
 
 		LOG.info("Starting CDFS datanode on port " + CDFS.DATANODE_DATA_PORT);
+
+		this.activeConnectons = Collections.newSetFromMap(new ConcurrentHashMap<Connection, Boolean>());
 
 		this.serverSocket = new ServerSocket(CDFS.DATANODE_DATA_PORT);
 		this.conf = conf;
@@ -85,6 +94,9 @@ public class DataNode {
 
 		// Create and store reference to HDFS file system
 		this.hdfs = new Path(hdfsURI).getFileSystem(conf);
+
+		// Start the prefetcher thread
+		this.blockPrefetcher = new BlockPrefetcher(this);
 	}
 
 	void run() throws IOException {
@@ -93,7 +105,8 @@ public class DataNode {
 
 			final Socket socket = this.serverSocket.accept();
 
-			new Connection(socket, this.nameNode, this.conf, this.host, this.hdfs, this.pathConverter);
+			this.activeConnectons.add(new Connection(socket, this.nameNode, this.conf, this.host, this.hdfs,
+				this.pathConverter, this));
 		}
 	}
 
@@ -126,6 +139,10 @@ public class DataNode {
 
 	void shutDown() {
 
+		if (this.blockPrefetcher != null) {
+			this.blockPrefetcher.shutDown();
+		}
+
 		if (this.hdfs != null) {
 			try {
 				this.hdfs.close();
@@ -139,5 +156,23 @@ public class DataNode {
 		} catch (IOException ioe) {
 			ioe.printStackTrace();
 		}
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public void removeConnection(final Connection connection) {
+
+		this.activeConnectons.remove(connection);
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public boolean hasActiveConnections() {
+
+		return !this.activeConnectons.isEmpty();
 	}
 }

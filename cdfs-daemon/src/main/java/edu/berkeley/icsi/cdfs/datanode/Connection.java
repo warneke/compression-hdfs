@@ -43,8 +43,11 @@ final class Connection extends Thread {
 
 	private final PathConverter pathConverter;
 
+	private final ConnectionDispatcher connectionDispatcher;
+
 	Connection(final Socket socket, final DataNodeNameNodeProtocol nameNode,
-			final Configuration conf, final String host, final FileSystem hdfs, final PathConverter pathConverter) {
+			final Configuration conf, final String host, final FileSystem hdfs, final PathConverter pathConverter,
+			final ConnectionDispatcher connectionDispatcher) {
 		super("DataNodeConnection from " + socket.getRemoteSocketAddress());
 
 		this.socket = socket;
@@ -53,6 +56,7 @@ final class Connection extends Thread {
 		this.host = host;
 		this.hdfs = hdfs;
 		this.pathConverter = pathConverter;
+		this.connectionDispatcher = connectionDispatcher;
 		start();
 	}
 
@@ -301,6 +305,9 @@ final class Connection extends Thread {
 
 			} catch (IOException ioe) {
 			}
+
+			// Remove connection object
+			this.connectionDispatcher.removeConnection(this);
 		}
 	}
 }
