@@ -121,6 +121,15 @@ abstract class AbstractCache {
 		}
 	}
 
+	public boolean contains(final Path path, final int blockIndex) {
+
+		final BlockKey bk = new BlockKey(path, blockIndex);
+
+		synchronized (this) {
+			return this.cache.containsKey(bk);
+		}
+	}
+
 	public boolean addCachedBlock(final Path path, final int blockIndex, final List<Buffer> buffers) {
 
 		final BlockKey bk = new BlockKey(path, blockIndex);

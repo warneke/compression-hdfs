@@ -22,6 +22,7 @@ import com.esotericsoftware.kryo.io.Output;
 import edu.berkeley.icsi.cdfs.BlockReadInformation;
 import edu.berkeley.icsi.cdfs.CDFS;
 import edu.berkeley.icsi.cdfs.CDFSBlockLocation;
+import edu.berkeley.icsi.cdfs.PopularFile;
 import edu.berkeley.icsi.cdfs.cache.EvictionEntry;
 import edu.berkeley.icsi.cdfs.conf.ConfigConstants;
 import edu.berkeley.icsi.cdfs.utils.HostUtils;
@@ -207,14 +208,18 @@ final class MetaDataStore {
 
 		final BlockReadInformation[] readInformation = new BlockReadInformation[blocks.length];
 		final int numberOfBlocks = fmd.getNumberOfBlocks();
-		final boolean isInHotSet = this.fileAccessList.isInHotSet(fmd);
 
 		for (int i = 0; i < blocks.length; ++i) {
 			readInformation[i] = new BlockReadInformation(blocks[i].getIndex(), blocks[i].getOffset(),
-				blocks[i].getLength(), numberOfBlocks, isInHotSet, false);
+				blocks[i].getLength(), numberOfBlocks, false, false);
 		}
 
 		return readInformation;
+	}
+
+	synchronized PopularFile[] getPopularFiles(final int maximumNumberOfFiles) {
+
+		return null;
 	}
 
 	synchronized void reportCachedBlock(final Path path, final int blockIndex, final boolean compressed,

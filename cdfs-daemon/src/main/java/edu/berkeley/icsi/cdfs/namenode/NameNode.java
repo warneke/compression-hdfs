@@ -23,6 +23,7 @@ import org.apache.hadoop.util.StringUtils;
 import edu.berkeley.icsi.cdfs.BlockReadInformation;
 import edu.berkeley.icsi.cdfs.CDFSBlockLocation;
 import edu.berkeley.icsi.cdfs.ConnectionInfo;
+import edu.berkeley.icsi.cdfs.PopularFile;
 import edu.berkeley.icsi.cdfs.cache.EvictionEntry;
 import edu.berkeley.icsi.cdfs.conf.ConfigConstants;
 import edu.berkeley.icsi.cdfs.conf.ConfigUtils;
@@ -289,5 +290,14 @@ public class NameNode implements ClientNameNodeProtocol, DataNodeNameNodeProtoco
 			throws IOException {
 
 		this.statisticsCollector.collectReadStatistics(readStatistics);
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public PopularFile[] getPopularFiles(final int maximumNumberOfFiles) throws IOException {
+
+		return this.metaDataStore.getPopularFiles(maximumNumberOfFiles);
 	}
 }

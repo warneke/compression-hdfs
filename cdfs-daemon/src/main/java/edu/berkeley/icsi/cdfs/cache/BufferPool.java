@@ -185,4 +185,15 @@ public final class BufferPool {
 
 		return this.buffers.size();
 	}
+
+	public long getAvaiableBufferSpace() {
+
+		return (long) this.buffers.size() * (long) ConfigConstants.BUFFER_SIZE;
+	}
+
+	public static long sizeInCache(final long size) {
+
+		return ((size + ConfigConstants.BUFFER_SIZE - 1) / ConfigConstants.BUFFER_SIZE)
+			* (long) ConfigConstants.BUFFER_SIZE;
+	}
 }

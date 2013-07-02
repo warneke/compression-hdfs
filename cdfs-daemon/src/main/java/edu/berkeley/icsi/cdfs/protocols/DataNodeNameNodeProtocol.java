@@ -5,6 +5,7 @@ import java.io.IOException;
 import org.apache.hadoop.ipc.VersionedProtocol;
 
 import edu.berkeley.icsi.cdfs.BlockReadInformation;
+import edu.berkeley.icsi.cdfs.PopularFile;
 import edu.berkeley.icsi.cdfs.cache.EvictionEntry;
 import edu.berkeley.icsi.cdfs.statistics.ReadStatistics;
 import edu.berkeley.icsi.cdfs.utils.PathWrapper;
@@ -25,4 +26,6 @@ public interface DataNodeNameNodeProtocol extends VersionedProtocol {
 	void reportReadStatistics(WritableArrayList<ReadStatistics> readStatistics, String host) throws IOException;
 
 	BlockReadInformation[] getBlockReadInformation(PathWrapper path, long start, long len) throws IOException;
+
+	PopularFile[] getPopularFiles(int maximumNumberOfFiles) throws IOException;
 }

@@ -1,14 +1,17 @@
 package edu.berkeley.icsi.cdfs.namenode;
 
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
+import edu.berkeley.icsi.cdfs.PopularBlock;
+import edu.berkeley.icsi.cdfs.PopularFile;
 
 final class FileAccessList {
 
@@ -91,13 +94,13 @@ final class FileAccessList {
 
 	private final Map<FileMetaData, FileAccessListEntry> lookup = new HashMap<FileMetaData, FileAccessListEntry>();
 
-	private final Set<FileMetaData> hotSet = new HashSet<FileMetaData>(HOT_SET_SIZE);
+	private PopularFile[] cachedPopularFiles = null;
 
 	private FileAccessListEntry head = null;
 
 	private FileAccessListEntry tail = null;
 
-	private int counter = 0;
+	private long counter = 0;
 
 	private int nextElementIndex = 1;
 
@@ -163,15 +166,13 @@ final class FileAccessList {
 		// Increase access count
 		entry.accessCount += getIncreaseCountValue(fmd);
 
-		boolean rebuildHotSet = false;
-
 		while (true) {
 
 			final FileAccessListEntry prev = entry.prev;
 
 			// We need to rebuild the hot set
 			if (entry.index <= HOT_SET_SIZE) {
-				rebuildHotSet = true;
+				this.cachedPopularFiles = null;
 			}
 
 			if (prev == null) {
@@ -212,36 +213,45 @@ final class FileAccessList {
 			}
 		}
 
-		if (rebuildHotSet) {
-			rebuildHotSet();
-		}
-
-		if (++this.counter == REPORT_INTERVAL) {
-			this.counter = 0;
+		if (++this.counter % REPORT_INTERVAL == 0L) {
 
 			printAccessCounts();
 		}
 	}
 
-	boolean isInHotSet(final FileMetaData fmd) {
+	PopularFile[] getPopularFiles(final int maximumNumberOfFiles) {
 
-		return this.hotSet.contains(fmd);
-	}
+		if (this.cachedPopularFiles != null) {
+			return this.cachedPopularFiles;
+		}
 
-	private void rebuildHotSet() {
+		final List<PopularFile> popularFiles = new ArrayList<PopularFile>(maximumNumberOfFiles);
 
-		this.hotSet.clear();
+		FileAccessListEntry entry = this.head;
+		for (int i = 0; i < maximumNumberOfFiles; ++i) {
 
-		FileAccessListEntry current = this.head;
-
-		for (int i = 0; i < HOT_SET_SIZE; ++i) {
-
-			if (current == null) {
+			if (entry == null) {
 				break;
 			}
 
-			this.hotSet.add(current.file);
-			current = current.next;
+			final int numberOfBlocks = entry.file.getNumberOfBlocks();
+			final PopularBlock[] popularBlocks = new PopularBlock[numberOfBlocks];
+			final Iterator<BlockMetaData> it = entry.file.getBlockIterator();
+			for (int j = 0; j < numberOfBlocks; ++j) {
+
+				final BlockMetaData bmd = it.next();
+				popularBlocks[j] = new PopularBlock(bmd.getIndex());
+			}
+
+			final double popularityFactor = (entry.accessCount * (double) numberOfBlocks) / (double) this.counter;
+
+			popularFiles.add(new PopularFile(entry.file.getPath(), popularBlocks, popularityFactor));
+
+			entry = entry.next;
 		}
+
+		this.cachedPopularFiles = popularFiles.toArray(new PopularFile[0]);
+
+		return this.cachedPopularFiles;
 	}
 }
