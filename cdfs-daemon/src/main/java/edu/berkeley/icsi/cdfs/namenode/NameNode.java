@@ -20,6 +20,7 @@ import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.ipc.RPC.Server;
 import org.apache.hadoop.util.StringUtils;
 
+import edu.berkeley.icsi.cdfs.BlockReadInformation;
 import edu.berkeley.icsi.cdfs.CDFSBlockLocation;
 import edu.berkeley.icsi.cdfs.ConnectionInfo;
 import edu.berkeley.icsi.cdfs.cache.EvictionEntry;
@@ -186,6 +187,16 @@ public class NameNode implements ClientNameNodeProtocol, DataNodeNameNodeProtoco
 			throws IOException {
 
 		return this.metaDataStore.getFileBlockLocations(path.getPath(), start, len);
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public BlockReadInformation[] getBlockReadInformation(final PathWrapper path, final long start, final long len)
+			throws IOException {
+
+		return this.metaDataStore.getBlockReadInformation(path.getPath(), start, len);
 	}
 
 	/**

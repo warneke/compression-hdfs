@@ -19,6 +19,7 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 
+import edu.berkeley.icsi.cdfs.BlockReadInformation;
 import edu.berkeley.icsi.cdfs.CDFS;
 import edu.berkeley.icsi.cdfs.CDFSBlockLocation;
 import edu.berkeley.icsi.cdfs.cache.EvictionEntry;
@@ -150,15 +151,10 @@ final class MetaDataStore {
 			return null;
 		}
 
-		// Increase access count
-		this.fileAccessList.increaseAccessCount(fmd);
-
 		final BlockMetaData[] blocks = fmd.getBlockMetaData(start, len);
 		if (blocks == null) {
 			return null;
 		}
-
-		final boolean isInHotSet = this.fileAccessList.isInHotSet(fmd);
 
 		// Construct host priorities
 		final CDFSBlockLocation[] blockLocations = new CDFSBlockLocation[blocks.length];
@@ -185,13 +181,40 @@ final class MetaDataStore {
 			}
 
 			blockLocations[i] = new CDFSBlockLocation(blocks[i].getIndex(), names, hosts, blocks[i].getOffset(),
-				blocks[i].getLength(), fmd.getNumberOfBlocks(), isInHotSet, false);
+				blocks[i].getLength());
 
 			if (LOG.isInfoEnabled()) {
 				LOG.info("Constructed " + fmd.getPath() + " " + blockLocations[i]);
 			}
 		}
 		return blockLocations;
+	}
+
+	synchronized BlockReadInformation[] getBlockReadInformation(final Path path, final long start, final long len) {
+
+		final FileMetaData fmd = this.metaData.get(path.toUri().getPath());
+		if (fmd == null) {
+			return null;
+		}
+
+		// Increase access count
+		this.fileAccessList.increaseAccessCount(fmd);
+
+		final BlockMetaData[] blocks = fmd.getBlockMetaData(start, len);
+		if (blocks == null) {
+			return null;
+		}
+
+		final BlockReadInformation[] readInformation = new BlockReadInformation[blocks.length];
+		final int numberOfBlocks = fmd.getNumberOfBlocks();
+		final boolean isInHotSet = this.fileAccessList.isInHotSet(fmd);
+
+		for (int i = 0; i < blocks.length; ++i) {
+			readInformation[i] = new BlockReadInformation(blocks[i].getIndex(), blocks[i].getOffset(),
+				blocks[i].getLength(), numberOfBlocks, isInHotSet, false);
+		}
+
+		return readInformation;
 	}
 
 	synchronized void reportCachedBlock(final Path path, final int blockIndex, final boolean compressed,

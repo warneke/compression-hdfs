@@ -13,21 +13,11 @@ public class CDFSBlockLocation extends BlockLocation {
 
 	private int index;
 
-	private int totalNumberOfBlocks;
-
-	private boolean cacheUncompressed;
-
-	private boolean cacheCompressed;
-
 	public CDFSBlockLocation(final int index, final String[] names, final String[] hosts, final long offset,
-			final long length, final int totalNumberOfBlocks, final boolean cacheUncompressed,
-			final boolean cacheCompressed) {
+			final long length) {
 		super(names, hosts, offset, length);
 
 		this.index = index;
-		this.totalNumberOfBlocks = totalNumberOfBlocks;
-		this.cacheUncompressed = cacheUncompressed;
-		this.cacheCompressed = cacheCompressed;
 	}
 
 	public CDFSBlockLocation() {
@@ -35,18 +25,6 @@ public class CDFSBlockLocation extends BlockLocation {
 
 	public int getIndex() {
 		return this.index;
-	}
-
-	public int getTotalNumberOfBlocks() {
-		return this.totalNumberOfBlocks;
-	}
-
-	public boolean cacheUncompressed() {
-		return this.cacheUncompressed;
-	}
-
-	public boolean cacheCompressed() {
-		return this.cacheCompressed;
 	}
 
 	/**
@@ -87,9 +65,6 @@ public class CDFSBlockLocation extends BlockLocation {
 	public void write(final DataOutput out) throws IOException {
 
 		out.writeInt(this.index);
-		out.writeInt(this.totalNumberOfBlocks);
-		out.writeBoolean(this.cacheUncompressed);
-		out.writeBoolean(this.cacheCompressed);
 		out.writeLong(this.getOffset());
 		out.writeLong(this.getLength());
 
@@ -123,9 +98,6 @@ public class CDFSBlockLocation extends BlockLocation {
 	public void readFields(DataInput in) throws IOException {
 
 		this.index = in.readInt();
-		this.totalNumberOfBlocks = in.readInt();
-		this.cacheUncompressed = in.readBoolean();
-		this.cacheCompressed = in.readBoolean();
 		setOffset(in.readLong());
 		setLength(in.readLong());
 

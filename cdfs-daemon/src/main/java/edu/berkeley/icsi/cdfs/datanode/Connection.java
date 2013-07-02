@@ -14,7 +14,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.StringUtils;
 
-import edu.berkeley.icsi.cdfs.CDFSBlockLocation;
+import edu.berkeley.icsi.cdfs.BlockReadInformation;
 import edu.berkeley.icsi.cdfs.ConnectionMode;
 import edu.berkeley.icsi.cdfs.Header;
 import edu.berkeley.icsi.cdfs.cache.Buffer;
@@ -122,39 +122,40 @@ final class Connection extends Thread {
 
 				final PathWrapper cdfsPath = new PathWrapper(header.getPath());
 
-				CDFSBlockLocation[] blockLocations;
+				BlockReadInformation[] blockReadInformation;
 				synchronized (this.nameNode) {
-					blockLocations = this.nameNode.getFileBlockLocations(new PathWrapper(header.getPath()),
+					blockReadInformation = this.nameNode.getBlockReadInformation(new PathWrapper(header.getPath()),
 						header.getPos(), 0L);
 				}
 
-				if (blockLocations == null) {
+				if (blockReadInformation == null) {
 					throw new IllegalStateException("blockLocations is null");
 				}
 
-				if (blockLocations.length != 1) {
-					throw new IllegalStateException("Length of blockLocations is " + blockLocations.length);
+				if (blockReadInformation.length != 1) {
+					throw new IllegalStateException("Length of blockLocations is " + blockReadInformation.length);
 				}
 
-				if (header.getPos() != blockLocations[0].getOffset()) {
+				if (header.getPos() != blockReadInformation[0].getOffset()) {
 					throw new IllegalStateException("Unable to seek to position other than block offset");
 				}
 
-				final int totalNumberOfBlocks = blockLocations[0].getTotalNumberOfBlocks();
-				int blockIndex = blockLocations[0].getIndex();
+				final int totalNumberOfBlocks = blockReadInformation[0].getTotalNumberOfBlocks();
+				int blockIndex = blockReadInformation[0].getIndex();
 
 				final ReadOp readOp = new ReadOp(this.socket);
 				operation = readOp;
 				boolean runLoop = true;
 
-				final boolean cacheUncompressed = blockLocations[0].cacheUncompressed();
-				final boolean cacheCompressed = blockLocations[0].cacheCompressed();
+				final boolean cacheUncompressed = blockReadInformation[0].cacheUncompressed();
+				final boolean cacheCompressed = blockReadInformation[0].cacheCompressed();
 
 				while ((blockIndex < totalNumberOfBlocks) && runLoop) {
 
 					// Determine the expected length of the block
-					final long blockLength = (blockIndex == blockLocations[0].getIndex()) ? blockLocations[0]
-						.getLength() : -1L;
+					final long blockLength = (blockIndex == blockReadInformation[0].getIndex()) ? blockReadInformation[0]
+						.getLength()
+						: -1L;
 					LOG.info("Determined length of block " + blockIndex + " to be " + blockLength + " bytes");
 
 					// See if we have the uncompressed version cached
