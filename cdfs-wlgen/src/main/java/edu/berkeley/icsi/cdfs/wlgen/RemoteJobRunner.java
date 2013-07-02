@@ -33,7 +33,7 @@ public final class RemoteJobRunner {
 
 		while (true) {
 
-			if (queuedJobs.isEmpty()) {
+			if (queuedJobs.isEmpty() && runningJobs.isEmpty()) {
 				break;
 			}
 
@@ -41,6 +41,10 @@ public final class RemoteJobRunner {
 			while (true) {
 
 				final MapReduceJob job = queuedJobs.peek();
+				if (job == null) {
+					break;
+				}
+
 				if (runningMaps + job.getNumMapTasks() > mapLimit) {
 					break;
 				}

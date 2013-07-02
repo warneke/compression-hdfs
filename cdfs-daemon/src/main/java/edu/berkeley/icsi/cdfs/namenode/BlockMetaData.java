@@ -15,7 +15,7 @@ import com.esotericsoftware.kryo.io.Output;
 
 final class BlockMetaData implements KryoSerializable {
 
-	private static final int MAX_BLOCK_LOCATION = 10;
+	private static final int MAX_BLOCK_LOCATION = 100;
 
 	private int index;
 
