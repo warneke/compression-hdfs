@@ -169,6 +169,11 @@ final class FileAccessList {
 
 			final FileAccessListEntry prev = entry.prev;
 
+			// We need to rebuild the hot set
+			if (entry.index <= HOT_SET_SIZE) {
+				rebuildHotSet = true;
+			}
+
 			if (prev == null) {
 				break;
 			}
@@ -181,19 +186,14 @@ final class FileAccessList {
 			final FileAccessListEntry next = entry.next;
 			final FileAccessListEntry prevPrev = prev.prev;
 
-			final int oldIndex = entry.index;
-			entry.index = prev.index;
-			prev.index = oldIndex;
-
-			// We need to rebuild the hot set
-			if (entry.index <= HOT_SET_SIZE) {
-				rebuildHotSet = true;
-			}
-
 			entry.prev = prevPrev;
 			entry.next = prev;
 			prev.prev = entry;
 			prev.next = next;
+
+			final int oldIndex = entry.index;
+			entry.index = prev.index;
+			prev.index = oldIndex;
 
 			if (next != null) {
 				next.prev = prev;
