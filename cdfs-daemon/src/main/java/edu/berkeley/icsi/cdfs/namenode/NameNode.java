@@ -80,7 +80,7 @@ public class NameNode implements ClientNameNodeProtocol, DataNodeNameNodeProtoco
 
 		this.hdfs = new Path(hdfsURI).getFileSystem(conf);
 
-		this.metaDataStore = new MetaDataStore(this.hdfs, this.pathConverter);
+		this.metaDataStore = new MetaDataStore(this.hdfs, this.pathConverter, conf);
 		this.statisticsCollector = new StatisticsCollector(conf);
 	}
 

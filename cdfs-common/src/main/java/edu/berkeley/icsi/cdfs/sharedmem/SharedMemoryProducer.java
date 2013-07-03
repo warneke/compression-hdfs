@@ -109,7 +109,9 @@ public final class SharedMemoryProducer extends AbstractSharedMemoryComponent {
 
 	public void close() throws IOException {
 
-		this.memoryMappedFile.close();
+		if(this.memoryMappedFile != null) {
+			this.memoryMappedFile.close();
+		}
 		super.close();
 	}
 }

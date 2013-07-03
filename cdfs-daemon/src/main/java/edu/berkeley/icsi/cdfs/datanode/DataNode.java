@@ -96,7 +96,7 @@ public class DataNode implements ConnectionDispatcher {
 		this.hdfs = new Path(hdfsURI).getFileSystem(conf);
 
 		// Start the prefetcher thread
-		this.blockPrefetcher = new BlockPrefetcher(this, this.nameNode);
+		this.blockPrefetcher = new BlockPrefetcher(this, this.nameNode, this.pathConverter, this.host, this.hdfs);
 	}
 
 	void run() throws IOException {

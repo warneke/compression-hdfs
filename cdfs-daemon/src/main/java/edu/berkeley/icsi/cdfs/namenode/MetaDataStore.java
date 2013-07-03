@@ -10,6 +10,7 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -46,7 +47,12 @@ final class MetaDataStore {
 
 	private final Kryo kryo = new Kryo();
 
-	public MetaDataStore(final FileSystem hdfs, final PathConverter pathConverter) throws IOException {
+	private final boolean cacheUncompressed;
+
+	private final boolean cacheCompressed;
+
+	public MetaDataStore(final FileSystem hdfs, final PathConverter pathConverter, final Configuration conf)
+			throws IOException {
 
 		this.hdfs = hdfs;
 		this.pathConverter = pathConverter;
@@ -55,6 +61,12 @@ final class MetaDataStore {
 		if (userName == null) {
 			userName = "default";
 		}
+
+		this.cacheUncompressed = conf.getBoolean(ConfigConstants.ENABLE_UNCOMPRESSED_CACHING_KEY,
+			ConfigConstants.DEFAULT_ENABLE_UNCOMPRESSED_CACHING);
+
+		this.cacheCompressed = conf.getBoolean(ConfigConstants.ENABLE_COMPRESSED_CACHING_KEY,
+			ConfigConstants.DEFAULT_ENABLE_COMPRESSED_CACHING);
 
 		this.storageLocation = "/tmp/cdfs-" + userName;
 		new File(this.storageLocation).mkdirs();
@@ -211,7 +223,7 @@ final class MetaDataStore {
 
 		for (int i = 0; i < blocks.length; ++i) {
 			readInformation[i] = new BlockReadInformation(blocks[i].getIndex(), blocks[i].getOffset(),
-				blocks[i].getLength(), numberOfBlocks, false, false);
+				blocks[i].getLength(), numberOfBlocks, this.cacheUncompressed, this.cacheCompressed);
 		}
 
 		return readInformation;
@@ -219,7 +231,7 @@ final class MetaDataStore {
 
 	synchronized PopularFile[] getPopularFiles(final int maximumNumberOfFiles) {
 
-		return null;
+		return this.fileAccessList.getPopularFiles(maximumNumberOfFiles);
 	}
 
 	synchronized void reportCachedBlock(final Path path, final int blockIndex, final boolean compressed,

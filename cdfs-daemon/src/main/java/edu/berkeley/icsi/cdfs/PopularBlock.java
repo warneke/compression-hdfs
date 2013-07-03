@@ -10,8 +10,11 @@ public final class PopularBlock implements Writable {
 
 	private int index;
 
-	public PopularBlock(final int index) {
+	private int uncompressedLength;
+
+	public PopularBlock(final int index, final int uncompressedLength) {
 		this.index = index;
+		this.uncompressedLength = uncompressedLength;
 	}
 
 	public PopularBlock() {
@@ -21,11 +24,11 @@ public final class PopularBlock implements Writable {
 		return this.index;
 	}
 
-	public int getUncompressedSize() {
-		return 0;
+	public int getUncompressedLength() {
+		return this.uncompressedLength;
 	}
 
-	public int getCompressedSize() {
+	public int getCompressedLength() {
 		return 0;
 	}
 
@@ -36,6 +39,7 @@ public final class PopularBlock implements Writable {
 	public void write(final DataOutput out) throws IOException {
 
 		out.writeInt(this.index);
+		out.writeInt(this.uncompressedLength);
 	}
 
 	/**
@@ -45,6 +49,7 @@ public final class PopularBlock implements Writable {
 	public void readFields(final DataInput in) throws IOException {
 
 		this.index = in.readInt();
+		this.uncompressedLength = in.readInt();
 	}
 
 }

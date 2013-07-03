@@ -30,12 +30,19 @@ final class ReadOp implements Closeable {
 
 	private long numberOfBytesRead = 0L;
 
-	ReadOp(final Socket socket)
-			throws IOException {
-		this.sharedMemoryProducer = new SharedMemoryProducer(socket);
+	ReadOp(final Socket socket) throws IOException {
+		if (socket != null) {
+			this.sharedMemoryProducer = new SharedMemoryProducer(socket);
+		} else {
+			this.sharedMemoryProducer = null;
+		}
 	}
 
 	public void readFromCacheUncompressed(final List<Buffer> uncompressedBuffers) throws IOException {
+
+		if (this.sharedMemoryProducer == null) {
+			throw new IllegalStateException("Shared memory producer is null");
+		}
 
 		this.numberOfBytesRead = 0L;
 
@@ -88,9 +95,11 @@ final class ReadOp implements Closeable {
 					numberOfCompressedBytes, uncompressedBuffer);
 				offset += numberOfCompressedBytes;
 
-				final ByteBuffer byteBuffer = this.sharedMemoryProducer.lockSharedMemory();
-				byteBuffer.put(uncompressedBuffer, 0, numberOfUncompressedBytes);
-				this.sharedMemoryProducer.unlockSharedMemory();
+				if (this.sharedMemoryProducer != null) {
+					final ByteBuffer byteBuffer = this.sharedMemoryProducer.lockSharedMemory();
+					byteBuffer.put(uncompressedBuffer, 0, numberOfUncompressedBytes);
+					this.sharedMemoryProducer.unlockSharedMemory();
+				}
 				this.numberOfBytesRead += numberOfUncompressedBytes;
 
 				if (cacheUncompressed) {
@@ -191,9 +200,11 @@ final class ReadOp implements Closeable {
 			final int numberOfUncompressedBytes = decompressor.decompress(compressedBuffer,
 				numberOfBytesInCompressedBuffer, bytesToReadFromHDFS, uncompressedBuffer);
 
-			final ByteBuffer sharedBuffer = this.sharedMemoryProducer.lockSharedMemory();
-			sharedBuffer.put(uncompressedBuffer, 0, numberOfUncompressedBytes);
-			this.sharedMemoryProducer.unlockSharedMemory();
+			if (this.sharedMemoryProducer != null) {
+				final ByteBuffer sharedBuffer = this.sharedMemoryProducer.lockSharedMemory();
+				sharedBuffer.put(uncompressedBuffer, 0, numberOfUncompressedBytes);
+				this.sharedMemoryProducer.unlockSharedMemory();
+			}
 			this.numberOfBytesRead += numberOfUncompressedBytes;
 
 			if (cacheUncompressed) {
@@ -220,27 +231,33 @@ final class ReadOp implements Closeable {
 	@Override
 	public void close() throws IOException {
 
-		this.sharedMemoryProducer.close();
+		if (this.sharedMemoryProducer != null) {
+			this.sharedMemoryProducer.close();
+		}
 	}
 
 	private final void clearUncompressedBuffers() {
 
-		final Iterator<Buffer> it = this.uncompressedBuffers.iterator();
-		while (it.hasNext()) {
-			BufferPool.get().releaseBuffer(it.next().getData());
-		}
+		if (this.uncompressedBuffers != null) {
+			final Iterator<Buffer> it = this.uncompressedBuffers.iterator();
+			while (it.hasNext()) {
+				BufferPool.get().releaseBuffer(it.next().getData());
+			}
 
-		this.uncompressedBuffers.clear();
+			this.uncompressedBuffers.clear();
+		}
 	}
 
 	private final void clearCompressedBuffers() {
 
-		final Iterator<Buffer> it = this.compressedBuffers.iterator();
-		while (it.hasNext()) {
-			BufferPool.get().releaseBuffer(it.next().getData());
-		}
+		if (this.compressedBuffers != null) {
+			final Iterator<Buffer> it = this.compressedBuffers.iterator();
+			while (it.hasNext()) {
+				BufferPool.get().releaseBuffer(it.next().getData());
+			}
 
-		this.compressedBuffers.clear();
+			this.compressedBuffers.clear();
+		}
 	}
 
 	List<Buffer> getUncompressedBuffers() {

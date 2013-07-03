@@ -1,39 +1,55 @@
 package edu.berkeley.icsi.cdfs.datanode;
 
+import java.io.EOFException;
 import java.io.IOException;
+import java.util.List;
 import java.util.Random;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.StringUtils;
 
 import edu.berkeley.icsi.cdfs.PopularBlock;
 import edu.berkeley.icsi.cdfs.PopularFile;
+import edu.berkeley.icsi.cdfs.cache.Buffer;
 import edu.berkeley.icsi.cdfs.cache.BufferPool;
 import edu.berkeley.icsi.cdfs.cache.CompressedBufferCache;
 import edu.berkeley.icsi.cdfs.cache.UncompressedBufferCache;
 import edu.berkeley.icsi.cdfs.protocols.DataNodeNameNodeProtocol;
+import edu.berkeley.icsi.cdfs.utils.PathConverter;
+import edu.berkeley.icsi.cdfs.utils.PathWrapper;
 
 final class BlockPrefetcher extends Thread {
 
 	private static final Log LOG = LogFactory.getLog(BlockPrefetcher.class);
 
-	private static final int SLEEP_INTERVAL = 5000;
+	private static final int SLEEP_INTERVAL = 1000;
 
-	private static final int MAXIMUM_NUMBER_OF_FILES = 10;
+	private static final int MAXIMUM_NUMBER_OF_FILES = 20;
 
 	private final ConnectionDispatcher connectionDispatcher;
 
 	private final DataNodeNameNodeProtocol nameNode;
 
+	private final PathConverter pathConverter;
+
+	private final String host;
+
+	private final FileSystem hdfs;
+
 	private volatile boolean shutDownRequested = false;
 
-	BlockPrefetcher(final ConnectionDispatcher connectionDispatcher, final DataNodeNameNodeProtocol nameNode) {
+	BlockPrefetcher(final ConnectionDispatcher connectionDispatcher, final DataNodeNameNodeProtocol nameNode,
+			final PathConverter pathConverter, final String host, final FileSystem hdfs) {
 		super("Prefetcher thread");
 
 		this.connectionDispatcher = connectionDispatcher;
 		this.nameNode = nameNode;
+		this.pathConverter = pathConverter;
+		this.host = host;
+		this.hdfs = hdfs;
 
 		start();
 	}
@@ -43,6 +59,8 @@ final class BlockPrefetcher extends Thread {
 	 */
 	@Override
 	public void run() {
+
+		LOG.info("Starting block prefetcher");
 
 		final UncompressedBufferCache uncompressedBufferCache = UncompressedBufferCache.get();
 		final CompressedBufferCache compressedBufferCache = CompressedBufferCache.get();
@@ -97,7 +115,8 @@ final class BlockPrefetcher extends Thread {
 					}
 
 					// Does the block fit into the cache
-					if (BufferPool.sizeInCache(popularBlock.getCompressedSize()) > bufferPool.getAvaiableBufferSpace()) {
+					if (BufferPool.sizeInCache(popularBlock.getCompressedLength()) > bufferPool
+						.getAvaiableBufferSpace()) {
 						continue;
 					}
 
@@ -107,6 +126,33 @@ final class BlockPrefetcher extends Thread {
 					}
 
 					LOG.info("Prefetching block " + path + " " + index);
+
+					final Path hdfsPath = this.pathConverter.convert(path, "_" + index);
+
+					ReadOp readOp = null;
+
+					try {
+						readOp = new ReadOp(null);
+						readOp.readFromHDFSCompressed(this.hdfs, hdfsPath, false, true);
+					} catch (EOFException e) {
+					} catch (IOException ioe) {
+						LOG.error(StringUtils.stringifyException(ioe));
+					}
+
+					if (readOp != null && readOp.isBlockFullyRead(popularBlock.getUncompressedLength())) {
+						final List<Buffer> compressedBuffers = readOp.getCompressedBuffers();
+						if (!compressedBuffers.isEmpty()) {
+							if (CompressedBufferCache.get().addCachedBlock(path, index, compressedBuffers)) {
+								synchronized (this.nameNode) {
+									try {
+										this.nameNode.reportCachedBlock(new PathWrapper(path), index, true, this.host);
+									} catch (IOException ioe) {
+										LOG.error(StringUtils.stringifyException(ioe));
+									}
+								}
+							}
+						}
+					}
 				}
 			}
 		}
