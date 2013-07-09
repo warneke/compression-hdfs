@@ -95,8 +95,10 @@ public class DataNode implements ConnectionDispatcher {
 		// Create and store reference to HDFS file system
 		this.hdfs = new Path(hdfsURI).getFileSystem(conf);
 
-		// Start the prefetcher thread
-		this.blockPrefetcher = new BlockPrefetcher(this, this.nameNode, this.pathConverter, this.host, this.hdfs);
+		// Start the prefetcher thread if enabled
+		this.blockPrefetcher = conf.getBoolean(ConfigConstants.ENABLE_BLOCK_PREFETCHING_KEY,
+			ConfigConstants.DEFAULT_ENABLE_BLOCK_PREFETCHING) ? new BlockPrefetcher(this, this.nameNode,
+			this.pathConverter, this.host, this.hdfs) : null;
 	}
 
 	void run() throws IOException {

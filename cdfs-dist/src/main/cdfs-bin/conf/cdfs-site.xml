@@ -8,5 +8,9 @@
     <name>cache.compressed.enable</name>
     <value>true</value>
   </property>
+  <property>
+    <name>cache.prefetch.enable</name>
+    <value>true</value>
+  </property>
 </configuration>
 

@@ -35,4 +35,8 @@ public class ConfigConstants {
 	public static final String ENABLE_COMPRESSED_CACHING_KEY = "cache.compressed.enable";
 
 	public static final boolean DEFAULT_ENABLE_COMPRESSED_CACHING = false;
+
+	public static final String ENABLE_BLOCK_PREFETCHING_KEY = "cache.prefetch.enable";
+
+	public static final boolean DEFAULT_ENABLE_BLOCK_PREFETCHING = false;
 }
