@@ -21,7 +21,9 @@ final class BlockMetaData implements KryoSerializable {
 
 	private Path hdfsPath;
 
-	private int length;
+	private int uncompressedLength;
+
+	private int compressedLength;
 
 	private long offset;
 
@@ -29,10 +31,12 @@ final class BlockMetaData implements KryoSerializable {
 
 	private final Set<String> cachedUncompressed = new HashSet<String>();
 
-	BlockMetaData(final int index, final Path hdfsPath, final int length, final long offset) {
+	BlockMetaData(final int index, final Path hdfsPath, final int uncompressedLength, final int compressedLength,
+			final long offset) {
 		this.index = index;
 		this.hdfsPath = hdfsPath;
-		this.length = length;
+		this.uncompressedLength = uncompressedLength;
+		this.compressedLength = compressedLength;
 		this.offset = offset;
 	}
 
@@ -40,7 +44,8 @@ final class BlockMetaData implements KryoSerializable {
 	private BlockMetaData() {
 		this.index = 0;
 		this.hdfsPath = null;
-		this.length = 0;
+		this.uncompressedLength = 0;
+		this.compressedLength = 0;
 		this.offset = 0L;
 	}
 
@@ -52,8 +57,12 @@ final class BlockMetaData implements KryoSerializable {
 		return this.hdfsPath;
 	}
 
-	int getLength() {
-		return this.length;
+	int getUncompressedLength() {
+		return this.uncompressedLength;
+	}
+
+	int getCompressedLength() {
+		return this.compressedLength;
 	}
 
 	long getOffset() {
@@ -132,7 +141,8 @@ final class BlockMetaData implements KryoSerializable {
 
 		output.writeInt(this.index);
 		output.writeString(this.hdfsPath.toString());
-		output.writeInt(this.length);
+		output.writeInt(this.uncompressedLength);
+		output.writeInt(this.compressedLength);
 		output.writeLong(this.offset);
 	}
 
@@ -144,7 +154,8 @@ final class BlockMetaData implements KryoSerializable {
 
 		this.index = input.readInt();
 		this.hdfsPath = new Path(input.readString());
-		this.length = input.readInt();
+		this.uncompressedLength = input.readInt();
+		this.compressedLength = input.readInt();
 		this.offset = input.readLong();
 	}
 
@@ -173,7 +184,11 @@ final class BlockMetaData implements KryoSerializable {
 			return false;
 		}
 
-		if (this.length != bmd.length) {
+		if (this.uncompressedLength != bmd.uncompressedLength) {
+			return false;
+		}
+
+		if (this.compressedLength != bmd.compressedLength) {
 			return false;
 		}
 
@@ -195,7 +210,7 @@ final class BlockMetaData implements KryoSerializable {
 	public int hashCode() {
 
 		int hc = -(int) (this.offset % Integer.MAX_VALUE);
-		hc += (int) (this.length % Integer.MAX_VALUE);
+		hc += (int) (this.uncompressedLength % Integer.MAX_VALUE);
 
 		return hc + (this.index * 31);
 	}

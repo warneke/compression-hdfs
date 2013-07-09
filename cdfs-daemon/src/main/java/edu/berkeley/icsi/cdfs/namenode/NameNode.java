@@ -163,9 +163,10 @@ public class NameNode implements ClientNameNodeProtocol, DataNodeNameNodeProtoco
 	 */
 	@Override
 	public void createNewBlock(final PathWrapper cdfsPath, final PathWrapper hdfsPath, final int blockIndex,
-			final int blockLength) throws IOException {
+			final int uncompressedLength, final int compressedLength) throws IOException {
 
-		this.metaDataStore.addNewBlock(cdfsPath.getPath(), hdfsPath.getPath(), blockIndex, blockLength);
+		this.metaDataStore.addNewBlock(cdfsPath.getPath(), hdfsPath.getPath(), blockIndex, uncompressedLength,
+			compressedLength);
 	}
 
 	/**

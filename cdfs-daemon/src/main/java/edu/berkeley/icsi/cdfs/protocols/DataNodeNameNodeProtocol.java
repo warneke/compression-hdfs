@@ -13,7 +13,8 @@ import edu.berkeley.icsi.cdfs.utils.WritableArrayList;
 
 public interface DataNodeNameNodeProtocol extends VersionedProtocol {
 
-	void createNewBlock(PathWrapper cdfsPath, PathWrapper hdfsPath, int blockIndex, int blockLength) throws IOException;
+	void createNewBlock(PathWrapper cdfsPath, PathWrapper hdfsPath, int blockIndex, int uncompressedLength,
+			int compressedLength) throws IOException;
 
 	void reportCachedBlock(PathWrapper cdfsPath, int blockIndex, boolean compressed, String host) throws IOException;
 

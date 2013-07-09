@@ -53,7 +53,7 @@ final class FileMetaData implements KryoSerializable, Comparable<FileMetaData> {
 		while (it.hasNext()) {
 
 			final BlockMetaData bmd = it.next();
-			if (overlap(start, end, bmd.getOffset(), bmd.getOffset() + bmd.getLength())) {
+			if (overlap(start, end, bmd.getOffset(), bmd.getOffset() + bmd.getUncompressedLength())) {
 				blocks.add(bmd);
 			}
 
@@ -83,17 +83,17 @@ final class FileMetaData implements KryoSerializable, Comparable<FileMetaData> {
 		return (startA < endB && startB < endA);
 	}
 
-	void addNewBlock(final Path hdfsPath, final int blockIndex, final int blockLength) {
+	void addNewBlock(final Path hdfsPath, final int blockIndex, final int uncompressedLength, final int compressedLength) {
 
 		// Sanity check
 		if (blockIndex != this.blocks.size()) {
 			throw new IllegalStateException("Expected block " + this.blocks.size() + ", but received " + blockIndex);
 		}
 
-		this.blocks.add(new BlockMetaData(blockIndex, hdfsPath, blockLength, this.length));
+		this.blocks.add(new BlockMetaData(blockIndex, hdfsPath, uncompressedLength, compressedLength, this.length));
 
 		// Increase the length of the total file
-		this.length += blockLength;
+		this.length += uncompressedLength;
 
 		// Update modification time
 		this.modificationTime = System.currentTimeMillis();

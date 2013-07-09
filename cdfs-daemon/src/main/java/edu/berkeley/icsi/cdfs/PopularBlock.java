@@ -12,9 +12,12 @@ public final class PopularBlock implements Writable {
 
 	private int uncompressedLength;
 
-	public PopularBlock(final int index, final int uncompressedLength) {
+	private int compressedLength;
+
+	public PopularBlock(final int index, final int uncompressedLength, final int compressedLength) {
 		this.index = index;
 		this.uncompressedLength = uncompressedLength;
+		this.compressedLength = compressedLength;
 	}
 
 	public PopularBlock() {
@@ -29,7 +32,7 @@ public final class PopularBlock implements Writable {
 	}
 
 	public int getCompressedLength() {
-		return 0;
+		return this.compressedLength;
 	}
 
 	/**
@@ -40,6 +43,7 @@ public final class PopularBlock implements Writable {
 
 		out.writeInt(this.index);
 		out.writeInt(this.uncompressedLength);
+		out.writeInt(this.compressedLength);
 	}
 
 	/**
@@ -50,6 +54,6 @@ public final class PopularBlock implements Writable {
 
 		this.index = in.readInt();
 		this.uncompressedLength = in.readInt();
+		this.compressedLength = in.readInt();
 	}
-
 }

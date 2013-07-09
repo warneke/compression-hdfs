@@ -96,7 +96,7 @@ final class Connection extends Thread {
 					// Report block information to name node
 					synchronized (this.nameNode) {
 						this.nameNode.createNewBlock(cdfsPath, new PathWrapper(hdfsPath), blockIndex,
-							writeOp.getBytesWrittenInBlock());
+							writeOp.getUncompressedBytesWrittenInBlock(), writeOp.getCompressedBytesWrittenInBlock());
 					}
 
 					// See if we had enough buffers to cache the written data

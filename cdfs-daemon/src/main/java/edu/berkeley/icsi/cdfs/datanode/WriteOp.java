@@ -42,7 +42,9 @@ final class WriteOp implements Closeable {
 
 	private List<Buffer> compressedBuffers = null;
 
-	private int bytesWrittenInBlock = 0;
+	private int uncompressedBytesWrittenInBlock = 0;
+
+	private int compressedBytesWrittenInBlock = 0;
 
 	WriteOp(final Socket socket, final FileSystem hdfs, final Configuration conf) throws IOException {
 
@@ -85,6 +87,7 @@ final class WriteOp implements Closeable {
 		BufferPool bufferPool = BufferPool.get();
 
 		int readBytes = 0;
+		int compressedBytesWritten = 0;
 		while (readBytes < blockSize) {
 
 			final ByteBuffer sharedBuffer;
@@ -137,6 +140,7 @@ final class WriteOp implements Closeable {
 					} else {
 						// The buffer is full, write it to HDFS and then decide what to do with it
 						hdfsOutputStream.write(compressedBuffer, 0, numberOfBytesInCompressedBuffer);
+						compressedBytesWritten += numberOfBytesInCompressedBuffer;
 						if (cacheCompressed) {
 							final Buffer buffer = new Buffer(compressedBuffer, numberOfBytesInCompressedBuffer);
 							this.compressedBuffers.add(buffer);
@@ -176,6 +180,7 @@ final class WriteOp implements Closeable {
 		// We still need to write the remaining data from the compressed buffer to HDFS
 		if (numberOfBytesInCompressedBuffer > 0) {
 			hdfsOutputStream.write(compressedBuffer, 0, numberOfBytesInCompressedBuffer);
+			compressedBytesWritten += numberOfBytesInCompressedBuffer;
 			if (cacheCompressed) {
 				final Buffer buffer = new Buffer(compressedBuffer, numberOfBytesInCompressedBuffer);
 				this.compressedBuffers.add(buffer);
@@ -183,7 +188,8 @@ final class WriteOp implements Closeable {
 		}
 
 		// Clean up
-		this.bytesWrittenInBlock = readBytes;
+		this.uncompressedBytesWrittenInBlock = readBytes;
+		this.compressedBytesWrittenInBlock = compressedBytesWritten;
 		hdfsOutputStream.close();
 
 		LOG.info("Finished block after " + readBytes + " " + readEOF);
@@ -201,9 +207,14 @@ final class WriteOp implements Closeable {
 		return Collections.unmodifiableList(this.compressedBuffers);
 	}
 
-	int getBytesWrittenInBlock() {
+	int getUncompressedBytesWrittenInBlock() {
 
-		return this.bytesWrittenInBlock;
+		return this.uncompressedBytesWrittenInBlock;
+	}
+
+	int getCompressedBytesWrittenInBlock() {
+
+		return this.compressedBytesWrittenInBlock;
 	}
 
 	private final void clearUncompressedBuffers() {

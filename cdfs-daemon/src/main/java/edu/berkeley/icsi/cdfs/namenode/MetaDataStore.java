@@ -133,11 +133,11 @@ final class MetaDataStore {
 		return true;
 	}
 
-	synchronized void addNewBlock(final Path cdfsPath, final Path hdfsPath, final int blockIndex, final int blockLength)
-			throws IOException {
+	synchronized void addNewBlock(final Path cdfsPath, final Path hdfsPath, final int blockIndex,
+			final int uncompressedLength, final int compressedLength) throws IOException {
 
 		final FileMetaData fmd = this.metaData.get(cdfsPath.toUri().getPath());
-		fmd.addNewBlock(hdfsPath, blockIndex, blockLength);
+		fmd.addNewBlock(hdfsPath, blockIndex, uncompressedLength, compressedLength);
 
 		// Save meta data changes
 		save(fmd);
@@ -194,7 +194,7 @@ final class MetaDataStore {
 			}
 
 			blockLocations[i] = new CDFSBlockLocation(blocks[i].getIndex(), names, hosts, blocks[i].getOffset(),
-				blocks[i].getLength());
+				blocks[i].getUncompressedLength());
 
 			if (LOG.isInfoEnabled()) {
 				LOG.info("Constructed " + fmd.getPath() + " " + blockLocations[i]);
@@ -223,7 +223,7 @@ final class MetaDataStore {
 
 		for (int i = 0; i < blocks.length; ++i) {
 			readInformation[i] = new BlockReadInformation(blocks[i].getIndex(), blocks[i].getOffset(),
-				blocks[i].getLength(), numberOfBlocks, this.cacheUncompressed, this.cacheCompressed);
+				blocks[i].getUncompressedLength(), numberOfBlocks, this.cacheUncompressed, this.cacheCompressed);
 		}
 
 		return readInformation;

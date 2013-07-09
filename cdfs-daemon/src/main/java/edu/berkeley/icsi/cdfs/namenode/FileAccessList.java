@@ -240,7 +240,8 @@ final class FileAccessList {
 			for (int j = 0; j < numberOfBlocks; ++j) {
 
 				final BlockMetaData bmd = it.next();
-				popularBlocks[j] = new PopularBlock(bmd.getIndex(), bmd.getLength());
+				popularBlocks[j] = new PopularBlock(bmd.getIndex(), bmd.getUncompressedLength(),
+					bmd.getCompressedLength());
 			}
 
 			final double popularityFactor = (entry.accessCount * (double) numberOfBlocks) / (double) this.counter;
