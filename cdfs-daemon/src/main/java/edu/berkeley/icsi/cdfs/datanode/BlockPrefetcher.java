@@ -18,6 +18,7 @@ import edu.berkeley.icsi.cdfs.cache.BufferPool;
 import edu.berkeley.icsi.cdfs.cache.CompressedBufferCache;
 import edu.berkeley.icsi.cdfs.cache.UncompressedBufferCache;
 import edu.berkeley.icsi.cdfs.protocols.DataNodeNameNodeProtocol;
+import edu.berkeley.icsi.cdfs.utils.CompressionUtils;
 import edu.berkeley.icsi.cdfs.utils.PathConverter;
 import edu.berkeley.icsi.cdfs.utils.PathWrapper;
 
@@ -104,51 +105,82 @@ final class BlockPrefetcher extends Thread {
 				final Path path = popularFile.getPath();
 				final int numberOfBlocks = popularFile.getNumberOfBlocks();
 
-				for (int j = 0; j < numberOfBlocks; ++j) {
+				// Pick a random block
+				final int r = rand.nextInt(numberOfBlocks);
+				final PopularBlock popularBlock = popularFile.getBlock(r);
+				final int index = popularBlock.getIndex();
 
-					final PopularBlock popularBlock = popularFile.getBlock(j);
-					final int index = popularBlock.getIndex();
+				// Is block already cached?
+				if (uncompressedBufferCache.contains(path, index) || compressedBufferCache.contains(path, index)) {
+					continue;
+				}
 
-					// Is block already cached?
-					if (uncompressedBufferCache.contains(path, index) || compressedBufferCache.contains(path, index)) {
-						continue;
+				final long availableBufferSpace = bufferPool.getAvaiableBufferSpace();
+
+				final long uncompressedSize = BufferPool.sizeInCache(popularBlock.getUncompressedLength());
+				final long compressedSize = BufferPool.sizeInCache(popularBlock.getCompressedLength());
+
+				boolean cacheCompressed = false;
+				boolean cacheUncompressed = false;
+
+				if (uncompressedSize + compressedSize <= availableBufferSpace) {
+					cacheUncompressed = true;
+					cacheCompressed = true;
+				} else if (uncompressedSize <= availableBufferSpace) {
+					cacheUncompressed = true;
+				} else if (compressedSize <= availableBufferSpace) {
+					cacheCompressed = true;
+				}
+
+				// We are out of space
+				if (!cacheUncompressed && !cacheCompressed) {
+					continue;
+				}
+
+				// Only cache the compressed version it is smaller than the uncompressed version
+				if (cacheUncompressed && cacheCompressed && !CompressionUtils.isCompressible(popularBlock)) {
+					cacheCompressed = false;
+				}
+
+				LOG.info("Prefetching block " + path + " " + index + " " + (cacheUncompressed ? "uncompressed" : "")
+					+ " " + (cacheCompressed ? "compressed" : ""));
+
+				final Path hdfsPath = this.pathConverter.convert(path, "_" + index);
+
+				ReadOp readOp = null;
+
+				try {
+					readOp = new ReadOp(null);
+					readOp.readFromHDFSCompressed(this.hdfs, hdfsPath, cacheUncompressed, true);
+				} catch (EOFException e) {
+				} catch (IOException ioe) {
+					LOG.error(StringUtils.stringifyException(ioe));
+				}
+
+				if (readOp != null && readOp.isBlockFullyRead(popularBlock.getUncompressedLength())) {
+
+					// See if we had enough buffers to cache the written data
+					final List<Buffer> uncompressedBuffers = readOp.getUncompressedBuffers();
+					if (!uncompressedBuffers.isEmpty()) {
+						if (UncompressedBufferCache.get().addCachedBlock(path, index, uncompressedBuffers)) {
+							synchronized (this.nameNode) {
+								try {
+									this.nameNode.reportCachedBlock(new PathWrapper(path), index, false, this.host);
+								} catch (IOException e) {
+									LOG.error(StringUtils.stringifyException(e));
+								}
+							}
+						}
 					}
 
-					// Does the block fit into the cache
-					if (BufferPool.sizeInCache(popularBlock.getCompressedLength()) > bufferPool
-						.getAvaiableBufferSpace()) {
-						continue;
-					}
-
-					// Make sure we do not cache all the blocks
-					if (rand.nextInt(numberOfBlocks) != index) {
-						continue;
-					}
-
-					LOG.info("Prefetching block " + path + " " + index);
-
-					final Path hdfsPath = this.pathConverter.convert(path, "_" + index);
-
-					ReadOp readOp = null;
-
-					try {
-						readOp = new ReadOp(null);
-						readOp.readFromHDFSCompressed(this.hdfs, hdfsPath, false, true);
-					} catch (EOFException e) {
-					} catch (IOException ioe) {
-						LOG.error(StringUtils.stringifyException(ioe));
-					}
-
-					if (readOp != null && readOp.isBlockFullyRead(popularBlock.getUncompressedLength())) {
-						final List<Buffer> compressedBuffers = readOp.getCompressedBuffers();
-						if (!compressedBuffers.isEmpty()) {
-							if (CompressedBufferCache.get().addCachedBlock(path, index, compressedBuffers)) {
-								synchronized (this.nameNode) {
-									try {
-										this.nameNode.reportCachedBlock(new PathWrapper(path), index, true, this.host);
-									} catch (IOException ioe) {
-										LOG.error(StringUtils.stringifyException(ioe));
-									}
+					final List<Buffer> compressedBuffers = readOp.getCompressedBuffers();
+					if (!compressedBuffers.isEmpty()) {
+						if (CompressedBufferCache.get().addCachedBlock(path, index, compressedBuffers)) {
+							synchronized (this.nameNode) {
+								try {
+									this.nameNode.reportCachedBlock(new PathWrapper(path), index, true, this.host);
+								} catch (IOException e) {
+									LOG.error(StringUtils.stringifyException(e));
 								}
 							}
 						}
