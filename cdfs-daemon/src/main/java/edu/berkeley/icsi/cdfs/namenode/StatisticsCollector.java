@@ -4,6 +4,8 @@ import java.io.BufferedOutputStream;
 import java.io.DataOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
@@ -40,9 +42,15 @@ final class StatisticsCollector {
 		final boolean cacheUncompressed = conf.getBoolean(ConfigConstants.ENABLE_UNCOMPRESSED_CACHING_KEY,
 			ConfigConstants.DEFAULT_ENABLE_UNCOMPRESSED_CACHING);
 
+		final boolean prefetchBlocks = conf.getBoolean(ConfigConstants.ENABLE_BLOCK_PREFETCHING_KEY,
+			ConfigConstants.DEFAULT_ENABLE_BLOCK_PREFETCHING);
+
 		final StringBuilder sb = new StringBuilder("statistics-");
 		sb.append(cacheUncompressed ? 'U' : 'u');
 		sb.append(cacheCompressed ? 'C' : 'c');
+		sb.append(prefetchBlocks ? 'P' : 'p');
+		sb.append('-');
+		sb.append(new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()));
 
 		return sb.toString();
 	}
