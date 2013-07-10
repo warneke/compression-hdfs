@@ -21,13 +21,11 @@ public class FixedByteRecordWriter extends RecordWriter<FixedByteRecord, NullWri
 	private int numberOfBytesInBuffer = 0;
 
 	private final StatisticsCollector statisticsCollector;
-	
+
 	FixedByteRecordWriter(final Path path, final Configuration conf, final int taskID) throws IOException {
 
-		//this.fs = path.getFileSystem(conf);
-		//this.outputStream = this.fs.create(path, true);
-		this.fs = null;
-		this.outputStream = null;
+		this.fs = path.getFileSystem(conf);
+		this.outputStream = this.fs.create(path, true);
 		this.statisticsCollector = StatisticsCollector.forReduce(conf, taskID);
 	}
 
@@ -38,13 +36,13 @@ public class FixedByteRecordWriter extends RecordWriter<FixedByteRecord, NullWri
 	public void close(final TaskAttemptContext arg0) throws IOException, InterruptedException {
 
 		this.statisticsCollector.close();
-		/*if (this.numberOfBytesInBuffer > 0) {
+		if (this.numberOfBytesInBuffer > 0) {
 			this.outputStream.write(this.buffer, 0, this.numberOfBytesInBuffer);
 			this.numberOfBytesInBuffer = 0;
 		}
 
 		this.outputStream.close();
-		this.fs.close();*/
+		this.fs.close();
 	}
 
 	/**
@@ -53,12 +51,12 @@ public class FixedByteRecordWriter extends RecordWriter<FixedByteRecord, NullWri
 	@Override
 	public void write(final FixedByteRecord arg0, final NullWritable arg1) throws IOException, InterruptedException {
 
-		/*if (this.numberOfBytesInBuffer + FixedByteRecord.LENGTH > this.buffer.length) {
+		if (this.numberOfBytesInBuffer + FixedByteRecord.LENGTH > this.buffer.length) {
 			this.outputStream.write(this.buffer, 0, this.numberOfBytesInBuffer);
 			this.numberOfBytesInBuffer = 0;
 		}
 
 		System.arraycopy(arg0.getData(), 0, this.buffer, this.numberOfBytesInBuffer, FixedByteRecord.LENGTH);
-		this.numberOfBytesInBuffer += FixedByteRecord.LENGTH;*/
+		this.numberOfBytesInBuffer += FixedByteRecord.LENGTH;
 	}
 }
