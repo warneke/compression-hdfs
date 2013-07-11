@@ -42,11 +42,14 @@ final class SharedMemoryOutputStream extends OutputStream {
 			}
 		}
 
-		if (this.smp != null) {
-			this.smp.close();
-		} else {
-			this.socket.close();
+		if (this.smp == null) {
+			// No data has been written, but we lock/unlock the shared buffer once to establish communication anyway
+			this.smp = new SharedMemoryProducer(this.socket);
+			this.smp.lockSharedMemory();
+			this.smp.unlockSharedMemory();
 		}
+
+		this.smp.close();
 
 		LOG.info("Wrote " + this.totalWritten + " bytes to output stream");
 	}
