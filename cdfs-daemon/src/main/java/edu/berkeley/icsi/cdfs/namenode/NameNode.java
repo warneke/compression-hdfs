@@ -86,7 +86,8 @@ public class NameNode implements ClientNameNodeProtocol, DataNodeNameNodeProtoco
 
 	public void shutDown() {
 		this.rpcServer.stop();
-		this.statisticsCollector.stop();
+		this.statisticsCollector.shutDown();
+		this.metaDataStore.shutDown();
 	}
 
 	public static void main(final String[] args) {

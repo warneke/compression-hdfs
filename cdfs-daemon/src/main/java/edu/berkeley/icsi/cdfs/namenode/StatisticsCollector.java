@@ -55,7 +55,7 @@ final class StatisticsCollector {
 		return sb.toString();
 	}
 
-	void stop() {
+	void shutDown() {
 
 		try {
 			synchronized (this.outputStream) {

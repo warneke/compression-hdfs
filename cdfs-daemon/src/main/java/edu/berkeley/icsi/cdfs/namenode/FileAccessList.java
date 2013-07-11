@@ -1,5 +1,11 @@
 package edu.berkeley.icsi.cdfs.namenode;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -9,6 +15,7 @@ import java.util.NoSuchElementException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.util.StringUtils;
 
 import edu.berkeley.icsi.cdfs.PopularBlock;
 import edu.berkeley.icsi.cdfs.PopularFile;
@@ -16,6 +23,8 @@ import edu.berkeley.icsi.cdfs.PopularFile;
 final class FileAccessList {
 
 	private static final Log LOG = LogFactory.getLog(FileAccessList.class);
+
+	private static final String PERSISTENT_FILENAME = "pt.dat";
 
 	private static final int REPORT_INTERVAL = 1000;
 
@@ -103,6 +112,14 @@ final class FileAccessList {
 	private long counter = 0;
 
 	private int nextElementIndex = 1;
+
+	FileAccessList(final MetaDataStore mds) {
+		try {
+			loadPopularityList(mds);
+		} catch (IOException e) {
+			LOG.error(StringUtils.stringifyException(e));
+		}
+	}
 
 	Iterator<FileMetaData> iterator() {
 
@@ -254,5 +271,96 @@ final class FileAccessList {
 		this.cachedPopularFiles = popularFiles.toArray(new PopularFile[0]);
 
 		return this.cachedPopularFiles;
+	}
+
+	void shutDown() {
+
+		try {
+			savePopularityList();
+		} catch (IOException e) {
+			LOG.error(StringUtils.stringifyException(e));
+		}
+	}
+
+	private void savePopularityList() throws IOException {
+
+		final FileOutputStream fos = new FileOutputStream(PERSISTENT_FILENAME);
+		final DataOutputStream dos = new DataOutputStream(fos);
+
+		try {
+
+			dos.writeLong(this.counter);
+			dos.writeInt(this.nextElementIndex);
+
+			FileAccessListEntry entry = this.head;
+			int c = 0;
+			while (entry != null) {
+
+				++c;
+
+				dos.writeUTF(entry.file.getPath().toUri().getPath());
+				dos.writeInt(entry.index);
+				dos.writeDouble(entry.accessCount);
+
+				entry = entry.next;
+			}
+
+			LOG.info("Writing " + c + " elements, " + this.nextElementIndex);
+
+		} finally {
+			dos.close();
+		}
+	}
+
+	private void loadPopularityList(final MetaDataStore mds) throws IOException {
+
+		final File persistentFile = new File(PERSISTENT_FILENAME);
+		if (!persistentFile.exists()) {
+			return;
+		}
+
+		final FileInputStream fis = new FileInputStream(persistentFile);
+		final DataInputStream dis = new DataInputStream(fis);
+
+		try {
+
+			this.counter = dis.readLong();
+			this.nextElementIndex = dis.readInt();
+
+			final int numberOfFiles = this.nextElementIndex - 1;
+
+			FileAccessListEntry previousEntry = null;
+			LOG.info("Expecting to read " + numberOfFiles + " files");
+			for (int i = 0; i < numberOfFiles; ++i) {
+
+				final String path = dis.readUTF();
+				final FileMetaData fmd = mds.getMetaDataByPath(path);
+				if (fmd == null) {
+					throw new IllegalStateException("Cannot find metadata to file " + path);
+				}
+				final int index = dis.readInt();
+				final double accessCount = dis.readDouble();
+
+				final FileAccessListEntry entry = new FileAccessListEntry(fmd, index);
+				entry.accessCount = accessCount;
+
+				if (previousEntry == null) {
+					this.head = entry;
+				} else {
+					previousEntry.next = entry;
+				}
+
+				entry.prev = previousEntry;
+				this.tail = entry;
+				previousEntry = entry;
+
+				this.lookup.put(fmd, entry);
+
+				LOG.info("Read " + path + ", " + index + ", " + accessCount);
+			}
+
+		} finally {
+			dis.close();
+		}
 	}
 }

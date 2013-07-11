@@ -43,7 +43,7 @@ final class MetaDataStore {
 
 	private final Map<String, HostCacheData> hostCacheData = new HashMap<String, HostCacheData>();
 
-	private final FileAccessList fileAccessList = new FileAccessList();
+	private final FileAccessList fileAccessList;
 
 	private final Kryo kryo = new Kryo();
 
@@ -71,6 +71,8 @@ final class MetaDataStore {
 		this.storageLocation = "/tmp/cdfs-" + userName;
 		new File(this.storageLocation).mkdirs();
 		loadMetaData();
+
+		this.fileAccessList = new FileAccessList(this);
 	}
 
 	private void loadMetaData() throws IOException {
@@ -95,6 +97,16 @@ final class MetaDataStore {
 		final Output output = new Output(new FileOutputStream(file));
 		this.kryo.writeObject(output, fmd);
 		output.close();
+	}
+
+	synchronized FileMetaData getMetaDataByPath(final String path) {
+
+		return this.metaData.get(path);
+	}
+
+	synchronized void shutDown() {
+
+		this.fileAccessList.shutDown();
 	}
 
 	synchronized boolean create(final Path path, final boolean overwrite) throws IOException {
