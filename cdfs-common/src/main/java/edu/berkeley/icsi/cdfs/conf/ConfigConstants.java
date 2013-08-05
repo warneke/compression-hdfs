@@ -39,4 +39,8 @@ public class ConfigConstants {
 	public static final String ENABLE_BLOCK_PREFETCHING_KEY = "cache.prefetch.enable";
 
 	public static final boolean DEFAULT_ENABLE_BLOCK_PREFETCHING = false;
+
+	public static final String ENABLE_AUTO_EVICT_KEY = "cache.autoevict.enable";
+
+	public static final boolean DEFAULT_ENABLE_AUTO_EVICT = false;
 }

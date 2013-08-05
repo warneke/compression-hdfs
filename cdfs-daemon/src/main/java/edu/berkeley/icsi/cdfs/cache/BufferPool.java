@@ -42,16 +42,19 @@ public final class BufferPool {
 
 	private final ArrayBlockingQueue<byte[]> buffers;
 
-	private BufferPool(final DataNodeNameNodeProtocol nameNode, final String host) {
+	private final boolean autoEvict;
+
+	private BufferPool(final DataNodeNameNodeProtocol nameNode, final String host, final boolean autoEvict) {
 
 		this.nameNode = nameNode;
 		this.host = host;
+		this.autoEvict = autoEvict;
 
 		final long availableMemoryForBuffers = getSizeOfFreeMemory();
 		final int numberOfBuffers = (int) (availableMemoryForBuffers / ConfigConstants.BUFFER_SIZE);
 
 		LOG.info("Initialized buffer pool with " + availableMemoryForBuffers + " bytes of memory, creating "
-			+ numberOfBuffers + " buffers");
+			+ numberOfBuffers + " buffers (auto evict " + (autoEvict ? "enabled" : "disabled") + ")");
 
 		this.buffers = new ArrayBlockingQueue<byte[]>(numberOfBuffers);
 
@@ -117,20 +120,21 @@ public final class BufferPool {
 		return INSTANCE;
 	}
 
-	public static synchronized void initialize(final DataNodeNameNodeProtocol nameNode, final String host) {
+	public static synchronized void initialize(final DataNodeNameNodeProtocol nameNode, final String host,
+			final boolean autoEvict) {
 
 		if (INSTANCE != null) {
 			throw new IllegalStateException("Buffer pool has already been initialized");
 		}
 
-		INSTANCE = new BufferPool(nameNode, host);
+		INSTANCE = new BufferPool(nameNode, host, autoEvict);
 	}
 
 	public byte[] lockBuffer() throws IOException {
 
 		byte[] buffer = this.buffers.poll();
 
-		while (buffer == null) {
+		while (buffer == null && this.autoEvict) {
 
 			// Do cache eviction
 			final EvictionEntry ee;

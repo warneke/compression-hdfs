@@ -86,8 +86,11 @@ public class DataNode implements ConnectionDispatcher {
 		}
 		LOG.info("Determined hostname of datanode: " + this.host);
 
+		final boolean autoEvict = conf.getBoolean(ConfigConstants.ENABLE_AUTO_EVICT_KEY,
+			ConfigConstants.DEFAULT_ENABLE_AUTO_EVICT);
+
 		// Initialization of buffer pool at the beginning
-		BufferPool.initialize(this.nameNode, this.host);
+		BufferPool.initialize(this.nameNode, this.host, autoEvict);
 
 		// Register with name node
 		this.nameNode.registerDataNode(this.host, CDFS.DATANODE_DATA_PORT);
