@@ -90,7 +90,9 @@ final class MapReduceJob implements Comparable<MapReduceJob> {
 	public String toString() {
 
 		final StringBuilder sb = new StringBuilder(this.jobID);
-		sb.append(": ");
+		sb.append(" (");
+		sb.append(this.inputFile.toUri().getPath());
+		sb.append("): ");
 		final double gradient = computeGradient(this.startTime, this.endTime);
 		final long duration = this.endTime - this.startTime;
 		sb.append(duration);
